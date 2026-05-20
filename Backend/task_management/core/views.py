@@ -9,12 +9,16 @@ from .serializers import (
     LoginSerializer,
     CreateAdminSerializer,
     CreateTeamLeaderSerializer,
+    TaskCreateSerializer,
+    TaskListSerializer,
+    TaskStatusUpdateSerializer,
 )
 from .permissions import IsAdmin, IsSuperAdmin
 from .roles import UserRole
 from .response import success_response, error_response
 from .pagination import CustomPagination
 from django.db.models import Q
+from .models import Task
 
 load_dotenv()
 
@@ -178,6 +182,7 @@ class ProfileView(APIView):
 
 # Data listing
 
+
 class AdminListView(APIView):
 
     permission_classes = [IsAuthenticated, IsSuperAdmin]
@@ -186,23 +191,18 @@ class AdminListView(APIView):
 
         search = request.GET.get("search")
 
-        queryset = User.objects.filter(
-            role=UserRole.ADMIN.value
-        ).order_by("-id")
+        queryset = User.objects.filter(role=UserRole.ADMIN.value).order_by("-id")
 
         if search:
             queryset = queryset.filter(
-                Q(username__icontains=search) |
-                Q(email__icontains=search) |
-                Q(phone_number__icontains=search)
+                Q(username__icontains=search)
+                | Q(email__icontains=search)
+                | Q(phone_number__icontains=search)
             )
 
         paginator = CustomPagination()
 
-        paginated_queryset = paginator.paginate_queryset(
-            queryset,
-            request
-        )
+        paginated_queryset = paginator.paginate_queryset(queryset, request)
 
         data = [
             {
@@ -215,12 +215,14 @@ class AdminListView(APIView):
             for user in paginated_queryset
         ]
 
-        return paginator.get_paginated_response({
-            "isV1": True,
-            "success": True,
-            "message": "Admins fetched successfully",
-            "data": data,
-        })
+        return paginator.get_paginated_response(
+            {
+                "isV1": True,
+                "success": True,
+                "message": "Admins fetched successfully",
+                "data": data,
+            }
+        )
 
 
 class TeamMemberListForSuperAdminView(APIView):
@@ -231,23 +233,22 @@ class TeamMemberListForSuperAdminView(APIView):
 
         search = request.GET.get("search")
 
-        queryset = User.objects.filter(
-            role=UserRole.TEAM_MEMBER.value
-        ).select_related("created_by").order_by("-id")
+        queryset = (
+            User.objects.filter(role=UserRole.TEAM_MEMBER.value)
+            .select_related("created_by")
+            .order_by("-id")
+        )
 
         if search:
             queryset = queryset.filter(
-                Q(username__icontains=search) |
-                Q(email__icontains=search) |
-                Q(phone_number__icontains=search)
+                Q(username__icontains=search)
+                | Q(email__icontains=search)
+                | Q(phone_number__icontains=search)
             )
 
         paginator = CustomPagination()
 
-        paginated_queryset = paginator.paginate_queryset(
-            queryset,
-            request
-        )
+        paginated_queryset = paginator.paginate_queryset(queryset, request)
 
         data = [
             {
@@ -256,20 +257,19 @@ class TeamMemberListForSuperAdminView(APIView):
                 "email": user.email,
                 "phone_number": user.phone_number,
                 "role": user.role,
-                "created_by": (
-                    user.created_by.username
-                    if user.created_by else None
-                )
+                "created_by": (user.created_by.username if user.created_by else None),
             }
             for user in paginated_queryset
         ]
 
-        return paginator.get_paginated_response({
-            "isV1": True,
-            "success": True,
-            "message": "Team members fetched successfully",
-            "data": data,
-        })
+        return paginator.get_paginated_response(
+            {
+                "isV1": True,
+                "success": True,
+                "message": "Team members fetched successfully",
+                "data": data,
+            }
+        )
 
 
 class TeamMemberListForAdminView(APIView):
@@ -281,23 +281,19 @@ class TeamMemberListForAdminView(APIView):
         search = request.GET.get("search")
 
         queryset = User.objects.filter(
-            role=UserRole.TEAM_MEMBER.value,
-            created_by=request.user
+            role=UserRole.TEAM_MEMBER.value, created_by=request.user
         ).order_by("-id")
 
         if search:
             queryset = queryset.filter(
-                Q(username__icontains=search) |
-                Q(email__icontains=search) |
-                Q(phone_number__icontains=search)
+                Q(username__icontains=search)
+                | Q(email__icontains=search)
+                | Q(phone_number__icontains=search)
             )
 
         paginator = CustomPagination()
 
-        paginated_queryset = paginator.paginate_queryset(
-            queryset,
-            request
-        )
+        paginated_queryset = paginator.paginate_queryset(queryset, request)
 
         data = [
             {
@@ -310,9 +306,145 @@ class TeamMemberListForAdminView(APIView):
             for user in paginated_queryset
         ]
 
-        return paginator.get_paginated_response({
-            "isV1": True,
-            "success": True,
-            "message": "Your team members fetched successfully",
-            "data": data,
-        })
+        return paginator.get_paginated_response(
+            {
+                "isV1": True,
+                "success": True,
+                "message": "Your team members fetched successfully",
+                "data": data,
+            }
+        )
+
+# task creation
+
+class CreateTaskView(APIView):
+
+    permission_classes = [IsAuthenticated, IsAdmin]
+
+    def post(self, request):
+
+        serializer = TaskCreateSerializer(
+            data=request.data,
+            context={"request": request},
+        )
+
+        if not serializer.is_valid():
+
+            return error_response(
+                message="Validation failed",
+                errors=serializer.errors,
+                status_code=status.HTTP_400_BAD_REQUEST,
+            )
+
+        task = serializer.save()
+
+        return success_response(
+            message="Task created successfully",
+            data=TaskListSerializer(task).data,
+            status_code=status.HTTP_201_CREATED,
+        )
+
+
+class AdminTaskListView(APIView):
+
+    permission_classes = [IsAuthenticated, IsAdmin]
+
+    def get(self, request):
+
+        search = request.GET.get("search")
+
+        queryset = Task.objects.filter(assigned_by=request.user).select_related(
+            "assignee", "assigned_by"
+        )
+
+        if search:
+            queryset = queryset.filter(
+                Q(task_name__icontains=search)
+                | Q(project_name__icontains=search)
+                | Q(status__icontains=search)
+            )
+
+        paginator = CustomPagination()
+
+        paginated_queryset = paginator.paginate_queryset(queryset, request)
+
+        serializer = TaskListSerializer(paginated_queryset, many=True)
+
+        return paginator.get_paginated_response(
+            {
+                "isV1": True,
+                "success": True,
+                "message": "Tasks fetched successfully",
+                "data": serializer.data,
+            }
+        )
+
+
+class TeamMemberTaskListView(APIView):
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+
+        queryset = Task.objects.filter(assignee=request.user).select_related(
+            "assignee", "assigned_by"
+        )
+
+        serializer = TaskListSerializer(queryset, many=True)
+
+        return success_response(
+            message="Your tasks fetched successfully",
+            data=serializer.data,
+            status_code=status.HTTP_200_OK,
+        )
+
+
+class UpdateTaskStatusView(APIView):
+
+    permission_classes = [IsAuthenticated]
+
+    def patch(self, request, task_id):
+
+        try:
+            task = Task.objects.get(id=task_id, assignee=request.user)
+        except Task.DoesNotExist:
+
+            return error_response(
+                message="Task not found",
+                status_code=status.HTTP_404_NOT_FOUND,
+            )
+
+        serializer = TaskStatusUpdateSerializer(task, data=request.data, partial=True)
+
+        if not serializer.is_valid():
+
+            return error_response(
+                message="Validation failed",
+                errors=serializer.errors,
+                status_code=status.HTTP_400_BAD_REQUEST,
+            )
+
+        serializer.save()
+
+        return success_response(
+            message="Task status updated successfully",
+            data=serializer.data,
+            status_code=status.HTTP_200_OK,
+        )
+
+
+class SuperAdminTaskProgressView(APIView):
+
+    permission_classes = [IsAuthenticated, IsSuperAdmin]
+
+    def get(self, request):
+
+        queryset = Task.objects.select_related("assignee", "assigned_by")
+
+        serializer = TaskListSerializer(queryset, many=True)
+
+        return success_response(
+            message="Task progress fetched successfully",
+            data=serializer.data,
+            status_code=status.HTTP_200_OK,
+        )
