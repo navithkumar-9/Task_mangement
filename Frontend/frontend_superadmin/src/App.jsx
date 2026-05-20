@@ -5,7 +5,7 @@ import Layout from './components/Layout';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import CreateAdmin from './pages/CreateAdmin';
-import AdminsList from './pages/AdminsList';
+import ManageUsers from './pages/ManageUsers';
 import Settings from './pages/Settings';
 import './App.css';
 
@@ -17,7 +17,7 @@ function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/dashboard" element={<ProtectedRoute><Layout><Dashboard /></Layout></ProtectedRoute>} />
           <Route path="/create-admin" element={<ProtectedRoute><Layout><CreateAdmin /></Layout></ProtectedRoute>} />
-          <Route path="/admins" element={<ProtectedRoute><Layout><AdminsList /></Layout></ProtectedRoute>} />
+          <Route path="/users" element={<ProtectedRoute><Layout><ManageUsers /></Layout></ProtectedRoute>} />
           <Route path="/settings" element={<ProtectedRoute><Layout><Settings /></Layout></ProtectedRoute>} />
           <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
