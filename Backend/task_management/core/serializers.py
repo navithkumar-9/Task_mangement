@@ -58,6 +58,28 @@ class CreateTeamLeaderSerializer(serializers.ModelSerializer):
         return user
 
 
+class UpdateTeamMemberSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = User_model
+        fields = ["user_name", "email", "phone_number"]
+        extra_kwargs = {
+            "user_name": {"required": False},
+            "email": {"required": False},
+            "phone_number": {"required": False},
+        }
+
+    def update(self, instance, validated_data):
+        if "user_name" in validated_data:
+            instance.username = validated_data["user_name"]
+        if "email" in validated_data:
+            instance.email = validated_data["email"]
+        if "phone_number" in validated_data:
+            instance.phone_number = validated_data["phone_number"]
+        instance.save()
+        return instance
+
+
 # task serilizer
 
 

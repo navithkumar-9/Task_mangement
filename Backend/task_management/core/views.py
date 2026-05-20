@@ -9,6 +9,7 @@ from .serializers import (
     LoginSerializer,
     CreateAdminSerializer,
     CreateTeamLeaderSerializer,
+    UpdateTeamMemberSerializer,
     TaskCreateSerializer,
     TaskListSerializer,
     TaskStatusUpdateSerializer,
@@ -316,6 +317,92 @@ class TeamMemberListForAdminView(APIView):
                 "message": "Your team members fetched successfully",
                 "data": data,
             }
+        )
+
+
+class TeamMemberDetailView(APIView):
+
+    permission_classes = [IsAuthenticated, IsAdmin]
+
+    def get_member(self, member_id, request):
+        try:
+            return User.objects.get(
+                id=member_id,
+                role=UserRole.TEAM_MEMBER.value,
+                created_by=request.user,
+            )
+        except User.DoesNotExist:
+            return None
+
+    def get(self, request, member_id):
+        member = self.get_member(member_id, request)
+        if not member:
+            return error_response(
+                message="Team member not found",
+                status_code=status.HTTP_404_NOT_FOUND,
+            )
+
+        return success_response(
+            message="Team member fetched successfully",
+            data={
+                "id": member.id,
+                "username": member.username,
+                "email": member.email,
+                "phone_number": member.phone_number,
+                "role": member.role,
+            },
+            status_code=status.HTTP_200_OK,
+        )
+
+    def put(self, request, member_id):
+        member = self.get_member(member_id, request)
+        if not member:
+            return error_response(
+                message="Team member not found",
+                status_code=status.HTTP_404_NOT_FOUND,
+            )
+
+        serializer = UpdateTeamMemberSerializer(
+            member,
+            data=request.data,
+            partial=True,
+            context={"request": request},
+        )
+
+        if not serializer.is_valid():
+            return error_response(
+                message="Validation failed",
+                errors=serializer.errors,
+                status_code=status.HTTP_400_BAD_REQUEST,
+            )
+
+        updated_member = serializer.save()
+
+        return success_response(
+            message="Team member updated successfully",
+            data={
+                "id": updated_member.id,
+                "username": updated_member.username,
+                "email": updated_member.email,
+                "phone_number": updated_member.phone_number,
+                "role": updated_member.role,
+            },
+            status_code=status.HTTP_200_OK,
+        )
+
+    def delete(self, request, member_id):
+        member = self.get_member(member_id, request)
+        if not member:
+            return error_response(
+                message="Team member not found",
+                status_code=status.HTTP_404_NOT_FOUND,
+            )
+
+        member.delete()
+
+        return success_response(
+            message="Team member deleted successfully",
+            status_code=status.HTTP_200_OK,
         )
 
 

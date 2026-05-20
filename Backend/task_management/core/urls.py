@@ -9,6 +9,7 @@ from .views import (
     AdminListView,
     TeamMemberListForSuperAdminView,
     TeamMemberListForAdminView,
+    TeamMemberDetailView,
     CreateTaskView,
     AdminTaskListView,
     AdminTaskDetailView,
@@ -40,6 +41,10 @@ urlpatterns = [
     path(
         "admin/team-members/",
         TeamMemberListForAdminView.as_view(),
+    ),
+    path(
+        "admin/team-members/<int:member_id>/",
+        TeamMemberDetailView.as_view(),
     ),
     # task creation
     path(

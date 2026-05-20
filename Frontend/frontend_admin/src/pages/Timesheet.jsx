@@ -585,7 +585,7 @@ const Timesheet = () => {
                         className="modal-card"
                         onClick={(e) => e.stopPropagation()}
                         style={{
-                            background: 'var(--card-bg)',
+                            background: '#ffffff',
                             width: '500px',
                             borderRadius: '12px',
                             padding: '24px',
@@ -605,7 +605,7 @@ const Timesheet = () => {
                                 className="modal-close"
                                 onClick={() => setShowModal(false)}
                                 style={{
-                                    background: 'none',
+                                    background: '#ffffff',
                                     border: 'none',
                                     fontSize: '1.5rem',
                                     cursor: 'pointer',
