@@ -222,6 +222,10 @@ class TimesheetListSerializer(serializers.ModelSerializer):
             "project_name": obj.task.project_name,
             "task_name": obj.task.task_name,
             "priority": obj.task.priority,
+            "assigned_by": {
+                "id": obj.task.assigned_by.id,
+                "username": obj.task.assigned_by.username,
+            }
         }
 
     def get_team_member(self, obj):

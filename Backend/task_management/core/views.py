@@ -549,7 +549,6 @@ class CreateTimesheetView(APIView):
         )
 
         if not serializer.is_valid():
-
             return error_response(
                 message="Validation failed",
                 errors=serializer.errors,
@@ -608,13 +607,26 @@ class AdminTimesheetListView(APIView):
     permission_classes = [IsAuthenticated, IsAdmin]
 
     def get(self, request):
-
+        date_filter = request.GET.get("date")
+        
         queryset = Timesheet.objects.filter(
             team_member__created_by=request.user
         ).select_related(
             "task",
             "team_member",
+            "task__assigned_by",
         )
+        
+        if date_filter:
+            queryset = queryset.filter(start_time__date=date_filter)
+
+        # New filters: task name and project name
+        task_name = request.GET.get("task_name")
+        project_name = request.GET.get("project_name")
+        if task_name:
+            queryset = queryset.filter(task__task_name__icontains=task_name)
+        if project_name:
+            queryset = queryset.filter(task__project_name__icontains=project_name)
 
         serializer = TimesheetListSerializer(
             queryset,
@@ -633,11 +645,24 @@ class SuperAdminTimesheetListView(APIView):
     permission_classes = [IsAuthenticated, IsSuperAdmin]
 
     def get(self, request):
+        date_filter = request.GET.get("date")
 
         queryset = Timesheet.objects.select_related(
             "task",
             "team_member",
+            "task__assigned_by",
         )
+        
+        if date_filter:
+            queryset = queryset.filter(start_time__date=date_filter)
+
+        # New filters: task name and project name
+        task_name = request.GET.get("task_name")
+        project_name = request.GET.get("project_name")
+        if task_name:
+            queryset = queryset.filter(task__task_name__icontains=task_name)
+        if project_name:
+            queryset = queryset.filter(task__project_name__icontains=project_name)
 
         serializer = TimesheetListSerializer(
             queryset,
@@ -646,6 +671,42 @@ class SuperAdminTimesheetListView(APIView):
 
         return success_response(
             message="All timesheets fetched successfully",
+            data=serializer.data,
+            status_code=status.HTTP_200_OK,
+        )
+
+
+class TeamMemberTimesheetListView(APIView):
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        date_filter = request.GET.get("date")
+
+        queryset = Timesheet.objects.filter(team_member=request.user).select_related(
+            "task",
+            "team_member",
+            "task__assigned_by",
+        )
+
+        if date_filter:
+            queryset = queryset.filter(start_time__date=date_filter)
+
+        # New filters: task name and project name
+        task_name = request.GET.get("task_name")
+        project_name = request.GET.get("project_name")
+        if task_name:
+            queryset = queryset.filter(task__task_name__icontains=task_name)
+        if project_name:
+            queryset = queryset.filter(task__project_name__icontains=project_name)
+
+        serializer = TimesheetListSerializer(
+            queryset,
+            many=True,
+        )
+
+        return success_response(
+            message="Your timesheets fetched successfully",
             data=serializer.data,
             status_code=status.HTTP_200_OK,
         )

@@ -15,6 +15,11 @@ from .views import (
     TeamMemberTaskListView,
     UpdateTaskStatusView,
     SuperAdminTaskProgressView,
+    CreateTimesheetView,
+    UpdateTimesheetView,
+    AdminTimesheetListView,
+    SuperAdminTimesheetListView,
+    TeamMemberTimesheetListView,
 )
 
 urlpatterns = [
@@ -60,5 +65,26 @@ urlpatterns = [
     path(
         "tasks/progress/",
         SuperAdminTaskProgressView.as_view(),
+    ),
+    # timesheets
+    path(
+        "timesheets/create/",
+        CreateTimesheetView.as_view(),
+    ),
+    path(
+        "timesheets/<int:timesheet_id>/",
+        UpdateTimesheetView.as_view(),
+    ),
+    path(
+        "timesheets/admin/",
+        AdminTimesheetListView.as_view(),
+    ),
+    path(
+        "timesheets/super-admin/",
+        SuperAdminTimesheetListView.as_view(),
+    ),
+    path(
+        "timesheets/my-timesheets/",
+        TeamMemberTimesheetListView.as_view(),
     ),
 ]
