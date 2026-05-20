@@ -380,15 +380,82 @@ class AdminTaskListView(APIView):
         )
 
 
+class AdminTaskDetailView(APIView):
+
+    permission_classes = [IsAuthenticated, IsAdmin]
+
+    def patch(self, request, task_id):
+
+        try:
+            task = Task.objects.get(id=task_id, assigned_by=request.user)
+        except Task.DoesNotExist:
+
+            return error_response(
+                message="Task not found",
+                status_code=status.HTTP_404_NOT_FOUND,
+            )
+
+        serializer = TaskCreateSerializer(
+            task,
+            data=request.data,
+            partial=True,
+            context={"request": request},
+        )
+
+        if not serializer.is_valid():
+
+            return error_response(
+                message="Validation failed",
+                errors=serializer.errors,
+                status_code=status.HTTP_400_BAD_REQUEST,
+            )
+
+        updated_task = serializer.save()
+
+        return success_response(
+            message="Task updated successfully",
+            data=TaskListSerializer(updated_task).data,
+            status_code=status.HTTP_200_OK,
+        )
+
+    def delete(self, request, task_id):
+
+        try:
+            task = Task.objects.get(id=task_id, assigned_by=request.user)
+        except Task.DoesNotExist:
+
+            return error_response(
+                message="Task not found",
+                status_code=status.HTTP_404_NOT_FOUND,
+            )
+
+        task.delete()
+
+        return success_response(
+            message="Task deleted successfully",
+            data={},
+            status_code=status.HTTP_200_OK,
+        )
+
+
 class TeamMemberTaskListView(APIView):
 
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
 
+        search = request.GET.get("search")
+
         queryset = Task.objects.filter(assignee=request.user).select_related(
             "assignee", "assigned_by"
         )
+
+        if search:
+            queryset = queryset.filter(
+                Q(task_name__icontains=search)
+                | Q(project_name__icontains=search)
+                | Q(status__icontains=search)
+            )
 
         serializer = TaskListSerializer(queryset, many=True)
 
@@ -404,6 +471,12 @@ class UpdateTaskStatusView(APIView):
     permission_classes = [IsAuthenticated]
 
     def patch(self, request, task_id):
+
+        if request.data.get("status") == "COMPLETED":
+            return error_response(
+                message="Only admins can mark tasks as completed.",
+                status_code=status.HTTP_403_FORBIDDEN,
+            )
 
         try:
             task = Task.objects.get(id=task_id, assignee=request.user)
@@ -439,7 +512,16 @@ class SuperAdminTaskProgressView(APIView):
 
     def get(self, request):
 
+        search = request.GET.get("search")
+
         queryset = Task.objects.select_related("assignee", "assigned_by")
+
+        if search:
+            queryset = queryset.filter(
+                Q(task_name__icontains=search)
+                | Q(project_name__icontains=search)
+                | Q(status__icontains=search)
+            )
 
         serializer = TaskListSerializer(queryset, many=True)
 

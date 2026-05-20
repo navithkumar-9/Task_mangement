@@ -11,6 +11,7 @@ from .views import (
     TeamMemberListForAdminView,
     CreateTaskView,
     AdminTaskListView,
+    AdminTaskDetailView,
     TeamMemberTaskListView,
     UpdateTaskStatusView,
     SuperAdminTaskProgressView,
@@ -43,6 +44,10 @@ urlpatterns = [
     path(
         "tasks/admin/",
         AdminTaskListView.as_view(),
+    ),
+    path(
+        "tasks/<int:task_id>/",
+        AdminTaskDetailView.as_view(),
     ),
     path(
         "tasks/my-tasks/",

@@ -70,6 +70,7 @@ class TaskCreateSerializer(serializers.ModelSerializer):
             "task_name",
             "description",
             "priority",
+            "status",
             "due_date",
             "assignee_id",
         ]
@@ -106,6 +107,18 @@ class TaskCreateSerializer(serializers.ModelSerializer):
         )
 
         return task
+
+    def update(self, instance, validated_data):
+        assignee_id = validated_data.pop("assignee_id", None)
+        if assignee_id is not None:
+            assignee = User.objects.get(id=assignee_id)
+            instance.assignee = assignee
+
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+
+        instance.save()
+        return instance
 
 
 class TaskListSerializer(serializers.ModelSerializer):
