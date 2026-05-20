@@ -1,25 +1,20 @@
 import os
-
 from dotenv import load_dotenv
-
 from django.contrib.auth import get_user_model
-
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import status
-
 from rest_framework_simplejwt.tokens import RefreshToken
-
 from .serializers import (
     LoginSerializer,
     CreateAdminSerializer,
     CreateTeamLeaderSerializer,
 )
-
 from .permissions import IsAdmin, IsSuperAdmin
 from .roles import UserRole
-
 from .response import success_response, error_response
+from .pagination import CustomPagination
+from django.db.models import Q
 
 load_dotenv()
 
@@ -179,3 +174,145 @@ class ProfileView(APIView):
             },
             status_code=status.HTTP_200_OK,
         )
+
+
+# Data listing
+
+class AdminListView(APIView):
+
+    permission_classes = [IsAuthenticated, IsSuperAdmin]
+
+    def get(self, request):
+
+        search = request.GET.get("search")
+
+        queryset = User.objects.filter(
+            role=UserRole.ADMIN.value
+        ).order_by("-id")
+
+        if search:
+            queryset = queryset.filter(
+                Q(username__icontains=search) |
+                Q(email__icontains=search) |
+                Q(phone_number__icontains=search)
+            )
+
+        paginator = CustomPagination()
+
+        paginated_queryset = paginator.paginate_queryset(
+            queryset,
+            request
+        )
+
+        data = [
+            {
+                "id": user.id,
+                "username": user.username,
+                "email": user.email,
+                "phone_number": user.phone_number,
+                "role": user.role,
+            }
+            for user in paginated_queryset
+        ]
+
+        return paginator.get_paginated_response({
+            "isV1": True,
+            "success": True,
+            "message": "Admins fetched successfully",
+            "data": data,
+        })
+
+
+class TeamMemberListForSuperAdminView(APIView):
+
+    permission_classes = [IsAuthenticated, IsSuperAdmin]
+
+    def get(self, request):
+
+        search = request.GET.get("search")
+
+        queryset = User.objects.filter(
+            role=UserRole.TEAM_MEMBER.value
+        ).select_related("created_by").order_by("-id")
+
+        if search:
+            queryset = queryset.filter(
+                Q(username__icontains=search) |
+                Q(email__icontains=search) |
+                Q(phone_number__icontains=search)
+            )
+
+        paginator = CustomPagination()
+
+        paginated_queryset = paginator.paginate_queryset(
+            queryset,
+            request
+        )
+
+        data = [
+            {
+                "id": user.id,
+                "username": user.username,
+                "email": user.email,
+                "phone_number": user.phone_number,
+                "role": user.role,
+                "created_by": (
+                    user.created_by.username
+                    if user.created_by else None
+                )
+            }
+            for user in paginated_queryset
+        ]
+
+        return paginator.get_paginated_response({
+            "isV1": True,
+            "success": True,
+            "message": "Team members fetched successfully",
+            "data": data,
+        })
+
+
+class TeamMemberListForAdminView(APIView):
+
+    permission_classes = [IsAuthenticated, IsAdmin]
+
+    def get(self, request):
+
+        search = request.GET.get("search")
+
+        queryset = User.objects.filter(
+            role=UserRole.TEAM_MEMBER.value,
+            created_by=request.user
+        ).order_by("-id")
+
+        if search:
+            queryset = queryset.filter(
+                Q(username__icontains=search) |
+                Q(email__icontains=search) |
+                Q(phone_number__icontains=search)
+            )
+
+        paginator = CustomPagination()
+
+        paginated_queryset = paginator.paginate_queryset(
+            queryset,
+            request
+        )
+
+        data = [
+            {
+                "id": user.id,
+                "username": user.username,
+                "email": user.email,
+                "phone_number": user.phone_number,
+                "role": user.role,
+            }
+            for user in paginated_queryset
+        ]
+
+        return paginator.get_paginated_response({
+            "isV1": True,
+            "success": True,
+            "message": "Your team members fetched successfully",
+            "data": data,
+        })
