@@ -2,10 +2,11 @@ from rest_framework import serializers
 from django.contrib.auth import authenticate
 from .models import User_model
 from .roles import UserRole
-from .models import Task
+from .models import Task, Timesheet
 from django.contrib.auth import get_user_model
 
 User = get_user_model()
+
 
 class LoginSerializer(serializers.Serializer):
     user_name = serializers.CharField()
@@ -43,7 +44,7 @@ class CreateTeamLeaderSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User_model
-        fields = ["user_name", "password","email"]
+        fields = ["user_name", "password", "email"]
 
     def create(self, validated_data):
         request = self.context["request"]
@@ -56,7 +57,9 @@ class CreateTeamLeaderSerializer(serializers.ModelSerializer):
         )
         return user
 
-#task serilizer
+
+# task serilizer
+
 
 class TaskCreateSerializer(serializers.ModelSerializer):
 
@@ -81,14 +84,10 @@ class TaskCreateSerializer(serializers.ModelSerializer):
 
         try:
             user = User.objects.get(
-                id=value,
-                role=UserRole.TEAM_MEMBER.value,
-                created_by=request.user
+                id=value, role=UserRole.TEAM_MEMBER.value, created_by=request.user
             )
         except User.DoesNotExist:
-            raise serializers.ValidationError(
-                "Invalid team member"
-            )
+            raise serializers.ValidationError("Invalid team member")
 
         return value
 
@@ -101,9 +100,7 @@ class TaskCreateSerializer(serializers.ModelSerializer):
         request = self.context["request"]
 
         task = Task.objects.create(
-            assignee=assignee,
-            assigned_by=request.user,
-            **validated_data
+            assignee=assignee, assigned_by=request.user, **validated_data
         )
 
         return task
@@ -153,3 +150,84 @@ class TaskStatusUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Task
         fields = ["status"]
+
+
+class TimesheetCreateSerializer(serializers.ModelSerializer):
+
+    task_id = serializers.IntegerField(write_only=True)
+
+    class Meta:
+        model = Timesheet
+        fields = [
+            "id",
+            "task_id",
+            "description",
+            "status",
+            "start_time",
+            "end_time",
+        ]
+
+    def validate_task_id(self, value):
+
+        request = self.context["request"]
+
+        try:
+            Task.objects.get(id=value, assignee=request.user)
+        except Task.DoesNotExist:
+            raise serializers.ValidationError("Invalid assigned task")
+
+        return value
+
+    def create(self, validated_data):
+
+        request = self.context["request"]
+
+        task_id = validated_data.pop("task_id")
+
+        task = Task.objects.get(id=task_id)
+
+        timesheet = Timesheet.objects.create(
+            task=task, team_member=request.user, **validated_data
+        )
+
+        return timesheet
+
+
+class TimesheetUpdateSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Timesheet
+        fields = [
+            "description",
+            "status",
+            "start_time",
+            "end_time",
+        ]
+
+
+class TimesheetListSerializer(serializers.ModelSerializer):
+
+    task = serializers.SerializerMethodField()
+
+    team_member = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Timesheet
+        fields = "__all__"
+
+    def get_task(self, obj):
+
+        return {
+            "id": obj.task.id,
+            "project_name": obj.task.project_name,
+            "task_name": obj.task.task_name,
+            "priority": obj.task.priority,
+        }
+
+    def get_team_member(self, obj):
+
+        return {
+            "id": obj.team_member.id,
+            "username": obj.team_member.username,
+            "email": obj.team_member.email,
+        }

@@ -12,13 +12,16 @@ from .serializers import (
     TaskCreateSerializer,
     TaskListSerializer,
     TaskStatusUpdateSerializer,
+    TimesheetCreateSerializer,
+    TimesheetUpdateSerializer,
+    TimesheetListSerializer,
 )
 from .permissions import IsAdmin, IsSuperAdmin
 from .roles import UserRole
 from .response import success_response, error_response
 from .pagination import CustomPagination
 from django.db.models import Q
-from .models import Task
+from .models import Task, Timesheet
 
 load_dotenv()
 
@@ -315,7 +318,9 @@ class TeamMemberListForAdminView(APIView):
             }
         )
 
+
 # task creation
+
 
 class CreateTaskView(APIView):
 
@@ -527,6 +532,120 @@ class SuperAdminTaskProgressView(APIView):
 
         return success_response(
             message="Task progress fetched successfully",
+            data=serializer.data,
+            status_code=status.HTTP_200_OK,
+        )
+
+
+class CreateTimesheetView(APIView):
+
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+
+        serializer = TimesheetCreateSerializer(
+            data=request.data,
+            context={"request": request},
+        )
+
+        if not serializer.is_valid():
+
+            return error_response(
+                message="Validation failed",
+                errors=serializer.errors,
+                status_code=status.HTTP_400_BAD_REQUEST,
+            )
+
+        timesheet = serializer.save()
+
+        return success_response(
+            message="Timesheet created successfully",
+            data=TimesheetListSerializer(timesheet).data,
+            status_code=status.HTTP_201_CREATED,
+        )
+
+
+class UpdateTimesheetView(APIView):
+
+    permission_classes = [IsAuthenticated]
+
+    def patch(self, request, timesheet_id):
+
+        try:
+            timesheet = Timesheet.objects.get(id=timesheet_id, team_member=request.user)
+        except Timesheet.DoesNotExist:
+
+            return error_response(
+                message="Timesheet not found",
+                status_code=status.HTTP_404_NOT_FOUND,
+            )
+
+        serializer = TimesheetUpdateSerializer(
+            timesheet,
+            data=request.data,
+            partial=True,
+        )
+
+        if not serializer.is_valid():
+
+            return error_response(
+                message="Validation failed",
+                errors=serializer.errors,
+                status_code=status.HTTP_400_BAD_REQUEST,
+            )
+
+        serializer.save()
+
+        return success_response(
+            message="Timesheet updated successfully",
+            data=serializer.data,
+            status_code=status.HTTP_200_OK,
+        )
+
+
+class AdminTimesheetListView(APIView):
+
+    permission_classes = [IsAuthenticated, IsAdmin]
+
+    def get(self, request):
+
+        queryset = Timesheet.objects.filter(
+            team_member__created_by=request.user
+        ).select_related(
+            "task",
+            "team_member",
+        )
+
+        serializer = TimesheetListSerializer(
+            queryset,
+            many=True,
+        )
+
+        return success_response(
+            message="Team timesheets fetched successfully",
+            data=serializer.data,
+            status_code=status.HTTP_200_OK,
+        )
+
+
+class SuperAdminTimesheetListView(APIView):
+
+    permission_classes = [IsAuthenticated, IsSuperAdmin]
+
+    def get(self, request):
+
+        queryset = Timesheet.objects.select_related(
+            "task",
+            "team_member",
+        )
+
+        serializer = TimesheetListSerializer(
+            queryset,
+            many=True,
+        )
+
+        return success_response(
+            message="All timesheets fetched successfully",
             data=serializer.data,
             status_code=status.HTTP_200_OK,
         )

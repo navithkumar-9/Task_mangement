@@ -83,3 +83,54 @@ class Task(models.Model):
 
     def __str__(self):
         return self.task_name
+
+
+class Timesheet(models.Model):
+    
+    team_member = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="timesheets",
+    )
+    task = models.ForeignKey(
+        "Task",
+        on_delete=models.CASCADE,
+        related_name="timesheets",
+    )
+    description = models.TextField()
+
+    status = models.CharField(
+        max_length=20,
+        choices=TaskStatus.choices,
+        default=TaskStatus.PENDING,
+    )
+
+    start_time = models.DateTimeField()
+    end_time = models.DateTimeField()
+    working_hours = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        null=True,
+        blank=True,
+    )
+
+    priority = models.CharField(
+        max_length=20,
+        choices=TaskPriority.choices,
+    )
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-id"]
+
+    def save(self, *args, **kwargs):
+        self.priority = self.task.priority
+        if self.start_time and self.end_time:
+            total_seconds = (self.end_time - self.start_time).total_seconds()
+            self.working_hours = round(total_seconds / 3600, 2)
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.team_member.username} - {self.task.task_name}"
