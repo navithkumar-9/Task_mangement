@@ -605,7 +605,7 @@ const Timesheet = () => {
                                 className="modal-close"
                                 onClick={() => setShowModal(false)}
                                 style={{
-                                    background: '#ffffff',
+                                    background: '#ffffff ', 
                                     border: 'none',
                                     fontSize: '1.5rem',
                                     cursor: 'pointer',
