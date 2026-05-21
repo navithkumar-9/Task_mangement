@@ -20,6 +20,7 @@ const Timesheet = () => {
     const [showModal, setShowModal] = useState(false);
     const [myTasks, setMyTasks] = useState([]);
     const [form, setForm] = useState({
+        timesheet_id: '',
         task_id: '',
         description: '',
         status: 'PENDING',
@@ -105,7 +106,11 @@ const Timesheet = () => {
                 end_time: new Date(form.end_time).toISOString(),
             };
 
-            await API.post('/timesheets/create/', payload);
+            if (form.timesheet_id) {
+                await API.put(`/timesheets/${form.timesheet_id}/`, payload);
+            } else {
+                await API.post('/timesheets/create/', payload);
+            }
             setShowModal(false);
             fetchTimesheets();
         } catch (err) {
@@ -218,6 +223,7 @@ const Timesheet = () => {
                         onClick={() => {
                             setFormError('');
                             setForm({
+                                timesheet_id: '',
                                 task_id: '',
                                 description: '',
                                 status: 'PENDING',
@@ -448,6 +454,18 @@ const Timesheet = () => {
                                     >
                                         Created At
                                     </th>
+                                    {!isAdmin && (
+                                        <th
+                                            style={{
+                                                padding: '16px 20px',
+                                                borderBottom:
+                                                    '1px solid var(--border-color)',
+                                                color: 'var(--text-muted)',
+                                            }}
+                                        >
+                                            Actions
+                                        </th>
+                                    )}
                                 </tr>
                             </thead>
                             <tbody>
@@ -561,6 +579,45 @@ const Timesheet = () => {
                                         >
                                             {formatDateTime(ts.created_at)}
                                         </td>
+                                        {!isAdmin && (
+                                            <td style={{ padding: '16px 20px' }}>
+                                                {new Date(ts.start_time).toDateString() === new Date().toDateString() && (
+                                                    <button
+                                                        onClick={() => {
+                                                            setFormError('');
+                                                            setForm({
+                                                                timesheet_id: ts.id,
+                                                                task_id: ts.task?.id || '',
+                                                                description: ts.description || '',
+                                                                status: ts.status || 'PENDING',
+                                                                start_time: ts.start_time ? new Date(new Date(ts.start_time) - new Date(ts.start_time).getTimezoneOffset() * 60000).toISOString().slice(0, 16) : '',
+                                                                end_time: ts.end_time ? new Date(new Date(ts.end_time) - new Date(ts.end_time).getTimezoneOffset() * 60000).toISOString().slice(0, 16) : '',
+                                                                priority: ts.task?.priority || 'MEDIUM',
+                                                            });
+                                                            setShowModal(true);
+                                                        }}
+                                                        className="btn-icon"
+                                                        title="Edit Timesheet"
+                                                        style={{
+                                                            padding: '6px',
+                                                            borderRadius: '6px',
+                                                            border: '1px solid var(--border-color)',
+                                                            background: 'transparent',
+                                                            cursor: 'pointer',
+                                                            color: 'var(--primary)',
+                                                            display: 'flex',
+                                                            alignItems: 'center',
+                                                            justifyContent: 'center',
+                                                        }}
+                                                    >
+                                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                                                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                                                        </svg>
+                                                    </button>
+                                                )}
+                                            </td>
+                                        )}
                                     </tr>
                                 ))}
                             </tbody>
@@ -605,7 +662,7 @@ const Timesheet = () => {
                                 marginBottom: '20px',
                             }}
                         >
-                            <h2 style={{ margin: 0 }}>Log Time</h2>
+                            <h2 style={{ margin: 0 }}>{form.timesheet_id ? 'Edit Logged Time' : 'Log Time'}</h2>
                             <button
                                 className="modal-close"
                                 onClick={() => setShowModal(false)}
@@ -890,7 +947,7 @@ const Timesheet = () => {
                                         fontWeight: 600,
                                     }}
                                 >
-                                    Submit Timesheet
+                                    {form.timesheet_id ? 'Update Timesheet' : 'Submit Timesheet'}
                                 </button>
                             </div>
                         </form>
