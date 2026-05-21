@@ -9,6 +9,7 @@ import ManageUsers from './pages/ManageUsers';
 import Settings from './pages/Settings';
 import TaskProgress from './pages/TaskProgress';
 import Timesheet from './pages/Timesheet';
+import Calendar from './pages/Calendar';
 import './App.css';
 
 function App() {
@@ -23,6 +24,7 @@ function App() {
           <Route path="/tasks-progress" element={<ProtectedRoute><Layout><TaskProgress /></Layout></ProtectedRoute>} />
           <Route path="/timesheet" element={<ProtectedRoute><Layout><Timesheet /></Layout></ProtectedRoute>} />
           <Route path="/settings" element={<ProtectedRoute><Layout><Settings /></Layout></ProtectedRoute>} />
+          <Route path="/calendar" element={<ProtectedRoute><Layout><Calendar /></Layout></ProtectedRoute>} />
           <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
       </BrowserRouter>

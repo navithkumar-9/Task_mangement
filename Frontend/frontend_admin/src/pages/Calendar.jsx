@@ -302,6 +302,7 @@ const Calendar = () => {
     const [loading, setLoading] = useState(false);
     const [selectedDate, setSelectedDate] = useState(null);
     const [selectedTasks, setSelectedTasks] = useState([]);
+    const [memberFilter, setMemberFilter] = useState('');
 
     useEffect(() => {
         fetchTasks();
@@ -330,10 +331,27 @@ const Calendar = () => {
         }
     };
 
+    // Extract unique team member names for filter
+    const teamMembers = useMemo(() => {
+        const names = new Set();
+        tasks.forEach((t) => {
+            if (t.assignee?.username) names.add(t.assignee.username);
+        });
+        return Array.from(names).sort();
+    }, [tasks]);
+
+    // Filter tasks by selected member
+    const filteredTasks = useMemo(() => {
+        if (!memberFilter) return tasks;
+        return tasks.filter(
+            (t) => t.assignee?.username?.toLowerCase() === memberFilter.toLowerCase(),
+        );
+    }, [tasks, memberFilter]);
+
     // Group tasks by due_date
     const tasksByDate = useMemo(() => {
         const map = {};
-        tasks.forEach((task) => {
+        filteredTasks.forEach((task) => {
             if (task.due_date) {
                 const key = task.due_date; // "YYYY-MM-DD"
                 if (!map[key]) map[key] = [];
@@ -341,7 +359,7 @@ const Calendar = () => {
             }
         });
         return map;
-    }, [tasks]);
+    }, [filteredTasks]);
 
     // Calendar grid calculation
     const calendarDays = useMemo(() => {
@@ -393,7 +411,7 @@ const Calendar = () => {
     // Count stats
     const stats = useMemo(() => {
         const monthStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}`;
-        const monthTasks = tasks.filter(
+        const monthTasks = filteredTasks.filter(
             (t) => t.due_date && t.due_date.startsWith(monthStr),
         );
         const overdue = monthTasks.filter(
@@ -413,7 +431,7 @@ const Calendar = () => {
             completed: completed.length,
             upcoming: upcoming.length,
         };
-    }, [tasks, currentMonth, currentYear]);
+    }, [filteredTasks, currentMonth, currentYear]);
 
     const navigateMonth = (dir) => {
         let newMonth = currentMonth + dir;
@@ -480,6 +498,57 @@ const Calendar = () => {
                         Track task deadlines and milestones
                     </p>
                 </div>
+                {isAdmin && teamMembers.length > 0 && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <label
+                            style={{
+                                fontSize: '0.85rem',
+                                fontWeight: 600,
+                                color: 'var(--text-muted)',
+                            }}
+                        >
+                            Team Member:
+                        </label>
+                        <select
+                            value={memberFilter}
+                            onChange={(e) => setMemberFilter(e.target.value)}
+                            style={{
+                                padding: '8px 14px',
+                                borderRadius: '8px',
+                                border: '1px solid var(--border-color)',
+                                fontSize: '0.88rem',
+                                fontWeight: 500,
+                                color: 'var(--text-primary)',
+                                background: '#fff',
+                                cursor: 'pointer',
+                                outline: 'none',
+                                minWidth: '180px',
+                            }}
+                        >
+                            <option value="">All Members</option>
+                            {teamMembers.map((name) => (
+                                <option key={name} value={name}>
+                                    @{name}
+                                </option>
+                            ))}
+                        </select>
+                        {memberFilter && (
+                            <button
+                                onClick={() => setMemberFilter('')}
+                                style={{
+                                    background: 'transparent',
+                                    border: 'none',
+                                    color: 'var(--primary)',
+                                    fontWeight: 600,
+                                    cursor: 'pointer',
+                                    fontSize: '0.85rem',
+                                }}
+                            >
+                                Clear
+                            </button>
+                        )}
+                    </div>
+                )}
             </div>
 
             {/* Stats Cards */}
@@ -1007,7 +1076,7 @@ const Calendar = () => {
                     Upcoming Deadlines
                 </div>
                 <div style={{ padding: '8px 24px 16px' }}>
-                    {tasks
+                    {filteredTasks
                         .filter(
                             (t) =>
                                 t.status !== 'COMPLETED' &&
@@ -1134,7 +1203,7 @@ const Calendar = () => {
                             );
                         })}
 
-                    {tasks.filter(
+                    {filteredTasks.filter(
                         (t) =>
                             t.status !== 'COMPLETED' &&
                             t.due_date &&
