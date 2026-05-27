@@ -50,43 +50,18 @@ const Login = () => {
                 <div className="login-card">
                     <div className="login-header">
                         <div className="login-icon">
-                            <svg
-                                width="40"
-                                height="40"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                            >
-                                <path
-                                    d="M12 2L2 7L12 12L22 7L12 2Z"
-                                    fill="url(#loginGrad2)"
-                                />
-                                <path
-                                    d="M2 17L12 22L22 17"
-                                    stroke="url(#loginGrad2)"
-                                    strokeWidth="2"
-                                    strokeLinecap="round"
-                                />
-                                <path
-                                    d="M2 12L12 17L22 12"
-                                    stroke="url(#loginGrad2)"
-                                    strokeWidth="2"
-                                    strokeLinecap="round"
-                                />
-                                <defs>
-                                    <linearGradient
-                                        id="loginGrad2"
-                                        x1="2"
-                                        y1="2"
-                                        x2="22"
-                                        y2="22"
-                                    >
-                                        <stop stopColor="#06b6d4" />
-                                        <stop offset="1" stopColor="#3b82f6" />
-                                    </linearGradient>
-                                </defs>
-                            </svg>
+                            <img
+                                src="/logo.jpg"
+                                alt="Logo"
+                                style={{
+                                    width: '40px',
+                                    height: '40px',
+                                    borderRadius: '8px',
+                                    objectFit: 'cover',
+                                }}
+                            />
                         </div>
-                        <h1>TaskFlow</h1>
+                        <h1>Tracker</h1>
                         <p className="login-subtitle">
                             Admin &amp; Team Portal
                         </p>

@@ -4,6 +4,7 @@ from .models import User_model
 from .roles import UserRole
 from .models import Task, Timesheet
 from django.contrib.auth import get_user_model
+from .emails import send_task_notification_email_async
 
 User = get_user_model()
 
@@ -131,6 +132,9 @@ class TaskCreateSerializer(serializers.ModelSerializer):
 
         assignees = User.objects.filter(id__in=assignee_ids)
         task.assignees.set(assignees)
+
+        # Send email notifications to assignees asynchronously
+        send_task_notification_email_async(task, request.user, assignees)
 
         return task
 

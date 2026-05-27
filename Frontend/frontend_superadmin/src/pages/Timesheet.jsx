@@ -12,6 +12,7 @@ const Timesheet = () => {
     const [dateFilter, setDateFilter] = useState(getTodayString());
     const [taskNameFilter, setTaskNameFilter] = useState('');
     const [projectNameFilter, setProjectNameFilter] = useState('');
+    const [viewingTimesheet, setViewingTimesheet] = useState(null);
     useEffect(() => {
         fetchTimesheets();
     }, [dateFilter, taskNameFilter, projectNameFilter]);
@@ -236,6 +237,7 @@ const Timesheet = () => {
                                     <th>Start Time</th>
                                     <th>End Time</th>
                                     <th>Created At</th>
+                                    <th>Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -318,6 +320,29 @@ const Timesheet = () => {
                                         <td style={{ padding: '16px 20px' }}>
                                             {formatDateTime(ts.created_at)}
                                         </td>
+                                        <td style={{ padding: '16px 20px' }}>
+                                            <button
+                                                onClick={() => setViewingTimesheet(ts)}
+                                                className="btn-icon"
+                                                title="View Details"
+                                                style={{
+                                                    padding: '6px',
+                                                    borderRadius: '6px',
+                                                    border: '1px solid var(--border-color)',
+                                                    background: 'transparent',
+                                                    cursor: 'pointer',
+                                                    color: 'var(--primary)',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                }}
+                                            >
+                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                                                    <circle cx="12" cy="12" r="3" />
+                                                </svg>
+                                            </button>
+                                        </td>
                                     </tr>
                                 ))}
                             </tbody>
@@ -325,6 +350,156 @@ const Timesheet = () => {
                     </div>
                 )}
             </div>
+
+            {viewingTimesheet && (
+                <div
+                    className="modal-overlay"
+                    onClick={() => setViewingTimesheet(null)}
+                    style={{
+                        position: 'fixed',
+                        top: 0,
+                        left: 0,
+                        width: '100%',
+                        height: '100%',
+                        background: 'rgba(0,0,0,0.5)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        zIndex: 100,
+                    }}
+                >
+                    <div
+                        className="modal-card"
+                        onClick={(e) => e.stopPropagation()}
+                        style={{
+                            background: '#ffffff',
+                            width: '550px',
+                            borderRadius: '12px',
+                            padding: '24px',
+                            boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+                        }}
+                    >
+                        <div
+                            className="modal-header"
+                            style={{
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                alignItems: 'center',
+                                marginBottom: '20px',
+                                borderBottom: '1px solid var(--border-color)',
+                                paddingBottom: '12px',
+                            }}
+                        >
+                            <h2 style={{ margin: 0, fontSize: '1.25rem', color: 'var(--text-color)' }}>Timesheet Details</h2>
+                            <button
+                                className="modal-close"
+                                onClick={() => setViewingTimesheet(null)}
+                                style={{
+                                    background: 'transparent',
+                                    border: 'none',
+                                    fontSize: '1.5rem',
+                                    cursor: 'pointer',
+                                    color: 'var(--text-muted)',
+                                }}
+                            >
+                                ×
+                            </button>
+                        </div>
+                        
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                            <div style={{ display: 'flex', gap: '12px' }}>
+                                <div style={{ flex: 1 }}>
+                                    <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>Team Member</label>
+                                    <div style={{ fontWeight: 600, color: 'var(--primary)', marginTop: '4px' }}>
+                                        @{viewingTimesheet.team_member?.username || '—'}
+                                    </div>
+                                </div>
+                                <div style={{ flex: 1 }}>
+                                    <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>Project</label>
+                                    <div style={{ fontWeight: 600, marginTop: '4px' }}>
+                                        {viewingTimesheet.task?.project_name || '—'}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div style={{ display: 'flex', gap: '12px' }}>
+                                <div style={{ flex: 1 }}>
+                                    <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>Task Name</label>
+                                    <div style={{ fontWeight: 600, marginTop: '4px' }}>
+                                        {viewingTimesheet.task?.task_name || '—'}
+                                    </div>
+                                </div>
+                                <div style={{ flex: 1 }}>
+                                    <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>Priority / Status</label>
+                                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginTop: '4px' }}>
+                                        {getPriorityBadge(viewingTimesheet.task?.priority)}
+                                        {getStatusBadge(viewingTimesheet.status)}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div style={{ display: 'flex', gap: '12px', borderTop: '1px solid var(--border-color)', paddingTop: '12px' }}>
+                                <div style={{ flex: 1 }}>
+                                    <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>Logged Duration</label>
+                                    <div style={{ fontSize: '0.9rem', marginTop: '4px' }}>
+                                        {formatDateTime(viewingTimesheet.start_time)} to {formatDateTime(viewingTimesheet.end_time)}
+                                    </div>
+                                </div>
+                                <div style={{ flex: 1 }}>
+                                    <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>Total Time</label>
+                                    <div style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--primary)', marginTop: '4px' }}>
+                                        {viewingTimesheet.task?.working_hours || viewingTimesheet.working_hours || '—'} hrs
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '12px' }}>
+                                <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>Logged At</label>
+                                <div style={{ fontSize: '0.9rem', marginTop: '4px', color: 'var(--text-muted)' }}>
+                                    {formatDateTime(viewingTimesheet.created_at)}
+                                </div>
+                            </div>
+
+                            <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '12px' }}>
+                                <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>Description</label>
+                                <div style={{ 
+                                    background: '#f8fafc',
+                                    border: '1px solid var(--border-color)',
+                                    borderRadius: '8px',
+                                    padding: '12px 16px',
+                                    marginTop: '6px',
+                                    fontSize: '0.9rem',
+                                    lineHeight: '1.5',
+                                    whiteSpace: 'pre-wrap',
+                                    color: '#334155',
+                                    maxHeight: '150px',
+                                    overflowY: 'auto'
+                                }}>
+                                    {viewingTimesheet.description || 'No description provided.'}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '24px', borderTop: '1px solid var(--border-color)', paddingTop: '16px' }}>
+                            <button
+                                className="btn-secondary"
+                                onClick={() => setViewingTimesheet(null)}
+                                style={{
+                                    padding: '8px 16px',
+                                    borderRadius: '6px',
+                                    border: '1px solid var(--border-color)',
+                                    background: 'transparent',
+                                    cursor: 'pointer',
+                                    fontSize: '0.9rem',
+                                    fontWeight: 600,
+                                }}
+                            >
+                                Close
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

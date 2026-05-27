@@ -166,29 +166,19 @@ const Sidebar = () => {
             <div className="sidebar-top">
                 <div className="sidebar-brand">
                     <div className="sidebar-logo">
-                        <svg
-                            width="22"
-                            height="22"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                        >
-                            <path d="M12 2L2 7L12 12L22 7L12 2Z" fill="#fff" />
-                            <path
-                                d="M2 17L12 22L22 17"
-                                stroke="#fff"
-                                strokeWidth="2"
-                                strokeLinecap="round"
-                            />
-                            <path
-                                d="M2 12L12 17L22 12"
-                                stroke="#fff"
-                                strokeWidth="2"
-                                strokeLinecap="round"
-                            />
-                        </svg>
+                        <img
+                            src="/logo.jpg"
+                            alt="Logo"
+                            style={{
+                                width: '24px',
+                                height: '24px',
+                                borderRadius: '4px',
+                                objectFit: 'cover',
+                            }}
+                        />
                     </div>
                     <div className="sidebar-brand-info">
-                        <span className="sidebar-brand-name">TaskFlow</span>
+                        <span className="sidebar-brand-name">Tracker</span>
                         <span className="sidebar-brand-role">
                             {user?.role || 'Admin'}
                         </span>
