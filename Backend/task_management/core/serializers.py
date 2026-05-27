@@ -85,7 +85,10 @@ class UpdateTeamMemberSerializer(serializers.ModelSerializer):
 
 class TaskCreateSerializer(serializers.ModelSerializer):
 
-    assignee_id = serializers.IntegerField(write_only=True)
+    assignee_ids = serializers.ListField(
+        child=serializers.IntegerField(), write_only=True
+    )
+    revised_due_date = serializers.DateField(required=False, allow_null=True)
 
     class Meta:
         model = Task
@@ -97,52 +100,58 @@ class TaskCreateSerializer(serializers.ModelSerializer):
             "priority",
             "status",
             "due_date",
-            "assignee_id",
+            "revised_due_date",
+            "remarks",
+            "assignee_ids",
         ]
 
-    def validate_assignee_id(self, value):
-
+    def validate_assignee_ids(self, value):
         request = self.context["request"]
+        if not value:
+            raise serializers.ValidationError("At least one team member must be selected")
 
-        try:
-            user = User.objects.get(
-                id=value, role=UserRole.TEAM_MEMBER.value, created_by=request.user
-            )
-        except User.DoesNotExist:
-            raise serializers.ValidationError("Invalid team member")
+        for uid in value:
+            try:
+                User.objects.get(
+                    id=uid, role=UserRole.TEAM_MEMBER.value, created_by=request.user
+                )
+            except User.DoesNotExist:
+                raise serializers.ValidationError(
+                    f"Invalid team member with id {uid}"
+                )
 
         return value
 
     def create(self, validated_data):
-
-        assignee_id = validated_data.pop("assignee_id")
-
-        assignee = User.objects.get(id=assignee_id)
-
+        assignee_ids = validated_data.pop("assignee_ids")
+        validated_data.pop("revised_due_date", None)
         request = self.context["request"]
 
-        task = Task.objects.create(
-            assignee=assignee, assigned_by=request.user, **validated_data
-        )
+        task = Task.objects.create(assigned_by=request.user, **validated_data)
+
+        assignees = User.objects.filter(id__in=assignee_ids)
+        task.assignees.set(assignees)
 
         return task
 
     def update(self, instance, validated_data):
-        assignee_id = validated_data.pop("assignee_id", None)
-        if assignee_id is not None:
-            assignee = User.objects.get(id=assignee_id)
-            instance.assignee = assignee
+        assignee_ids = validated_data.pop("assignee_ids", None)
 
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
 
         instance.save()
+
+        if assignee_ids is not None:
+            assignees = User.objects.filter(id__in=assignee_ids)
+            instance.assignees.set(assignees)
+
         return instance
 
 
 class TaskListSerializer(serializers.ModelSerializer):
 
-    assignee = serializers.SerializerMethodField()
+    assignees = serializers.SerializerMethodField()
 
     assigned_by = serializers.SerializerMethodField()
 
@@ -150,13 +159,16 @@ class TaskListSerializer(serializers.ModelSerializer):
         model = Task
         fields = "__all__"
 
-    def get_assignee(self, obj):
+    def get_assignees(self, obj):
 
-        return {
-            "id": obj.assignee.id,
-            "username": obj.assignee.username,
-            "email": obj.assignee.email,
-        }
+        return [
+            {
+                "id": user.id,
+                "username": user.username,
+                "email": user.email,
+            }
+            for user in obj.assignees.all()
+        ]
 
     def get_assigned_by(self, obj):
 
@@ -194,7 +206,7 @@ class TimesheetCreateSerializer(serializers.ModelSerializer):
         request = self.context["request"]
 
         try:
-            Task.objects.get(id=value, assignee=request.user)
+            Task.objects.get(id=value, assignees=request.user)
         except Task.DoesNotExist:
             raise serializers.ValidationError("Invalid assigned task")
 

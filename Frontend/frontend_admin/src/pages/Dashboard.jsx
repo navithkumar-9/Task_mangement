@@ -98,9 +98,17 @@ const Dashboard = () => {
         tasks.forEach(task => {
             // Workload (Active tasks only)
             if (task.status !== 'COMPLETED') {
-                const assigneeName = task.assignee?.username || 'Unassigned';
-                if (!workloadMap[assigneeName]) workloadMap[assigneeName] = 0;
-                workloadMap[assigneeName]++;
+                const assigneeList = task.assignees || [];
+                if (assigneeList.length === 0) {
+                    if (!workloadMap['Unassigned']) workloadMap['Unassigned'] = 0;
+                    workloadMap['Unassigned']++;
+                } else {
+                    assigneeList.forEach(a => {
+                        const name = a.username || 'Unassigned';
+                        if (!workloadMap[name]) workloadMap[name] = 0;
+                        workloadMap[name]++;
+                    });
+                }
             }
 
             // Status Pie Chart
@@ -171,7 +179,7 @@ const Dashboard = () => {
                 type: 'TASK',
                 date: new Date(t.created_at),
                 title: `Task Created: ${t.task_name}`,
-                desc: `${t.assignee?.username ? `@${t.assignee.username}` : 'Someone'} was assigned to ${t.project_name}`,
+                desc: `${t.assignees?.length ? t.assignees.map(a => `@${a.username}`).join(', ') : 'Someone'} was assigned to ${t.project_name}`,
                 user: t.assigned_by?.username || 'Admin'
             });
         });
@@ -346,7 +354,8 @@ const Dashboard = () => {
                                 </thead>
                                 <tbody>
                                     {topCriticalTasks.map((task, idx) => {
-                                        const isOverdue = task.due_date && new Date(task.due_date) < new Date(new Date().toDateString());
+                                        const effectiveDue = task.revised_due_date || task.due_date;
+                                        const isOverdue = effectiveDue && new Date(effectiveDue) < new Date(new Date().toDateString());
                                         return (
                                             <tr key={task.id || idx} style={{ borderBottom: '1px solid var(--border-light)' }}>
                                                 <td style={{ padding: '16px', fontWeight: 600, color: 'var(--text-primary)' }}>
@@ -359,15 +368,29 @@ const Dashboard = () => {
                                                     </span>
                                                 </td>
                                                 <td style={{ padding: '16px', fontSize: '0.85rem', fontWeight: isOverdue ? 700 : 500, color: isOverdue ? '#ff6b6b' : 'var(--text-secondary)' }}>
-                                                    {task.due_date ? new Date(task.due_date).toLocaleDateString() : 'N/A'}
-                                                    {isOverdue && <span style={{ display: 'inline-block', marginLeft: '6px', padding: '2px 6px', borderRadius: '4px', background: '#ff6b6b', color: '#fff', fontSize: '0.65rem' }}>OVERDUE</span>}
+                                                    {task.revised_due_date ? (
+                                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                                                            <span style={{ textDecoration: 'line-through', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                                                                {new Date(task.due_date).toLocaleDateString()}
+                                                            </span>
+                                                            <span style={{ fontWeight: 600, color: isOverdue ? '#ff6b6b' : 'var(--text-primary)' }}>
+                                                                {new Date(task.revised_due_date).toLocaleDateString()}
+                                                                <span style={{ fontSize: '0.65rem', marginLeft: '6px', padding: '2px 4px', borderRadius: '4px', background: 'rgba(255,185,70,0.1)', color: '#ffb946', fontWeight: 700 }}>REVISED</span>
+                                                            </span>
+                                                        </div>
+                                                    ) : task.due_date ? (
+                                                        <>
+                                                            {new Date(task.due_date).toLocaleDateString()}
+                                                            {isOverdue && <span style={{ display: 'inline-block', marginLeft: '6px', padding: '2px 6px', borderRadius: '4px', background: '#ff6b6b', color: '#fff', fontSize: '0.65rem' }}>OVERDUE</span>}
+                                                        </>
+                                                    ) : 'N/A'}
                                                 </td>
                                                 <td style={{ padding: '16px' }}>
                                                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                                                         <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: 'var(--primary-light)', color: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.8rem', fontWeight: 700 }}>
-                                                            {task.assignee?.username?.charAt(0).toUpperCase() || '?'}
+                                                            {task.assignees?.[0]?.username?.charAt(0).toUpperCase() || '?'}
                                                         </div>
-                                                        <span style={{ fontSize: '0.85rem', fontWeight: 500 }}>{task.assignee?.username || 'Unassigned'}</span>
+                                                        <span style={{ fontSize: '0.85rem', fontWeight: 500 }}>{task.assignees?.[0]?.username || 'Unassigned'}{task.assignees?.length > 1 ? ` +${task.assignees.length - 1}` : ''}</span>
                                                     </div>
                                                 </td>
                                             </tr>

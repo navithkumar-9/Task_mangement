@@ -111,10 +111,24 @@ const TaskProgress = () => {
                     <td className="text-bold">{task.task_name}</td>
                     <td className="text-muted">{task.project_name}</td>
                     <td>{task.assigned_by ? <span className="text-bold" style={{ color: 'var(--primary)' }}>@{task.assigned_by.username}</span> : '—'}</td>
-                    <td>{task.assignee ? <span className="text-bold">@{task.assignee.username}</span> : '—'}</td>
+                    <td>{task.assignees && task.assignees.length > 0 ? <span className="text-bold">@{task.assignees.map(a => a.username).join(', ')}</span> : '—'}</td>
                     <td>{getPriorityBadge(task.priority)}</td>
                     <td>{getStatusBadge(task.status)}</td>
-                    <td className="text-muted">{task.due_date ? new Date(task.due_date).toLocaleDateString() : '—'}</td>
+                    <td className="text-muted">
+                      {task.revised_due_date ? (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                          <span style={{ textDecoration: 'line-through', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                            {new Date(task.due_date).toLocaleDateString()}
+                          </span>
+                          <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
+                            {new Date(task.revised_due_date).toLocaleDateString()}
+                            <span style={{ fontSize: '0.65rem', marginLeft: '6px', padding: '2px 4px', borderRadius: '4px', background: 'rgba(255,185,70,0.1)', color: '#ffb946', fontWeight: 700 }}>REVISED</span>
+                          </span>
+                        </div>
+                      ) : task.due_date ? (
+                        <span>{new Date(task.due_date).toLocaleDateString()}</span>
+                      ) : '—'}
+                    </td>
                   </tr>
                 ))}
               </tbody>

@@ -54,10 +54,10 @@ class Task(models.Model):
     project_name = models.CharField(max_length=255)
     task_name = models.CharField(max_length=255)
     description = models.TextField()
-    assignee = models.ForeignKey(
+    assignees = models.ManyToManyField(
         User,
-        on_delete=models.CASCADE,
         related_name="assigned_tasks",
+        blank=True,
     )
     assigned_by = models.ForeignKey(
         User,
@@ -75,6 +75,8 @@ class Task(models.Model):
         default=TaskPriority.MEDIUM,
     )
     due_date = models.DateField()
+    revised_due_date = models.DateField(null=True, blank=True)
+    remarks = models.TextField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

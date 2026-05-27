@@ -12,6 +12,14 @@ const COLUMNS_BASE = [
 
 const PRIORITIES = ['LOW', 'MEDIUM', 'HIGH'];
 
+const getTodayStr = () => {
+    const d = new Date();
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
+};
+
 const Tasks = () => {
     const { user } = useAuth();
     const isAdmin = user?.role === 'ADMIN';
@@ -32,8 +40,10 @@ const Tasks = () => {
         description: '',
         priority: 'MEDIUM',
         status: 'PENDING',
-        assignee_id: '',
+        assignee_ids: [],
         due_date: '',
+        revised_due_date: '',
+        remarks: '',
     });
 
     const [search, setSearch] = useState('');
@@ -102,8 +112,10 @@ const Tasks = () => {
             description: '',
             priority: 'MEDIUM',
             status,
-            assignee_id: teamMembers.length > 0 ? teamMembers[0].id : '',
+            assignee_ids: [],
             due_date: '',
+            revised_due_date: '',
+            remarks: '',
         });
         setShowModal(true);
     };
@@ -118,8 +130,10 @@ const Tasks = () => {
             description: task.description,
             priority: task.priority,
             status: task.status,
-            assignee_id: task.assignee?.id || '',
+            assignee_ids: task.assignees ? task.assignees.map((a) => a.id) : [],
             due_date: task.due_date,
+            revised_due_date: task.revised_due_date || '',
+            remarks: task.remarks || '',
         });
         setShowModal(true);
     };
@@ -130,10 +144,20 @@ const Tasks = () => {
 
         setError(null);
         try {
+            const payload = { ...form };
+            // When creating, don't send revised_due_date
+            if (!editTask) {
+                delete payload.revised_due_date;
+            }
+            // If editing and revised_due_date is empty string, send null
+            if (editTask && !payload.revised_due_date) {
+                payload.revised_due_date = null;
+            }
+
             if (editTask) {
-                await API.patch(`/tasks/${editTask.id}/`, form);
+                await API.patch(`/tasks/${editTask.id}/`, payload);
             } else {
-                await API.post('/tasks/create/', form);
+                await API.post('/tasks/create/', payload);
             }
             setShowModal(false);
             fetchTasks();
@@ -182,6 +206,22 @@ const Tasks = () => {
             setTasks(previousTasks);
         }
     };
+
+    const toggleAssignee = (memberId) => {
+        setForm((prev) => {
+            const ids = prev.assignee_ids.includes(memberId)
+                ? prev.assignee_ids.filter((id) => id !== memberId)
+                : [...prev.assignee_ids, memberId];
+            return { ...prev, assignee_ids: ids };
+        });
+    };
+
+    const isOverdue = (task) => {
+        const effectiveDue = task.revised_due_date || task.due_date;
+        return effectiveDue && new Date(effectiveDue) < new Date(new Date().toDateString()) && task.status !== 'COMPLETED';
+    };
+
+    const todayStr = getTodayStr();
 
     return (
         <div className="page tasks-page">
@@ -282,47 +322,91 @@ const Tasks = () => {
                                             }}
                                         >
                                             <div className="kanban-card-top">
-                                                <span
-                                                    className={`priority-dot priority-${task.priority?.toLowerCase()}`}
-                                                ></span>
-                                                <span
-                                                    className={`priority-text priority-${task.priority?.toLowerCase()}`}
-                                                >
-                                                    {task.priority}
-                                                </span>
-                                            </div>
-                                            <h4 className="kanban-card-title">
-                                                {task.task_name}
-                                            </h4>
-                                            {task.project_name && (
-                                                <p
-                                                    className="kanban-card-desc"
-                                                    style={{
-                                                        fontWeight: 600,
-                                                        color: 'var(--primary)',
-                                                    }}
-                                                >
-                                                    Project: {task.project_name}
-                                                </p>
-                                            )}
-                                            {task.description && (
-                                                <p className="kanban-card-desc">
-                                                    {task.description}
-                                                </p>
-                                            )}
+                                                 <span className={`priority-badge priority-${task.priority?.toLowerCase()}`} style={{ textTransform: 'uppercase' }}>
+                                                     {task.priority}
+                                                 </span>
+                                             </div>
+                                             <h4 className="kanban-card-title">
+                                                 {task.task_name}
+                                             </h4>
+                                             {task.project_name && (
+                                                 <p
+                                                     className="kanban-card-desc"
+                                                     style={{
+                                                         fontWeight: 600,
+                                                         color: 'var(--primary)',
+                                                     }}
+                                                 >
+                                                     Project: {task.project_name}
+                                                 </p>
+                                             )}
+                                             {task.description && (
+                                                 <p className="kanban-card-desc">
+                                                     {task.description}
+                                                 </p>
+                                             )}
+                                             {task.remarks && (
+                                                 <div style={{
+                                                     marginTop: '8px',
+                                                     marginBottom: '12px',
+                                                     padding: '8px 10px',
+                                                     borderRadius: '6px',
+                                                     background: '#7B68EE0c',
+                                                     borderLeft: '3px solid #7B68EE',
+                                                     fontSize: '0.75rem',
+                                                     color: 'var(--text-secondary)',
+                                                     lineHeight: '1.3'
+                                                 }}>
+                                                     <strong style={{ color: '#7B68EE', display: 'block', marginBottom: '2px', fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.3px' }}>Admin Remarks</strong>
+                                                     {task.remarks}
+                                                 </div>
+                                             )}
                                             <div className="kanban-card-footer">
-                                                {task.assignee && (
-                                                    <span className="kanban-assignee">
-                                                        {task.assignee.username}
-                                                    </span>
+                                                {/* Multi-assignee avatars */}
+                                                {task.assignees && task.assignees.length > 0 && (
+                                                    <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+                                                        {task.assignees.map((a) => (
+                                                            <span
+                                                                key={a.id}
+                                                                title={a.username}
+                                                                style={{
+                                                                    display: 'inline-flex',
+                                                                    alignItems: 'center',
+                                                                    justifyContent: 'center',
+                                                                    width: '24px',
+                                                                    height: '24px',
+                                                                    borderRadius: '50%',
+                                                                    background: 'var(--primary-light)',
+                                                                    color: 'var(--primary)',
+                                                                    fontSize: '0.65rem',
+                                                                    fontWeight: 700,
+                                                                    border: '2px solid #fff',
+                                                                }}
+                                                            >
+                                                                {a.username?.charAt(0).toUpperCase()}
+                                                            </span>
+                                                        ))}
+                                                    </div>
                                                 )}
-                                                {task.due_date && (
-                                                    <span className="kanban-due">
-                                                        {new Date(
-                                                            task.due_date,
-                                                        ).toLocaleDateString()}
-                                                    </span>
-                                                )}
+                                                {/* Due date with revised logic */}
+                                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '2px' }}>
+                                                    {task.revised_due_date ? (
+                                                        <>
+                                                            <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textDecoration: 'line-through' }}>
+                                                                {new Date(task.due_date).toLocaleDateString()}
+                                                            </span>
+                                                            <span className="kanban-due" style={{ color: isOverdue(task) ? '#ff6b6b' : undefined }}>
+                                                                {new Date(task.revised_due_date).toLocaleDateString()}
+                                                                <span style={{ fontSize: '0.6rem', marginLeft: '4px', padding: '1px 4px', borderRadius: '3px', background: '#ffb94620', color: '#ffb946', fontWeight: 700 }}>REVISED</span>
+                                                            </span>
+                                                        </>
+                                                    ) : task.due_date ? (
+                                                        <span className="kanban-due" style={{ color: isOverdue(task) ? '#ff6b6b' : undefined }}>
+                                                            {new Date(task.due_date).toLocaleDateString()}
+                                                            {isOverdue(task) && <span style={{ fontSize: '0.6rem', marginLeft: '4px', padding: '1px 4px', borderRadius: '3px', background: '#ff6b6b20', color: '#ff6b6b', fontWeight: 700 }}>OVERDUE</span>}
+                                                        </span>
+                                                    ) : null}
+                                                </div>
                                             </div>
                                             <div
                                                 className="kanban-card-actions"
@@ -396,7 +480,7 @@ const Tasks = () => {
                     onClick={() => setShowModal(false)}
                 >
                     <div
-                        className="modal-card"
+                        className="modal-card modal-card-wide"
                         onClick={(e) => e.stopPropagation()}
                     >
                         <div className="modal-header">
@@ -412,140 +496,246 @@ const Tasks = () => {
                             {error && (
                                 <div className="alert-error">{error}</div>
                             )}
-                            <div className="form-row">
-                                <div className="form-group">
-                                    <label className="form-label">
-                                        Task Name
-                                    </label>
-                                    <input
-                                        className="form-input"
-                                        placeholder="Task title"
-                                        value={form.task_name}
-                                        onChange={(e) =>
-                                            setForm({
-                                                ...form,
-                                                task_name: e.target.value,
-                                            })
-                                        }
-                                        required
-                                    />
+
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
+                                {/* Left Column: Task details */}
+                                <div>
+                                    <div className="form-group">
+                                        <label className="form-label">
+                                            Task Name
+                                        </label>
+                                        <input
+                                            className="form-input"
+                                            placeholder="Task title"
+                                            value={form.task_name}
+                                            onChange={(e) =>
+                                                setForm({
+                                                    ...form,
+                                                    task_name: e.target.value,
+                                                })
+                                            }
+                                            required
+                                        />
+                                    </div>
+                                    <div className="form-group">
+                                        <label className="form-label">
+                                            Project Name
+                                        </label>
+                                        <input
+                                            className="form-input"
+                                            placeholder="Project name"
+                                            value={form.project_name}
+                                            onChange={(e) =>
+                                                setForm({
+                                                    ...form,
+                                                    project_name: e.target.value,
+                                                })
+                                            }
+                                            required
+                                        />
+                                    </div>
+                                    <div className="form-group">
+                                        <label className="form-label">
+                                            Description
+                                        </label>
+                                        <textarea
+                                            className="form-input form-textarea"
+                                            placeholder="Add details..."
+                                            style={{ minHeight: '120px' }}
+                                            value={form.description}
+                                            onChange={(e) =>
+                                                setForm({
+                                                    ...form,
+                                                    description: e.target.value,
+                                                })
+                                            }
+                                        />
+                                    </div>
+
+                                    {/* Remarks — only shown when status is IN_REVIEW */}
+                                    {form.status === 'IN_REVIEW' && (
+                                         <div className="form-group" style={{ marginTop: '8px' }}>
+                                             <label className="form-label">
+                                                 Remarks
+                                             </label>
+                                             <textarea
+                                                 className="form-input form-textarea"
+                                                 placeholder="Add remarks for review..."
+                                                 style={{ minHeight: '90px' }}
+                                                 value={form.remarks}
+                                                 onChange={(e) =>
+                                                     setForm({
+                                                         ...form,
+                                                         remarks: e.target.value,
+                                                     })
+                                                 }
+                                             />
+                                         </div>
+                                    )}
                                 </div>
-                                <div className="form-group">
-                                    <label className="form-label">
-                                        Project Name
-                                    </label>
-                                    <input
-                                        className="form-input"
-                                        placeholder="Project name"
-                                        value={form.project_name}
-                                        onChange={(e) =>
-                                            setForm({
-                                                ...form,
-                                                project_name: e.target.value,
-                                            })
-                                        }
-                                        required
-                                    />
+
+                                {/* Right Column: Metadata and Assignees */}
+                                <div>
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                                        <div className="form-group">
+                                            <label className="form-label">
+                                                Priority
+                                            </label>
+                                            <select
+                                                className="form-input"
+                                                value={form.priority}
+                                                onChange={(e) =>
+                                                    setForm({
+                                                        ...form,
+                                                        priority: e.target.value,
+                                                    })
+                                                }
+                                            >
+                                                {PRIORITIES.map((p) => (
+                                                    <option key={p} value={p}>
+                                                        {p}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                        <div className="form-group">
+                                            <label className="form-label">Status</label>
+                                            <select
+                                                className="form-input"
+                                                value={form.status}
+                                                onChange={(e) =>
+                                                    setForm({
+                                                        ...form,
+                                                        status: e.target.value,
+                                                    })
+                                                }
+                                            >
+                                                {COLUMNS.map((c) => (
+                                                    <option key={c.id} value={c.id}>
+                                                        {c.label}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <div className="form-group">
+                                        <label className="form-label">
+                                            Due Date
+                                        </label>
+                                        <input
+                                            type="date"
+                                            className="form-input"
+                                            value={form.due_date}
+                                            min={editTask ? undefined : todayStr}
+                                            onChange={(e) =>
+                                                setForm({
+                                                    ...form,
+                                                    due_date: e.target.value,
+                                                })
+                                            }
+                                            required
+                                            disabled={editTask && editTask.revised_due_date}
+                                        />
+                                        {editTask && editTask.due_date && (
+                                            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+                                                Original: {new Date(editTask.due_date).toLocaleDateString()}
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* Revised Due Date — only shown when editing */}
+                                    {editTask && (
+                                        <div className="form-group" style={{ marginTop: '8px' }}>
+                                            <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                Revised Due Date
+                                                {isOverdue(editTask) && (
+                                                    <span style={{ fontSize: '0.7rem', padding: '2px 8px', borderRadius: '4px', background: '#ff6b6b15', color: '#ff6b6b', fontWeight: 700 }}>Task is Overdue</span>
+                                                )}
+                                            </label>
+                                            <input
+                                                type="date"
+                                                className="form-input"
+                                                value={form.revised_due_date}
+                                                min={todayStr}
+                                                onChange={(e) =>
+                                                    setForm({
+                                                        ...form,
+                                                        revised_due_date: e.target.value,
+                                                    })
+                                                }
+                                            />
+                                            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+                                                Leave empty if no revision needed. Past dates are disabled.
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Multi-select Assignees */}
+                                    <div className="form-group" style={{ marginTop: '8px' }}>
+                                        <label className="form-label">
+                                            Assign To ({form.assignee_ids.length} selected)
+                                        </label>
+                                        <div style={{
+                                            border: '1px solid var(--border-color)',
+                                            borderRadius: '8px',
+                                            padding: '10px',
+                                            maxHeight: '140px',
+                                            overflowY: 'auto',
+                                            background: 'var(--bg-body)',
+                                        }}>
+                                            {teamMembers.length === 0 ? (
+                                                <div style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>No team members available</div>
+                                            ) : (
+                                                teamMembers.map((m) => (
+                                                    <label
+                                                        key={m.id}
+                                                        style={{
+                                                            display: 'flex',
+                                                            alignItems: 'center',
+                                                            gap: '10px',
+                                                            padding: '6px 8px',
+                                                            borderRadius: '6px',
+                                                            cursor: 'pointer',
+                                                            background: form.assignee_ids.includes(m.id)
+                                                                ? 'var(--primary-light)'
+                                                                : 'transparent',
+                                                            transition: 'background 0.15s',
+                                                            marginBottom: '4px',
+                                                        }}
+                                                    >
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={form.assignee_ids.includes(m.id)}
+                                                            onChange={() => toggleAssignee(m.id)}
+                                                            style={{ accentColor: 'var(--primary)', width: '16px', height: '16px' }}
+                                                        />
+                                                        <div style={{
+                                                            width: '24px',
+                                                            height: '24px',
+                                                            borderRadius: '50%',
+                                                            background: form.assignee_ids.includes(m.id) ? 'var(--primary)' : 'var(--border-color)',
+                                                            color: form.assignee_ids.includes(m.id) ? '#fff' : 'var(--text-muted)',
+                                                            display: 'flex',
+                                                            alignItems: 'center',
+                                                            justifyContent: 'center',
+                                                            fontSize: '0.75rem',
+                                                            fontWeight: 700,
+                                                            flexShrink: 0,
+                                                        }}>
+                                                            {m.username?.charAt(0).toUpperCase()}
+                                                        </div>
+                                                        <span style={{ fontSize: '0.9rem', fontWeight: form.assignee_ids.includes(m.id) ? 600 : 400 }}>
+                                                            {m.username}
+                                                        </span>
+                                                    </label>
+                                                ))
+                                            )}
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
-                            <div className="form-group">
-                                <label className="form-label">
-                                    Description
-                                </label>
-                                <textarea
-                                    className="form-input form-textarea"
-                                    placeholder="Add details..."
-                                    value={form.description}
-                                    onChange={(e) =>
-                                        setForm({
-                                            ...form,
-                                            description: e.target.value,
-                                        })
-                                    }
-                                />
-                            </div>
-                            <div className="form-row-3">
-                                <div className="form-group">
-                                    <label className="form-label">
-                                        Priority
-                                    </label>
-                                    <select
-                                        className="form-input"
-                                        value={form.priority}
-                                        onChange={(e) =>
-                                            setForm({
-                                                ...form,
-                                                priority: e.target.value,
-                                            })
-                                        }
-                                    >
-                                        {PRIORITIES.map((p) => (
-                                            <option key={p} value={p}>
-                                                {p}
-                                            </option>
-                                        ))}
-                                    </select>
-                                </div>
-                                <div className="form-group">
-                                    <label className="form-label">Status</label>
-                                    <select
-                                        className="form-input"
-                                        value={form.status}
-                                        onChange={(e) =>
-                                            setForm({
-                                                ...form,
-                                                status: e.target.value,
-                                            })
-                                        }
-                                    >
-                                        {COLUMNS.map((c) => (
-                                            <option key={c.id} value={c.id}>
-                                                {c.label}
-                                            </option>
-                                        ))}
-                                    </select>
-                                </div>
-                                <div className="form-group">
-                                    <label className="form-label">
-                                        Due Date
-                                    </label>
-                                    <input
-                                        type="date"
-                                        className="form-input"
-                                        value={form.due_date}
-                                        onChange={(e) =>
-                                            setForm({
-                                                ...form,
-                                                due_date: e.target.value,
-                                            })
-                                        }
-                                        required
-                                    />
-                                </div>
-                            </div>
-                            <div className="form-group">
-                                <label className="form-label">Assignee</label>
-                                <select
-                                    className="form-input"
-                                    value={form.assignee_id}
-                                    onChange={(e) =>
-                                        setForm({
-                                            ...form,
-                                            assignee_id: e.target.value,
-                                        })
-                                    }
-                                    required
-                                >
-                                    <option value="" disabled>
-                                        Select Team Member
-                                    </option>
-                                    {teamMembers.map((m) => (
-                                        <option key={m.id} value={m.id}>
-                                            {m.username}
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
+
                             <div
                                 className="modal-actions"
                                 style={{

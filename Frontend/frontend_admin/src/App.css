@@ -504,16 +504,16 @@
     text-transform: capitalize;
 }
 .priority-low {
-    background: rgba(75, 207, 130, 0.08);
-    color: #4bcf82;
+    background: #4bcf82;
+    color: #ffffff;
 }
 .priority-medium {
-    background: rgba(255, 185, 70, 0.08);
-    color: #ffb946;
+    background: #ffb946;
+    color: #ffffff;
 }
 .priority-high {
-    background: rgba(255, 107, 107, 0.08);
-    color: #ff6b6b;
+    background: #ff6b6b;
+    color: #ffffff;
 }
 .priority-urgent {
     background: #ff6b6b;
@@ -846,9 +846,14 @@
     border-radius: var(--radius);
     width: 100%;
     max-width: 540px;
+    max-height: 90vh;
+    overflow-y: auto;
     padding: 28px;
     box-shadow: var(--shadow-lg);
     animation: fadeUp 0.3s ease;
+}
+.modal-card-wide {
+    max-width: 780px;
 }
 .modal-header {
     display: flex;

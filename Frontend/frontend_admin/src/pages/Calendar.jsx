@@ -153,9 +153,11 @@ const TaskDetailModal = ({ tasks, date, onClose }) => {
                             priorityColors.MEDIUM;
                         const sStyle =
                             statusColors[task.status] || statusColors.PENDING;
+                        const effectiveDue = task.revised_due_date || task.due_date;
                         const isOverdue =
                             task.status !== 'COMPLETED' &&
-                            new Date(task.due_date) <
+                            effectiveDue &&
+                            new Date(effectiveDue) <
                                 new Date(new Date().toDateString());
 
                         return (
@@ -205,15 +207,24 @@ const TaskDetailModal = ({ tasks, date, onClose }) => {
                                     </span>
                                 </div>
 
-                                <p
-                                    style={{
-                                        fontSize: '0.8rem',
-                                        color: 'var(--text-secondary)',
-                                        margin: '0 0 10px',
-                                    }}
-                                >
-                                    {task.project_name}
-                                </p>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '0 0 10px' }}>
+                                    <p
+                                        style={{
+                                            fontSize: '0.8rem',
+                                            color: 'var(--text-secondary)',
+                                            margin: 0,
+                                        }}
+                                    >
+                                        {task.project_name}
+                                    </p>
+                                    {task.revised_due_date && (
+                                        <span style={{ fontSize: '0.72rem', color: '#ffb946', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                                            <span style={{ textDecoration: 'line-through', opacity: 0.7 }}>{new Date(task.due_date).toLocaleDateString()}</span>
+                                            &rarr;
+                                            <span>{new Date(task.revised_due_date).toLocaleDateString()} (Revised)</span>
+                                        </span>
+                                    )}
+                                </div>
 
                                 {task.description && (
                                     <p
@@ -253,7 +264,7 @@ const TaskDetailModal = ({ tasks, date, onClose }) => {
                                         {sStyle.label}
                                     </span>
 
-                                    {task.assignee && (
+                                    {task.assignees && task.assignees.length > 0 && (
                                         <span
                                             style={{
                                                 fontSize: '0.78rem',
@@ -261,7 +272,7 @@ const TaskDetailModal = ({ tasks, date, onClose }) => {
                                                 fontWeight: 600,
                                             }}
                                         >
-                                            @{task.assignee.username}
+                                            @{task.assignees.map(a => a.username).join(', ')}
                                         </span>
                                     )}
 
@@ -335,7 +346,7 @@ const Calendar = () => {
     const teamMembers = useMemo(() => {
         const names = new Set();
         tasks.forEach((t) => {
-            if (t.assignee?.username) names.add(t.assignee.username);
+            if (t.assignees) t.assignees.forEach(a => { if (a.username) names.add(a.username); });
         });
         return Array.from(names).sort();
     }, [tasks]);
@@ -344,16 +355,17 @@ const Calendar = () => {
     const filteredTasks = useMemo(() => {
         if (!memberFilter) return tasks;
         return tasks.filter(
-            (t) => t.assignee?.username?.toLowerCase() === memberFilter.toLowerCase(),
+            (t) => t.assignees?.some(a => a.username?.toLowerCase() === memberFilter.toLowerCase()),
         );
     }, [tasks, memberFilter]);
 
-    // Group tasks by due_date
+    // Group tasks by revised_due_date or due_date
     const tasksByDate = useMemo(() => {
         const map = {};
         filteredTasks.forEach((task) => {
-            if (task.due_date) {
-                const key = task.due_date; // "YYYY-MM-DD"
+            const activeDate = task.revised_due_date || task.due_date;
+            if (activeDate) {
+                const key = activeDate; // "YYYY-MM-DD"
                 if (!map[key]) map[key] = [];
                 map[key].push(task);
             }
@@ -411,20 +423,19 @@ const Calendar = () => {
     // Count stats
     const stats = useMemo(() => {
         const monthStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}`;
-        const monthTasks = filteredTasks.filter(
-            (t) => t.due_date && t.due_date.startsWith(monthStr),
-        );
-        const overdue = monthTasks.filter(
-            (t) =>
-                t.status !== 'COMPLETED' &&
-                new Date(t.due_date) < new Date(new Date().toDateString()),
-        );
+        const monthTasks = filteredTasks.filter((t) => {
+            const activeDate = t.revised_due_date || t.due_date;
+            return activeDate && activeDate.startsWith(monthStr);
+        });
+        const overdue = monthTasks.filter((t) => {
+            const activeDate = t.revised_due_date || t.due_date;
+            return t.status !== 'COMPLETED' && activeDate && new Date(activeDate) < new Date(new Date().toDateString());
+        });
         const completed = monthTasks.filter((t) => t.status === 'COMPLETED');
-        const upcoming = monthTasks.filter(
-            (t) =>
-                t.status !== 'COMPLETED' &&
-                new Date(t.due_date) >= new Date(new Date().toDateString()),
-        );
+        const upcoming = monthTasks.filter((t) => {
+            const activeDate = t.revised_due_date || t.due_date;
+            return t.status !== 'COMPLETED' && activeDate && new Date(activeDate) >= new Date(new Date().toDateString());
+        });
         return {
             total: monthTasks.length,
             overdue: overdue.length,
@@ -888,7 +899,7 @@ const Calendar = () => {
                                 const hasOverdue = dayTasks.some(
                                     (t) =>
                                         t.status !== 'COMPLETED' &&
-                                        new Date(t.due_date) <
+                                        new Date(t.revised_due_date || t.due_date) <
                                             new Date(new Date().toDateString()),
                                 );
 
@@ -990,7 +1001,7 @@ const Calendar = () => {
                                                 const taskOverdue =
                                                     task.status !==
                                                         'COMPLETED' &&
-                                                    new Date(task.due_date) <
+                                                    new Date(task.revised_due_date || task.due_date) <
                                                         new Date(
                                                             new Date().toDateString(),
                                                         );
@@ -1080,13 +1091,13 @@ const Calendar = () => {
                         .filter(
                             (t) =>
                                 t.status !== 'COMPLETED' &&
-                                t.due_date &&
-                                new Date(t.due_date) >=
+                                (t.revised_due_date || t.due_date) &&
+                                new Date(t.revised_due_date || t.due_date) >=
                                     new Date(new Date().toDateString()),
                         )
                         .sort(
                             (a, b) =>
-                                new Date(a.due_date) - new Date(b.due_date),
+                                new Date(a.revised_due_date || a.due_date) - new Date(b.revised_due_date || b.due_date),
                         )
                         .slice(0, 8)
                         .map((task) => {
@@ -1096,7 +1107,7 @@ const Calendar = () => {
                             const sStyle =
                                 statusColors[task.status] ||
                                 statusColors.PENDING;
-                            const dueDate = new Date(task.due_date);
+                            const dueDate = new Date(task.revised_due_date || task.due_date);
                             const diffDays = Math.ceil(
                                 (dueDate -
                                     new Date(new Date().toDateString())) /
@@ -1152,8 +1163,8 @@ const Calendar = () => {
                                                 }}
                                             >
                                                 {task.project_name}
-                                                {task.assignee &&
-                                                    ` • @${task.assignee.username}`}
+                                                {task.assignees && task.assignees.length > 0 &&
+                                                    ` • @${task.assignees.map(a => a.username).join(', ')}`}
                                             </div>
                                         </div>
                                     </div>
@@ -1206,8 +1217,8 @@ const Calendar = () => {
                     {filteredTasks.filter(
                         (t) =>
                             t.status !== 'COMPLETED' &&
-                            t.due_date &&
-                            new Date(t.due_date) >=
+                            (t.revised_due_date || t.due_date) &&
+                            new Date(t.revised_due_date || t.due_date) >=
                                 new Date(new Date().toDateString()),
                     ).length === 0 && (
                         <div

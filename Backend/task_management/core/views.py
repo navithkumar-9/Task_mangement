@@ -445,9 +445,9 @@ class AdminTaskListView(APIView):
 
         search = request.GET.get("search")
 
-        queryset = Task.objects.filter(assigned_by=request.user).select_related(
-            "assignee", "assigned_by"
-        )
+        queryset = Task.objects.filter(assigned_by=request.user).prefetch_related(
+            "assignees"
+        ).select_related("assigned_by")
 
         if search:
             queryset = queryset.filter(
@@ -538,9 +538,9 @@ class TeamMemberTaskListView(APIView):
 
         search = request.GET.get("search")
 
-        queryset = Task.objects.filter(assignee=request.user).select_related(
-            "assignee", "assigned_by"
-        )
+        queryset = Task.objects.filter(assignees=request.user).prefetch_related(
+            "assignees"
+        ).select_related("assigned_by")
 
         if search:
             queryset = queryset.filter(
@@ -571,7 +571,7 @@ class UpdateTaskStatusView(APIView):
             )
 
         try:
-            task = Task.objects.get(id=task_id, assignee=request.user)
+            task = Task.objects.get(id=task_id, assignees=request.user)
         except Task.DoesNotExist:
 
             return error_response(
@@ -606,7 +606,7 @@ class SuperAdminTaskProgressView(APIView):
 
         search = request.GET.get("search")
 
-        queryset = Task.objects.select_related("assignee", "assigned_by")
+        queryset = Task.objects.prefetch_related("assignees").select_related("assigned_by")
 
         if search:
             queryset = queryset.filter(

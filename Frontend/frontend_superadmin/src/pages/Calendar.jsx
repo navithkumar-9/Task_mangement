@@ -46,7 +46,8 @@ const TaskDetailModal = ({ tasks, date, onClose }) => {
           {tasks.map((task) => {
             const pStyle = priorityColors[task.priority] || priorityColors.MEDIUM;
             const sStyle = statusColors[task.status] || statusColors.PENDING;
-            const isOverdue = task.status !== 'COMPLETED' && new Date(task.due_date) < new Date(new Date().toDateString());
+            const effectiveDue = task.revised_due_date || task.due_date;
+            const isOverdue = task.status !== 'COMPLETED' && effectiveDue && new Date(effectiveDue) < new Date(new Date().toDateString());
 
             return (
               <div key={task.id} style={{ padding: '16px', borderRadius: '12px', border: `1px solid ${pStyle.border}`, background: pStyle.bg, marginBottom: '12px' }}>
@@ -54,13 +55,22 @@ const TaskDetailModal = ({ tasks, date, onClose }) => {
                   <h3 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 600 }}>{task.task_name}</h3>
                   <span style={{ padding: '3px 10px', borderRadius: '20px', fontSize: '0.7rem', fontWeight: 700, background: pStyle.bg, color: pStyle.color, border: `1px solid ${pStyle.border}`, textTransform: 'uppercase' }}>{task.priority}</span>
                 </div>
-                <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', margin: '0 0 10px' }}>{task.project_name}</p>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '0 0 10px' }}>
+                  <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', margin: 0 }}>{task.project_name}</p>
+                  {task.revised_due_date && (
+                    <span style={{ fontSize: '0.72rem', color: '#ffb946', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                      <span style={{ textDecoration: 'line-through', opacity: 0.7 }}>{new Date(task.due_date).toLocaleDateString()}</span>
+                      &rarr;
+                      <span>{new Date(task.revised_due_date).toLocaleDateString()} (Revised)</span>
+                    </span>
+                  )}
+                </div>
                 {task.description && (
                   <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: '0 0 12px', lineHeight: 1.4, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{task.description}</p>
                 )}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
                   <span style={{ padding: '3px 10px', borderRadius: '6px', fontSize: '0.72rem', fontWeight: 600, background: sStyle.bg, color: sStyle.color }}>{sStyle.label}</span>
-                  {task.assignee && <span style={{ fontSize: '0.78rem', color: 'var(--primary)', fontWeight: 600 }}>@{task.assignee.username}</span>}
+                  {task.assignees && task.assignees.length > 0 && <span style={{ fontSize: '0.78rem', color: 'var(--primary)', fontWeight: 600 }}>@{task.assignees.map(a => a.username).join(', ')}</span>}
                   {task.assigned_by && <span style={{ fontSize: '0.72rem', color: '#49CCF9' }}>by @{task.assigned_by.username}</span>}
                   {isOverdue && <span style={{ padding: '2px 8px', borderRadius: '4px', fontSize: '0.68rem', fontWeight: 700, background: 'rgba(255,107,107,0.15)', color: '#ff6b6b' }}>OVERDUE</span>}
                 </div>
@@ -109,7 +119,7 @@ const Calendar = () => {
   const teamMembers = useMemo(() => {
     const names = new Set();
     tasks.forEach((t) => {
-      if (t.assignee?.username) names.add(t.assignee.username);
+      if (t.assignees) t.assignees.forEach(a => { if (a.username) names.add(a.username); });
     });
     return Array.from(names).sort();
   }, [tasks]);
@@ -118,16 +128,17 @@ const Calendar = () => {
   const filteredTasks = useMemo(() => {
     if (!memberFilter) return tasks;
     return tasks.filter(
-      (t) => t.assignee?.username?.toLowerCase() === memberFilter.toLowerCase(),
+      (t) => t.assignees?.some(a => a.username?.toLowerCase() === memberFilter.toLowerCase()),
     );
   }, [tasks, memberFilter]);
 
-  // Group tasks by due_date
+  // Group tasks by revised_due_date or due_date
   const tasksByDate = useMemo(() => {
     const map = {};
     filteredTasks.forEach((task) => {
-      if (task.due_date) {
-        const key = task.due_date;
+      const activeDate = task.revised_due_date || task.due_date;
+      if (activeDate) {
+        const key = activeDate;
         if (!map[key]) map[key] = [];
         map[key].push(task);
       }
@@ -159,10 +170,19 @@ const Calendar = () => {
   // Stats
   const stats = useMemo(() => {
     const monthStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}`;
-    const monthTasks = filteredTasks.filter((t) => t.due_date && t.due_date.startsWith(monthStr));
-    const overdue = monthTasks.filter((t) => t.status !== 'COMPLETED' && new Date(t.due_date) < new Date(new Date().toDateString()));
+    const monthTasks = filteredTasks.filter((t) => {
+      const activeDate = t.revised_due_date || t.due_date;
+      return activeDate && activeDate.startsWith(monthStr);
+    });
+    const overdue = monthTasks.filter((t) => {
+      const activeDate = t.revised_due_date || t.due_date;
+      return t.status !== 'COMPLETED' && activeDate && new Date(activeDate) < new Date(new Date().toDateString());
+    });
     const completed = monthTasks.filter((t) => t.status === 'COMPLETED');
-    const upcoming = monthTasks.filter((t) => t.status !== 'COMPLETED' && new Date(t.due_date) >= new Date(new Date().toDateString()));
+    const upcoming = monthTasks.filter((t) => {
+      const activeDate = t.revised_due_date || t.due_date;
+      return t.status !== 'COMPLETED' && activeDate && new Date(activeDate) >= new Date(new Date().toDateString());
+    });
     return { total: monthTasks.length, overdue: overdue.length, completed: completed.length, upcoming: upcoming.length };
   }, [filteredTasks, currentMonth, currentYear]);
 
@@ -285,7 +305,7 @@ const Calendar = () => {
                   if (t.priority === 'MEDIUM' && acc !== 'HIGH') return 'MEDIUM';
                   return acc || 'LOW';
                 }, null);
-                const hasOverdue = dayTasks.some((t) => t.status !== 'COMPLETED' && new Date(t.due_date) < new Date(new Date().toDateString()));
+                const hasOverdue = dayTasks.some((t) => t.status !== 'COMPLETED' && new Date(t.revised_due_date || t.due_date) < new Date(new Date().toDateString()));
 
                 return (
                   <div
@@ -311,7 +331,7 @@ const Calendar = () => {
                     </div>
                     {dayTasks.slice(0, 3).map((task, tIdx) => {
                       const pColor = priorityColors[task.priority] || priorityColors.MEDIUM;
-                      const taskOverdue = task.status !== 'COMPLETED' && new Date(task.due_date) < new Date(new Date().toDateString());
+                      const taskOverdue = task.status !== 'COMPLETED' && new Date(task.revised_due_date || task.due_date) < new Date(new Date().toDateString());
                       return (
                         <div key={task.id || tIdx} style={{ padding: '2px 6px', borderRadius: '4px', fontSize: '0.65rem', fontWeight: 600, color: taskOverdue ? '#ff6b6b' : pColor.color, background: taskOverdue ? 'rgba(255,107,107,0.1)' : pColor.bg, marginBottom: '2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', borderLeft: `2px solid ${taskOverdue ? '#ff6b6b' : pColor.color}`, textDecoration: task.status === 'COMPLETED' ? 'line-through' : 'none', opacity: task.status === 'COMPLETED' ? 0.6 : 1 }}>
                           {task.task_name}
@@ -332,21 +352,21 @@ const Calendar = () => {
         <div style={{ padding: '16px 24px', borderBottom: '1px solid var(--border-color)', fontWeight: 700, fontSize: '0.95rem' }}>Upcoming Deadlines</div>
         <div style={{ padding: '8px 24px 16px' }}>
           {filteredTasks
-            .filter((t) => t.status !== 'COMPLETED' && t.due_date && new Date(t.due_date) >= new Date(new Date().toDateString()))
-            .sort((a, b) => new Date(a.due_date) - new Date(b.due_date))
+            .filter((t) => t.status !== 'COMPLETED' && (t.revised_due_date || t.due_date) && new Date(t.revised_due_date || t.due_date) >= new Date(new Date().toDateString()))
+            .sort((a, b) => new Date(a.revised_due_date || a.due_date) - new Date(b.revised_due_date || b.due_date))
             .slice(0, 8)
             .map((task) => {
               const pStyle = priorityColors[task.priority] || priorityColors.MEDIUM;
               const sStyle = statusColors[task.status] || statusColors.PENDING;
-              const dueDate = new Date(task.due_date);
+              const dueDate = new Date(task.revised_due_date || task.due_date);
               const diffDays = Math.ceil((dueDate - new Date(new Date().toDateString())) / (1000 * 60 * 60 * 24));
               return (
-                <div key={task.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 0', borderBottom: '1px solid var(--border-light)' }}>
+                <div key={task.id} style={{ display: 'flex', alignItems: 'center', justifycontent: 'space-between', padding: '12px 0', borderBottom: '1px solid var(--border-light)' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, minWidth: 0 }}>
                     <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: pStyle.color, flexShrink: 0 }} />
                     <div style={{ minWidth: 0, flex: 1 }}>
                       <div style={{ fontWeight: 600, fontSize: '0.88rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{task.task_name}</div>
-                      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{task.project_name}{task.assignee && ` • @${task.assignee.username}`}</div>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{task.project_name}{task.assignees && task.assignees.length > 0 && ` • @${task.assignees.map(a => a.username).join(', ')}`}</div>
                     </div>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0 }}>
@@ -358,7 +378,7 @@ const Calendar = () => {
                 </div>
               );
             })}
-          {filteredTasks.filter((t) => t.status !== 'COMPLETED' && t.due_date && new Date(t.due_date) >= new Date(new Date().toDateString())).length === 0 && (
+          {filteredTasks.filter((t) => t.status !== 'COMPLETED' && (t.revised_due_date || t.due_date) && new Date(t.revised_due_date || t.due_date) >= new Date(new Date().toDateString())).length === 0 && (
             <div style={{ padding: '24px', textAlign: 'center', color: 'var(--text-muted)' }}>No upcoming deadlines</div>
           )}
         </div>
