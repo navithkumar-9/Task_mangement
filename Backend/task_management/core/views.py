@@ -16,13 +16,16 @@ from .serializers import (
     TimesheetCreateSerializer,
     TimesheetUpdateSerializer,
     TimesheetListSerializer,
+    TaskCommentSerializer,
+    SubTaskSerializer,
+    TaskDetailSerializer,
 )
 from .permissions import IsAdmin, IsSuperAdmin
 from .roles import UserRole
 from .response import success_response, error_response
 from .pagination import CustomPagination
 from django.db.models import Q
-from .models import Task, Timesheet
+from .models import Task, Timesheet, TaskComment, SubTask
 
 load_dotenv()
 
@@ -795,5 +798,205 @@ class TeamMemberTimesheetListView(APIView):
         return success_response(
             message="Your timesheets fetched successfully",
             data=serializer.data,
+            status_code=status.HTTP_200_OK,
+        )
+
+
+# ─── Task Full Detail (comments + subtasks) ───
+
+class TaskFullDetailView(APIView):
+    """GET full task detail with comments and subtasks."""
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, task_id):
+        try:
+            task = Task.objects.get(id=task_id)
+        except Task.DoesNotExist:
+            return error_response(
+                message="Task not found",
+                status_code=status.HTTP_404_NOT_FOUND,
+            )
+
+        is_admin_owner = (request.user.role == UserRole.ADMIN.value and task.assigned_by == request.user)
+        is_assignee = task.assignees.filter(id=request.user.id).exists()
+        is_super = request.user.role == UserRole.SUPER_ADMIN.value
+
+        if not (is_admin_owner or is_assignee or is_super):
+            return error_response(
+                message="You don't have permission to view this task",
+                status_code=status.HTTP_403_FORBIDDEN,
+            )
+
+        serializer = TaskDetailSerializer(task)
+        return success_response(
+            message="Task detail fetched",
+            data=serializer.data,
+            status_code=status.HTTP_200_OK,
+        )
+
+
+# ─── Task Comments ───
+
+class TaskCommentListCreateView(APIView):
+    """GET list of comments, POST new comment."""
+    permission_classes = [IsAuthenticated]
+
+    def _get_task_or_403(self, request, task_id):
+        try:
+            task = Task.objects.get(id=task_id)
+        except Task.DoesNotExist:
+            return None, error_response(
+                message="Task not found",
+                status_code=status.HTTP_404_NOT_FOUND,
+            )
+
+        is_admin_owner = (request.user.role == UserRole.ADMIN.value and task.assigned_by == request.user)
+        is_assignee = task.assignees.filter(id=request.user.id).exists()
+        is_super = request.user.role == UserRole.SUPER_ADMIN.value
+
+        if not (is_admin_owner or is_assignee or is_super):
+            return None, error_response(
+                message="Access denied",
+                status_code=status.HTTP_403_FORBIDDEN,
+            )
+        return task, None
+
+    def get(self, request, task_id):
+        task, err = self._get_task_or_403(request, task_id)
+        if err:
+            return err
+
+        comments = task.comments.all()
+        serializer = TaskCommentSerializer(comments, many=True)
+        return success_response(
+            message="Comments fetched",
+            data=serializer.data,
+            status_code=status.HTTP_200_OK,
+        )
+
+    def post(self, request, task_id):
+        task, err = self._get_task_or_403(request, task_id)
+        if err:
+            return err
+
+        content = request.data.get("content", "").strip()
+        if not content:
+            return error_response(
+                message="Comment content is required",
+                status_code=status.HTTP_400_BAD_REQUEST,
+            )
+
+        comment = TaskComment.objects.create(
+            task=task,
+            user=request.user,
+            content=content,
+        )
+        serializer = TaskCommentSerializer(comment)
+        return success_response(
+            message="Comment added",
+            data=serializer.data,
+            status_code=status.HTTP_201_CREATED,
+        )
+
+
+# ─── SubTasks ───
+
+class SubTaskListCreateView(APIView):
+    """GET list subtasks, POST create subtask (admin only)."""
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, task_id):
+        try:
+            task = Task.objects.get(id=task_id)
+        except Task.DoesNotExist:
+            return error_response(
+                message="Task not found",
+                status_code=status.HTTP_404_NOT_FOUND,
+            )
+
+        subtasks = task.subtasks.all()
+        serializer = SubTaskSerializer(subtasks, many=True)
+        return success_response(
+            message="Subtasks fetched",
+            data=serializer.data,
+            status_code=status.HTTP_200_OK,
+        )
+
+    def post(self, request, task_id):
+        if request.user.role != UserRole.ADMIN.value:
+            return error_response(
+                message="Only admins can create subtasks",
+                status_code=status.HTTP_403_FORBIDDEN,
+            )
+
+        try:
+            task = Task.objects.get(id=task_id, assigned_by=request.user)
+        except Task.DoesNotExist:
+            return error_response(
+                message="Task not found",
+                status_code=status.HTTP_404_NOT_FOUND,
+            )
+
+        title = request.data.get("title", "").strip()
+        if not title:
+            return error_response(
+                message="Subtask title is required",
+                status_code=status.HTTP_400_BAD_REQUEST,
+            )
+
+        subtask = SubTask.objects.create(task=task, title=title)
+        serializer = SubTaskSerializer(subtask)
+        return success_response(
+            message="Subtask created",
+            data=serializer.data,
+            status_code=status.HTTP_201_CREATED,
+        )
+
+
+class SubTaskUpdateDeleteView(APIView):
+    """PATCH toggle completion, DELETE remove subtask."""
+    permission_classes = [IsAuthenticated]
+
+    def patch(self, request, task_id, subtask_id):
+        try:
+            subtask = SubTask.objects.get(id=subtask_id, task_id=task_id)
+        except SubTask.DoesNotExist:
+            return error_response(
+                message="Subtask not found",
+                status_code=status.HTTP_404_NOT_FOUND,
+            )
+
+        if "is_completed" in request.data:
+            subtask.is_completed = request.data["is_completed"]
+        else:
+            subtask.is_completed = not subtask.is_completed
+        subtask.save()
+
+        serializer = SubTaskSerializer(subtask)
+        return success_response(
+            message="Subtask updated",
+            data=serializer.data,
+            status_code=status.HTTP_200_OK,
+        )
+
+    def delete(self, request, task_id, subtask_id):
+        if request.user.role != UserRole.ADMIN.value:
+            return error_response(
+                message="Only admins can delete subtasks",
+                status_code=status.HTTP_403_FORBIDDEN,
+            )
+
+        try:
+            subtask = SubTask.objects.get(id=subtask_id, task_id=task_id)
+        except SubTask.DoesNotExist:
+            return error_response(
+                message="Subtask not found",
+                status_code=status.HTTP_404_NOT_FOUND,
+            )
+
+        subtask.delete()
+        return success_response(
+            message="Subtask deleted",
+            data=None,
             status_code=status.HTTP_200_OK,
         )

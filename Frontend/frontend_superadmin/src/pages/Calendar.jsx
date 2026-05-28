@@ -68,7 +68,6 @@ const getTodayLocal = () => {
     return new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, 0, 0, 0);
 };
 
-
 /* ─── Task Detail Modal ─── */
 const TaskDetailModal = ({ tasks, date, onClose }) => {
     if (!tasks || tasks.length === 0) return null;
@@ -926,8 +925,9 @@ const Calendar = () => {
                                 const hasOverdue = dayTasks.some(
                                     (t) =>
                                         t.status !== 'COMPLETED' &&
-                                        parseLocalDate(t.revised_due_date || t.due_date) <
-                                            getTodayLocal(),
+                                        parseLocalDate(
+                                            t.revised_due_date || t.due_date,
+                                        ) < getTodayLocal(),
                                 );
 
                                 return (
@@ -1025,8 +1025,10 @@ const Calendar = () => {
                                                 const taskOverdue =
                                                     task.status !==
                                                         'COMPLETED' &&
-                                                    parseLocalDate(task.revised_due_date || task.due_date) <
-                                                        getTodayLocal();
+                                                    parseLocalDate(
+                                                        task.revised_due_date ||
+                                                            task.due_date,
+                                                    ) < getTodayLocal();
                                                 return (
                                                     <div
                                                         key={task.id || tIdx}
@@ -1112,12 +1114,18 @@ const Calendar = () => {
                             (t) =>
                                 t.status !== 'COMPLETED' &&
                                 (t.revised_due_date || t.due_date) &&
-                                parseLocalDate(t.revised_due_date || t.due_date) >=
-                                    getTodayLocal(),
+                                parseLocalDate(
+                                    t.revised_due_date || t.due_date,
+                                ) >= getTodayLocal(),
                         )
                         .sort(
                             (a, b) =>
-                                parseLocalDate(a.revised_due_date || a.due_date) - parseLocalDate(b.revised_due_date || b.due_date),
+                                parseLocalDate(
+                                    a.revised_due_date || a.due_date,
+                                ) -
+                                parseLocalDate(
+                                    b.revised_due_date || b.due_date,
+                                ),
                         )
                         .slice(0, 8)
                         .map((task) => {
@@ -1127,7 +1135,9 @@ const Calendar = () => {
                             const sStyle =
                                 statusColors[task.status] ||
                                 statusColors.PENDING;
-                            const dueDate = parseLocalDate(task.revised_due_date || task.due_date);
+                            const dueDate = parseLocalDate(
+                                task.revised_due_date || task.due_date,
+                            );
                             const diffDays = Math.round(
                                 (dueDate - getTodayLocal()) /
                                     (1000 * 60 * 60 * 24),

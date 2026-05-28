@@ -2,7 +2,7 @@ from rest_framework import serializers
 from django.contrib.auth import authenticate
 from .models import User_model
 from .roles import UserRole
-from .models import Task, Timesheet
+from .models import Task, Timesheet, TaskComment, SubTask
 from django.contrib.auth import get_user_model
 from .emails import send_task_notification_email_async
 
@@ -273,3 +273,60 @@ class TimesheetListSerializer(serializers.ModelSerializer):
             "username": obj.team_member.username,
             "email": obj.team_member.email,
         }
+
+
+# ─── Comment / Activity Serializer ───
+
+class TaskCommentSerializer(serializers.ModelSerializer):
+    user = serializers.SerializerMethodField()
+
+    class Meta:
+        model = TaskComment
+        fields = ["id", "user", "content", "created_at"]
+        read_only_fields = ["id", "user", "created_at"]
+
+    def get_user(self, obj):
+        return {
+            "id": obj.user.id,
+            "username": obj.user.username,
+        }
+
+
+# ─── SubTask Serializer ───
+
+class SubTaskSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = SubTask
+        fields = ["id", "title", "is_completed", "created_at"]
+        read_only_fields = ["id", "created_at"]
+
+
+# ─── Full Task Detail Serializer (includes comments + subtasks) ───
+
+class TaskDetailSerializer(serializers.ModelSerializer):
+    assignees = serializers.SerializerMethodField()
+    assigned_by = serializers.SerializerMethodField()
+    comments = TaskCommentSerializer(many=True, read_only=True)
+    subtasks = SubTaskSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = Task
+        fields = "__all__"
+
+    def get_assignees(self, obj):
+        return [
+            {
+                "id": user.id,
+                "username": user.username,
+                "email": user.email,
+            }
+            for user in obj.assignees.all()
+        ]
+
+    def get_assigned_by(self, obj):
+        return {
+            "id": obj.assigned_by.id,
+            "username": obj.assigned_by.username,
+            "email": obj.assigned_by.email,
+        }
+

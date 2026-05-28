@@ -21,6 +21,10 @@ from .views import (
     AdminTimesheetListView,
     SuperAdminTimesheetListView,
     TeamMemberTimesheetListView,
+    TaskFullDetailView,
+    TaskCommentListCreateView,
+    SubTaskListCreateView,
+    SubTaskUpdateDeleteView,
 )
 
 urlpatterns = [
@@ -91,5 +95,22 @@ urlpatterns = [
     path(
         "timesheets/my-timesheets/",
         TeamMemberTimesheetListView.as_view(),
+    ),
+    # task detail, comments, subtasks
+    path(
+        "tasks/<int:task_id>/detail/",
+        TaskFullDetailView.as_view(),
+    ),
+    path(
+        "tasks/<int:task_id>/comments/",
+        TaskCommentListCreateView.as_view(),
+    ),
+    path(
+        "tasks/<int:task_id>/subtasks/",
+        SubTaskListCreateView.as_view(),
+    ),
+    path(
+        "tasks/<int:task_id>/subtasks/<int:subtask_id>/",
+        SubTaskUpdateDeleteView.as_view(),
     ),
 ]

@@ -136,3 +136,44 @@ class Timesheet(models.Model):
 
     def __str__(self):
         return f"{self.team_member.username} - {self.task.task_name}"
+
+
+class TaskComment(models.Model):
+    """Activity/comment on a task — both admins and assigned team members can post."""
+    task = models.ForeignKey(
+        Task,
+        on_delete=models.CASCADE,
+        related_name="comments",
+    )
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="task_comments",
+    )
+    content = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["created_at"]
+
+    def __str__(self):
+        return f"{self.user.username} on {self.task.task_name}"
+
+
+class SubTask(models.Model):
+    """Lightweight checklist-style subtask."""
+    task = models.ForeignKey(
+        Task,
+        on_delete=models.CASCADE,
+        related_name="subtasks",
+    )
+    title = models.CharField(max_length=300)
+    is_completed = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["created_at"]
+
+    def __str__(self):
+        return self.title
+

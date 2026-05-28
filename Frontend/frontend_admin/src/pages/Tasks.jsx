@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import API from '../api/axios';
 import { useAuth } from '../context/AuthContext';
 
@@ -20,6 +20,36 @@ const getTodayStr = () => {
     return `${yyyy}-${mm}-${dd}`;
 };
 
+const timeAgo = (dateStr) => {
+    const now = new Date();
+    const then = new Date(dateStr);
+    const diff = Math.floor((now - then) / 1000);
+    if (diff < 60) return 'Just now';
+    if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+    if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+    if (diff < 604800) return `${Math.floor(diff / 86400)}d ago`;
+    return then.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+};
+
+const getAvatarStyle = (username) => {
+    const colors = [
+        { bg: 'linear-gradient(135deg, #3B82F6, #1D4ED8)', text: '#ffffff' }, // Blue
+        { bg: 'linear-gradient(135deg, #10B981, #047857)', text: '#ffffff' }, // Emerald
+        { bg: 'linear-gradient(135deg, #EC4899, #BE185D)', text: '#ffffff' }, // Pink
+        { bg: 'linear-gradient(135deg, #8B5CF6, #6D28D9)', text: '#ffffff' }, // Violet
+        { bg: 'linear-gradient(135deg, #F59E0B, #B45309)', text: '#ffffff' }, // Amber
+        { bg: 'linear-gradient(135deg, #06B6D4, #0891B2)', text: '#ffffff' }, // Cyan
+        { bg: 'linear-gradient(135deg, #EF4444, #B91C1C)', text: '#ffffff' }, // Rose
+    ];
+    let hash = 0;
+    const name = username || '';
+    for (let i = 0; i < name.length; i++) {
+        hash = name.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    const index = Math.abs(hash) % colors.length;
+    return colors[index];
+};
+
 const Tasks = () => {
     const { user } = useAuth();
     const isAdmin = user?.role === 'ADMIN';
@@ -34,6 +64,18 @@ const Tasks = () => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
 
+    // Activity / Comments
+    const [comments, setComments] = useState([]);
+    const [commentText, setCommentText] = useState('');
+    const [loadingComments, setLoadingComments] = useState(false);
+    const [postingComment, setPostingComment] = useState(false);
+    const commentsEndRef = useRef(null);
+
+    // Subtasks
+    const [subtasks, setSubtasks] = useState([]);
+    const [newSubtaskTitle, setNewSubtaskTitle] = useState('');
+    const [showSubtaskInput, setShowSubtaskInput] = useState(false);
+
     const [form, setForm] = useState({
         task_name: '',
         project_name: '',
@@ -43,7 +85,6 @@ const Tasks = () => {
         assignee_ids: [],
         due_date: '',
         revised_due_date: '',
-        remarks: '',
     });
 
     const [search, setSearch] = useState('');
@@ -102,10 +143,89 @@ const Tasks = () => {
         }
     };
 
+    // ─── Comments API ───
+    const fetchComments = async (taskId) => {
+        setLoadingComments(true);
+        try {
+            const res = await API.get(`/tasks/${taskId}/comments/`);
+            const data = res.data.data || res.data.results || res.data || [];
+            setComments(Array.isArray(data) ? data : []);
+        } catch (err) {
+            console.error('Failed to fetch comments', err);
+            setComments([]);
+        } finally {
+            setLoadingComments(false);
+        }
+    };
+
+    const postComment = async () => {
+        if (!commentText.trim() || !editTask) return;
+        setPostingComment(true);
+        try {
+            const res = await API.post(`/tasks/${editTask.id}/comments/`, { content: commentText.trim() });
+            const newComment = res.data.data || res.data;
+            setComments((prev) => [...prev, newComment]);
+            setCommentText('');
+            setTimeout(() => commentsEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
+        } catch (err) {
+            console.error('Failed to post comment', err);
+        } finally {
+            setPostingComment(false);
+        }
+    };
+
+    // ─── Subtasks API ───
+    const fetchSubtasks = async (taskId) => {
+        try {
+            const res = await API.get(`/tasks/${taskId}/subtasks/`);
+            const data = res.data.data || res.data.results || res.data || [];
+            setSubtasks(Array.isArray(data) ? data : []);
+        } catch (err) {
+            console.error('Failed to fetch subtasks', err);
+            setSubtasks([]);
+        }
+    };
+
+    const addSubtask = async () => {
+        if (!newSubtaskTitle.trim() || !editTask) return;
+        try {
+            const res = await API.post(`/tasks/${editTask.id}/subtasks/`, { title: newSubtaskTitle.trim() });
+            const newSub = res.data.data || res.data;
+            setSubtasks((prev) => [...prev, newSub]);
+            setNewSubtaskTitle('');
+            setShowSubtaskInput(false);
+        } catch (err) {
+            console.error('Failed to add subtask', err);
+        }
+    };
+
+    const toggleSubtask = async (subtaskId, currentState) => {
+        if (!editTask) return;
+        try {
+            await API.patch(`/tasks/${editTask.id}/subtasks/${subtaskId}/`, { is_completed: !currentState });
+            setSubtasks((prev) => prev.map((s) => s.id === subtaskId ? { ...s, is_completed: !currentState } : s));
+        } catch (err) {
+            console.error('Failed to toggle subtask', err);
+        }
+    };
+
+    const deleteSubtask = async (subtaskId) => {
+        if (!editTask) return;
+        try {
+            await API.delete(`/tasks/${editTask.id}/subtasks/${subtaskId}/`);
+            setSubtasks((prev) => prev.filter((s) => s.id !== subtaskId));
+        } catch (err) {
+            console.error('Failed to delete subtask', err);
+        }
+    };
+
+    // ─── Modal open/close ───
     const openCreate = (status = 'PENDING') => {
         if (!isAdmin) return;
         setError(null);
         setEditTask(null);
+        setComments([]);
+        setSubtasks([]);
         setForm({
             task_name: '',
             project_name: '',
@@ -115,13 +235,11 @@ const Tasks = () => {
             assignee_ids: [],
             due_date: '',
             revised_due_date: '',
-            remarks: '',
         });
         setShowModal(true);
     };
 
     const openEdit = (task) => {
-        if (!isAdmin) return;
         setError(null);
         setEditTask(task);
         setForm({
@@ -133,9 +251,10 @@ const Tasks = () => {
             assignee_ids: task.assignees ? task.assignees.map((a) => a.id) : [],
             due_date: task.due_date,
             revised_due_date: task.revised_due_date || '',
-            remarks: task.remarks || '',
         });
         setShowModal(true);
+        fetchComments(task.id);
+        fetchSubtasks(task.id);
     };
 
     const handleSubmit = async (e) => {
@@ -145,11 +264,9 @@ const Tasks = () => {
         setError(null);
         try {
             const payload = { ...form };
-            // When creating, don't send revised_due_date
             if (!editTask) {
                 delete payload.revised_due_date;
             }
-            // If editing and revised_due_date is empty string, send null
             if (editTask && !payload.revised_due_date) {
                 payload.revised_due_date = null;
             }
@@ -222,6 +339,8 @@ const Tasks = () => {
     };
 
     const todayStr = getTodayStr();
+    const completedSubtasks = subtasks.filter((s) => s.is_completed).length;
+    const totalSubtasks = subtasks.length;
 
     return (
         <div className="page tasks-page">
@@ -312,14 +431,8 @@ const Tasks = () => {
                                         <div
                                             className="kanban-card"
                                             key={task.id}
-                                            onClick={() =>
-                                                isAdmin && openEdit(task)
-                                            }
-                                            style={{
-                                                cursor: isAdmin
-                                                    ? 'pointer'
-                                                    : 'default',
-                                            }}
+                                            onClick={() => openEdit(task)}
+                                            style={{ cursor: 'pointer' }}
                                         >
                                             <div className="kanban-card-top">
                                                  <span className={`priority-badge priority-${task.priority?.toLowerCase()}`} style={{ textTransform: 'uppercase' }}>
@@ -345,47 +458,35 @@ const Tasks = () => {
                                                      {task.description}
                                                  </p>
                                              )}
-                                             {task.remarks && (
-                                                 <div style={{
-                                                     marginTop: '8px',
-                                                     marginBottom: '12px',
-                                                     padding: '8px 10px',
-                                                     borderRadius: '6px',
-                                                     background: '#7B68EE0c',
-                                                     borderLeft: '3px solid #7B68EE',
-                                                     fontSize: '0.75rem',
-                                                     color: 'var(--text-secondary)',
-                                                     lineHeight: '1.3'
-                                                 }}>
-                                                     <strong style={{ color: '#7B68EE', display: 'block', marginBottom: '2px', fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.3px' }}>Admin Remarks</strong>
-                                                     {task.remarks}
-                                                 </div>
-                                             )}
                                             <div className="kanban-card-footer">
                                                 {/* Multi-assignee avatars */}
                                                 {task.assignees && task.assignees.length > 0 && (
-                                                    <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
-                                                        {task.assignees.map((a) => (
-                                                            <span
-                                                                key={a.id}
-                                                                title={a.username}
-                                                                style={{
-                                                                    display: 'inline-flex',
-                                                                    alignItems: 'center',
-                                                                    justifyContent: 'center',
-                                                                    width: '24px',
-                                                                    height: '24px',
-                                                                    borderRadius: '50%',
-                                                                    background: 'var(--primary-light)',
-                                                                    color: 'var(--primary)',
-                                                                    fontSize: '0.65rem',
-                                                                    fontWeight: 700,
-                                                                    border: '2px solid #fff',
-                                                                }}
-                                                            >
-                                                                {a.username?.charAt(0).toUpperCase()}
-                                                            </span>
-                                                        ))}
+                                                    <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', alignItems: 'center' }}>
+                                                        {task.assignees.map((a) => {
+                                                            const avStyle = getAvatarStyle(a.username);
+                                                            return (
+                                                                <span
+                                                                    key={a.id}
+                                                                    title={a.username}
+                                                                    style={{
+                                                                        display: 'inline-flex',
+                                                                        alignItems: 'center',
+                                                                        justifyContent: 'center',
+                                                                        width: '24px',
+                                                                        height: '24px',
+                                                                        borderRadius: '50%',
+                                                                        background: avStyle.bg,
+                                                                        color: avStyle.text,
+                                                                        fontSize: '0.65rem',
+                                                                        fontWeight: 700,
+                                                                        border: '2px solid #fff',
+                                                                        boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+                                                                    }}
+                                                                >
+                                                                    {a.username?.charAt(0).toUpperCase()}
+                                                                </span>
+                                                            );
+                                                        })}
                                                     </div>
                                                 )}
                                                 {/* Due date with revised logic */}
@@ -474,312 +575,432 @@ const Tasks = () => {
                 </div>
             )}
 
-            {showModal && isAdmin && (
-                <div
-                    className="modal-overlay"
-                    onClick={() => setShowModal(false)}
-                >
+            {/* ─── Expanded Task Modal ─── */}
+            {showModal && (
+                <div className="modern-modal-overlay" onClick={() => setShowModal(false)}>
                     <div
-                        className="modal-card modal-card-wide"
+                        className={`modern-modal-card ${editTask ? 'expanded' : 'simple'}`}
                         onClick={(e) => e.stopPropagation()}
                     >
-                        <div className="modal-header">
-                            <h2>{editTask ? 'Edit Task' : 'New Task'}</h2>
-                            <button
-                                className="modal-close"
-                                onClick={() => setShowModal(false)}
-                            >
-                                ×
-                            </button>
+                        {/* Modal Header */}
+                        <div className="modern-modal-header">
+                            <div className="modern-modal-title-area">
+                                <div
+                                    className="modern-modal-dot"
+                                    style={{ color: COLUMNS_BASE.find(c => c.id === (form.status || 'PENDING'))?.color || '#49CCF9' }}
+                                ></div>
+                                <h2 className="modern-modal-title">
+                                    {editTask ? editTask.task_name : 'New Task'}
+                                </h2>
+                                {editTask && (
+                                    <span
+                                        className="modern-badge"
+                                        style={{
+                                            background: (COLUMNS_BASE.find(c => c.id === editTask.status)?.color || '#49CCF9') + '15',
+                                            color: COLUMNS_BASE.find(c => c.id === editTask.status)?.color || '#49CCF9',
+                                        }}
+                                    >
+                                        {COLUMNS_BASE.find(c => c.id === editTask.status)?.label}
+                                    </span>
+                                )}
+                            </div>
+                            <div className="modern-modal-header-actions">
+                                {editTask && isAdmin && (
+                                    <button onClick={deleteTask} className="modern-modal-delete-btn">
+                                        Delete
+                                    </button>
+                                )}
+                                <button onClick={() => setShowModal(false)} className="modern-modal-close-btn">
+                                    ×
+                                </button>
+                            </div>
                         </div>
-                        <form onSubmit={handleSubmit}>
-                            {error && (
-                                <div className="alert-error">{error}</div>
-                            )}
 
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
-                                {/* Left Column: Task details */}
-                                <div>
-                                    <div className="form-group">
-                                        <label className="form-label">
-                                            Task Name
-                                        </label>
+                        {/* Modal Body */}
+                        <div className="modern-modal-body">
+                            {/* ─── LEFT PANEL: Task Details ─── */}
+                            <div className="modern-modal-left">
+                                <form onSubmit={handleSubmit} id="task-form">
+                                    {error && (
+                                        <div className="alert-error" style={{ marginBottom: '16px' }}>{error}</div>
+                                    )}
+
+                                    {/* Task Name */}
+                                    <div className="modern-form-group">
+                                        <label className="modern-form-label">Task Name</label>
                                         <input
-                                            className="form-input"
+                                            className="modern-form-input"
                                             placeholder="Task title"
                                             value={form.task_name}
-                                            onChange={(e) =>
-                                                setForm({
-                                                    ...form,
-                                                    task_name: e.target.value,
-                                                })
-                                            }
+                                            onChange={(e) => setForm({ ...form, task_name: e.target.value })}
                                             required
-                                        />
-                                    </div>
-                                    <div className="form-group">
-                                        <label className="form-label">
-                                            Project Name
-                                        </label>
-                                        <input
-                                            className="form-input"
-                                            placeholder="Project name"
-                                            value={form.project_name}
-                                            onChange={(e) =>
-                                                setForm({
-                                                    ...form,
-                                                    project_name: e.target.value,
-                                                })
-                                            }
-                                            required
-                                        />
-                                    </div>
-                                    <div className="form-group">
-                                        <label className="form-label">
-                                            Description
-                                        </label>
-                                        <textarea
-                                            className="form-input form-textarea"
-                                            placeholder="Add details..."
-                                            style={{ minHeight: '120px' }}
-                                            value={form.description}
-                                            onChange={(e) =>
-                                                setForm({
-                                                    ...form,
-                                                    description: e.target.value,
-                                                })
-                                            }
+                                            disabled={!isAdmin}
+                                            style={{ fontSize: '1rem', fontWeight: 600, background: '#ffffff', borderColor: '#cbd5e1' }}
                                         />
                                     </div>
 
-                                    {/* Remarks — only shown when status is IN_REVIEW */}
-                                    {form.status === 'IN_REVIEW' && (
-                                         <div className="form-group" style={{ marginTop: '8px' }}>
-                                             <label className="form-label">
-                                                 Remarks
-                                             </label>
-                                             <textarea
-                                                 className="form-input form-textarea"
-                                                 placeholder="Add remarks for review..."
-                                                 style={{ minHeight: '90px' }}
-                                                 value={form.remarks}
-                                                 onChange={(e) =>
-                                                     setForm({
-                                                         ...form,
-                                                         remarks: e.target.value,
-                                                     })
-                                                 }
-                                             />
-                                         </div>
-                                    )}
-                                </div>
-
-                                {/* Right Column: Metadata and Assignees */}
-                                <div>
-                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                                        <div className="form-group">
-                                            <label className="form-label">
-                                                Priority
-                                            </label>
+                                    {/* Meta Grid */}
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '4px' }}>
+                                        <div className="modern-form-group">
+                                            <label className="modern-form-label">Project</label>
+                                            <input
+                                                className="modern-form-input"
+                                                placeholder="Project name"
+                                                value={form.project_name}
+                                                onChange={(e) => setForm({ ...form, project_name: e.target.value })}
+                                                required
+                                                disabled={!isAdmin}
+                                            />
+                                        </div>
+                                        <div className="modern-form-group">
+                                            <label className="modern-form-label">Status</label>
                                             <select
-                                                className="form-input"
+                                                className="modern-form-input"
+                                                value={form.status}
+                                                onChange={(e) => setForm({ ...form, status: e.target.value })}
+                                                disabled={!isAdmin}
+                                                style={{ appearance: 'none', backgroundImage: `url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'></polyline></svg>")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 10px center', backgroundSize: '16px' }}
+                                            >
+                                                {COLUMNS_BASE.map((c) => (
+                                                    <option key={c.id} value={c.id}>{c.label}</option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                        <div className="modern-form-group">
+                                            <label className="modern-form-label">Priority</label>
+                                            <select
+                                                className="modern-form-input"
                                                 value={form.priority}
-                                                onChange={(e) =>
-                                                    setForm({
-                                                        ...form,
-                                                        priority: e.target.value,
-                                                    })
-                                                }
+                                                onChange={(e) => setForm({ ...form, priority: e.target.value })}
+                                                disabled={!isAdmin}
+                                                style={{ appearance: 'none', backgroundImage: `url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'></polyline></svg>")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 10px center', backgroundSize: '16px' }}
                                             >
                                                 {PRIORITIES.map((p) => (
-                                                    <option key={p} value={p}>
-                                                        {p}
-                                                    </option>
+                                                    <option key={p} value={p}>{p}</option>
                                                 ))}
                                             </select>
                                         </div>
-                                        <div className="form-group">
-                                            <label className="form-label">Status</label>
-                                            <select
-                                                className="form-input"
-                                                value={form.status}
-                                                onChange={(e) =>
-                                                    setForm({
-                                                        ...form,
-                                                        status: e.target.value,
-                                                    })
-                                                }
-                                            >
-                                                {COLUMNS.map((c) => (
-                                                    <option key={c.id} value={c.id}>
-                                                        {c.label}
-                                                    </option>
-                                                ))}
-                                            </select>
+                                        <div className="modern-form-group">
+                                            <label className="modern-form-label">Due Date</label>
+                                            <input
+                                                type="date"
+                                                className="modern-form-input"
+                                                value={form.due_date}
+                                                min={editTask ? undefined : todayStr}
+                                                onChange={(e) => setForm({ ...form, due_date: e.target.value })}
+                                                required
+                                                disabled={(!isAdmin) || (editTask && editTask.revised_due_date)}
+                                            />
                                         </div>
                                     </div>
 
-                                    <div className="form-group">
-                                        <label className="form-label">
-                                            Due Date
-                                        </label>
-                                        <input
-                                            type="date"
-                                            className="form-input"
-                                            value={form.due_date}
-                                            min={editTask ? undefined : todayStr}
-                                            onChange={(e) =>
-                                                setForm({
-                                                    ...form,
-                                                    due_date: e.target.value,
-                                                })
-                                            }
-                                            required
-                                            disabled={editTask && editTask.revised_due_date}
-                                        />
-                                        {editTask && editTask.due_date && (
-                                            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '4px' }}>
-                                                Original: {new Date(editTask.due_date).toLocaleDateString()}
-                                            </div>
-                                        )}
-                                    </div>
-
-                                    {/* Revised Due Date — only shown when editing */}
-                                    {editTask && (
-                                        <div className="form-group" style={{ marginTop: '8px' }}>
-                                            <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    {/* Revised Due Date */}
+                                    {editTask && isAdmin && (
+                                        <div className="modern-form-group">
+                                            <label className="modern-form-label" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                                                 Revised Due Date
                                                 {isOverdue(editTask) && (
-                                                    <span style={{ fontSize: '0.7rem', padding: '2px 8px', borderRadius: '4px', background: '#ff6b6b15', color: '#ff6b6b', fontWeight: 700 }}>Task is Overdue</span>
+                                                    <span style={{ fontSize: '0.7rem', padding: '2px 8px', borderRadius: '4px', background: '#ef444415', color: '#ef4444', fontWeight: 700 }}>Overdue</span>
                                                 )}
                                             </label>
                                             <input
                                                 type="date"
-                                                className="form-input"
+                                                className="modern-form-input"
                                                 value={form.revised_due_date}
                                                 min={todayStr}
-                                                onChange={(e) =>
-                                                    setForm({
-                                                        ...form,
-                                                        revised_due_date: e.target.value,
-                                                    })
-                                                }
+                                                onChange={(e) => setForm({ ...form, revised_due_date: e.target.value })}
                                             />
-                                            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '4px' }}>
-                                                Leave empty if no revision needed. Past dates are disabled.
+                                        </div>
+                                    )}
+
+                                    {/* Description */}
+                                    <div className="modern-form-group">
+                                        <label className="modern-form-label">Description</label>
+                                        <textarea
+                                            className="modern-form-input modern-form-textarea"
+                                            placeholder="Add description..."
+                                            value={form.description}
+                                            onChange={(e) => setForm({ ...form, description: e.target.value })}
+                                            disabled={!isAdmin}
+                                        />
+                                    </div>
+
+                                    {/* ─── Subtasks Section ─── */}
+                                    {editTask && (
+                                        <div className="modern-subtasks-panel">
+                                            <div className="modern-subtasks-header">
+                                                <div className="modern-subtasks-title-area">
+                                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="2.5">
+                                                        <path d="M9 11l3 3L22 4" /><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
+                                                    </svg>
+                                                    <span className="modern-subtasks-title">Subtasks</span>
+                                                    {totalSubtasks > 0 && (
+                                                        <span className="modern-subtasks-count">
+                                                            {completedSubtasks}/{totalSubtasks}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                {isAdmin && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setShowSubtaskInput(true)}
+                                                        className="modern-subtasks-add-btn"
+                                                    >
+                                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                                                            <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
+                                                        </svg>
+                                                        Add Subtask
+                                                    </button>
+                                                )}
+                                            </div>
+
+                                            {/* Progress bar */}
+                                            {totalSubtasks > 0 && (
+                                                <div className="modern-subtask-progress-container">
+                                                    <div
+                                                        className={`modern-subtask-progress-bar ${completedSubtasks === totalSubtasks ? 'completed' : ''}`}
+                                                        style={{ width: `${(completedSubtasks / totalSubtasks) * 100}%` }}
+                                                    ></div>
+                                                </div>
+                                            )}
+
+                                            {/* Subtask list */}
+                                            <div className="modern-subtask-list">
+                                                {subtasks.map((sub) => (
+                                                    <div key={sub.id} className="modern-subtask-item">
+                                                        <div
+                                                            className={`modern-subtask-checkbox-custom ${sub.is_completed ? 'checked' : ''}`}
+                                                            onClick={() => toggleSubtask(sub.id, sub.is_completed)}
+                                                        >
+                                                            {sub.is_completed && (
+                                                                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4">
+                                                                    <polyline points="20 6 9 17 4 12" />
+                                                                </svg>
+                                                            )}
+                                                        </div>
+                                                        <span
+                                                            className={`modern-subtask-title-text ${sub.is_completed ? 'completed' : ''}`}
+                                                            onClick={() => toggleSubtask(sub.id, sub.is_completed)}
+                                                            style={{ cursor: 'pointer' }}
+                                                        >
+                                                            {sub.title}
+                                                        </span>
+                                                        {isAdmin && (
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => deleteSubtask(sub.id)}
+                                                                className="modern-subtask-delete-btn"
+                                                                title="Delete subtask"
+                                                            >
+                                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                                    <path d="M3 6h18" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                                                                </svg>
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                ))}
+                                            </div>
+
+                                            {/* Add subtask input */}
+                                            {showSubtaskInput && (
+                                                <div className="modern-subtask-input-row">
+                                                    <input
+                                                        type="text"
+                                                        className="modern-subtask-input"
+                                                        placeholder="Subtask title..."
+                                                        value={newSubtaskTitle}
+                                                        onChange={(e) => setNewSubtaskTitle(e.target.value)}
+                                                        onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addSubtask())}
+                                                        autoFocus
+                                                    />
+                                                    <button type="button" onClick={addSubtask} className="modern-subtask-btn-add">
+                                                        Add
+                                                    </button>
+                                                    <button type="button" onClick={() => { setShowSubtaskInput(false); setNewSubtaskTitle(''); }} className="modern-subtask-btn-cancel">
+                                                        Cancel
+                                                    </button>
+                                                </div>
+                                            )}
+
+                                            {subtasks.length === 0 && !showSubtaskInput && (
+                                                <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', margin: '4px 0 0', paddingLeft: '4px' }}>No subtasks yet</p>
+                                            )}
+                                        </div>
+                                    )}
+
+                                    {/* ─── Assignees ─── */}
+                                    {isAdmin && (
+                                        <div className="modern-form-group" style={{ marginTop: '20px' }}>
+                                            <label className="modern-form-label">
+                                                Assign To ({form.assignee_ids.length} selected)
+                                            </label>
+                                            <div className="modern-assignee-grid">
+                                                {teamMembers.length === 0 ? (
+                                                    <div style={{ color: 'var(--text-muted)', fontSize: '0.85rem', padding: '8px' }}>No team members available</div>
+                                                ) : (
+                                                    teamMembers.map((m) => {
+                                                        const isSelected = form.assignee_ids.includes(m.id);
+                                                        const avStyle = getAvatarStyle(m.username);
+                                                        return (
+                                                            <div
+                                                                key={m.id}
+                                                                className={`modern-assignee-item ${isSelected ? 'selected' : ''}`}
+                                                                onClick={() => toggleAssignee(m.id)}
+                                                            >
+                                                                <input
+                                                                    type="checkbox"
+                                                                    checked={isSelected}
+                                                                    readOnly
+                                                                    className="modern-assignee-checkbox"
+                                                                />
+                                                                <div
+                                                                    className="modern-assignee-avatar"
+                                                                    style={{ background: avStyle.bg, color: avStyle.text }}
+                                                                >
+                                                                    {m.username?.charAt(0).toUpperCase()}
+                                                                </div>
+                                                                <span className="modern-assignee-name">
+                                                                    {m.username}
+                                                                </span>
+                                                            </div>
+                                                        );
+                                                    })
+                                                )}
                                             </div>
                                         </div>
                                     )}
 
-                                    {/* Multi-select Assignees */}
-                                    <div className="form-group" style={{ marginTop: '8px' }}>
-                                        <label className="form-label">
-                                            Assign To ({form.assignee_ids.length} selected)
-                                        </label>
-                                        <div style={{
-                                            border: '1px solid var(--border-color)',
-                                            borderRadius: '8px',
-                                            padding: '10px',
-                                            maxHeight: '140px',
-                                            overflowY: 'auto',
-                                            background: 'var(--bg-body)',
-                                        }}>
-                                            {teamMembers.length === 0 ? (
-                                                <div style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>No team members available</div>
-                                            ) : (
-                                                teamMembers.map((m) => (
-                                                    <label
-                                                        key={m.id}
-                                                        style={{
-                                                            display: 'flex',
-                                                            alignItems: 'center',
-                                                            gap: '10px',
-                                                            padding: '6px 8px',
-                                                            borderRadius: '6px',
-                                                            cursor: 'pointer',
-                                                            background: form.assignee_ids.includes(m.id)
-                                                                ? 'var(--primary-light)'
-                                                                : 'transparent',
-                                                            transition: 'background 0.15s',
-                                                            marginBottom: '4px',
-                                                        }}
-                                                    >
-                                                        <input
-                                                            type="checkbox"
-                                                            checked={form.assignee_ids.includes(m.id)}
-                                                            onChange={() => toggleAssignee(m.id)}
-                                                            style={{ accentColor: 'var(--primary)', width: '16px', height: '16px' }}
-                                                        />
-                                                        <div style={{
-                                                            width: '24px',
-                                                            height: '24px',
-                                                            borderRadius: '50%',
-                                                            background: form.assignee_ids.includes(m.id) ? 'var(--primary)' : 'var(--border-color)',
-                                                            color: form.assignee_ids.includes(m.id) ? '#fff' : 'var(--text-muted)',
-                                                            display: 'flex',
-                                                            alignItems: 'center',
-                                                            justifyContent: 'center',
-                                                            fontSize: '0.75rem',
-                                                            fontWeight: 700,
-                                                            flexShrink: 0,
-                                                        }}>
-                                                            {m.username?.charAt(0).toUpperCase()}
+                                    {/* Save buttons */}
+                                    {isAdmin && (
+                                        <div className="modern-modal-footer">
+                                            <button
+                                                type="button"
+                                                onClick={() => setShowModal(false)}
+                                                className="modern-btn-secondary"
+                                            >
+                                                Cancel
+                                            </button>
+                                            <button type="submit" className="modern-btn-primary">
+                                                {editTask ? 'Update Task' : 'Create Task'}
+                                            </button>
+                                        </div>
+                                    )}
+                                </form>
+                            </div>
+
+                            {/* ─── RIGHT PANEL: Activity ─── */}
+                            {editTask && (
+                                <div className="modern-modal-right">
+                                    {/* Activity Header */}
+                                    <div className="modern-activity-header">
+                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" strokeWidth="2.5">
+                                            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                                        </svg>
+                                        <span className="modern-activity-header-title">Activity</span>
+                                        <span className="modern-activity-header-count">
+                                            {comments.length}
+                                        </span>
+                                    </div>
+
+                                    {/* Comments List */}
+                                    <div className="modern-activity-feed">
+                                        {/* Task created info */}
+                                        {editTask.created_at && (
+                                            <div className="modern-system-notice">
+                                                <div className="modern-system-notice-icon">
+                                                    ✦
+                                                </div>
+                                                <div className="modern-comment-content-area">
+                                                    <div className="modern-system-notice-text">
+                                                        Task created by <strong>{editTask.assigned_by?.username || 'Admin'}</strong>
+                                                    </div>
+                                                    <div className="modern-system-notice-time">
+                                                        {new Date(editTask.created_at).toLocaleDateString('en-US', {
+                                                            month: 'short', day: 'numeric', year: 'numeric',
+                                                            hour: 'numeric', minute: '2-digit',
+                                                        })}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {loadingComments ? (
+                                            <div style={{ textAlign: 'center', padding: '20px', color: 'var(--text-muted)' }}>
+                                                <div className="spinner" style={{ margin: '0 auto 8px', borderTopColor: 'var(--primary)' }}></div>
+                                                Loading activity...
+                                            </div>
+                                        ) : (
+                                            comments.map((comment) => {
+                                                const avStyle = getAvatarStyle(comment.user?.username || '');
+                                                return (
+                                                    <div key={comment.id} className="modern-comment-card">
+                                                        <div
+                                                            className="modern-comment-avatar"
+                                                            style={{ background: avStyle.bg, color: avStyle.text }}
+                                                        >
+                                                            {comment.user?.username?.charAt(0).toUpperCase() || '?'}
                                                         </div>
-                                                        <span style={{ fontSize: '0.9rem', fontWeight: form.assignee_ids.includes(m.id) ? 600 : 400 }}>
-                                                            {m.username}
-                                                        </span>
-                                                    </label>
-                                                ))
-                                            )}
+                                                        <div className="modern-comment-content-area">
+                                                            <div className="modern-comment-header">
+                                                                <span className="modern-comment-username">
+                                                                    {comment.user?.username || 'Unknown'}
+                                                                </span>
+                                                                <span className="modern-comment-time">
+                                                                    {timeAgo(comment.created_at)}
+                                                                </span>
+                                                            </div>
+                                                            <div className="modern-comment-bubble">
+                                                                {comment.content}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })
+                                        )}
+                                        <div ref={commentsEndRef} />
+                                    </div>
+
+                                    {/* Comment Input */}
+                                    <div className="modern-comment-input-panel">
+                                        <div className="modern-comment-input-row">
+                                            {(() => {
+                                                const avStyle = getAvatarStyle(user?.username || 'U');
+                                                return (
+                                                    <div
+                                                        className="modern-comment-input-avatar"
+                                                        style={{ background: avStyle.bg, color: avStyle.text }}
+                                                    >
+                                                        {user?.username?.charAt(0).toUpperCase() || 'U'}
+                                                    </div>
+                                                );
+                                            })()}
+                                            <textarea
+                                                className="modern-comment-textarea"
+                                                placeholder="Write a comment..."
+                                                value={commentText}
+                                                onChange={(e) => setCommentText(e.target.value)}
+                                                onKeyDown={(e) => {
+                                                    if (e.key === 'Enter' && !e.shiftKey) {
+                                                        e.preventDefault();
+                                                        postComment();
+                                                    }
+                                                }}
+                                                rows={1}
+                                            />
+                                            <button
+                                                onClick={postComment}
+                                                disabled={!commentText.trim() || postingComment}
+                                                className={`modern-comment-send-btn ${commentText.trim() && !postingComment ? 'active' : ''}`}
+                                            >
+                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                                    <line x1="22" y1="2" x2="11" y2="13" /><polygon points="22 2 15 22 11 13 2 9 22 2" />
+                                                </svg>
+                                            </button>
                                         </div>
                                     </div>
                                 </div>
-                            </div>
-
-                            <div
-                                className="modal-actions"
-                                style={{
-                                    display: 'flex',
-                                    justifyContent: 'space-between',
-                                    width: '100%',
-                                    marginTop: '24px',
-                                }}
-                            >
-                                <div>
-                                    {editTask && (
-                                        <button
-                                            type="button"
-                                            className="btn-danger"
-                                            onClick={deleteTask}
-                                        >
-                                            Delete Task
-                                        </button>
-                                    )}
-                                </div>
-                                <div style={{ display: 'flex', gap: '8px' }}>
-                                    <button
-                                        type="button"
-                                        className="btn-danger"
-                                        style={{
-                                            background: 'transparent',
-                                            color: 'var(--text-muted)',
-                                            border: 'none',
-                                        }}
-                                        onClick={() => setShowModal(false)}
-                                    >
-                                        Cancel
-                                    </button>
-                                    <button
-                                        type="submit"
-                                        className="btn-primary"
-                                    >
-                                        {editTask
-                                            ? 'Update Task'
-                                            : 'Create Task'}
-                                    </button>
-                                </div>
-                            </div>
-                        </form>
+                            )}
+                        </div>
                     </div>
                 </div>
             )}
