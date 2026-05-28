@@ -170,6 +170,8 @@ class TaskListSerializer(serializers.ModelSerializer):
                 "id": user.id,
                 "username": user.username,
                 "email": user.email,
+                "name": getattr(user, "name", "") or "",
+                "profile_picture": getattr(user, "profile_picture", "") or "",
             }
             for user in obj.assignees.all()
         ]
@@ -180,6 +182,8 @@ class TaskListSerializer(serializers.ModelSerializer):
             "id": obj.assigned_by.id,
             "username": obj.assigned_by.username,
             "email": obj.assigned_by.email,
+            "name": getattr(obj.assigned_by, "name", "") or "",
+            "profile_picture": getattr(obj.assigned_by, "profile_picture", "") or "",
         }
 
 
@@ -263,6 +267,8 @@ class TimesheetListSerializer(serializers.ModelSerializer):
             "assigned_by": {
                 "id": obj.task.assigned_by.id,
                 "username": obj.task.assigned_by.username,
+                "name": getattr(obj.task.assigned_by, "name", "") or "",
+                "profile_picture": getattr(obj.task.assigned_by, "profile_picture", "") or "",
             }
         }
 
@@ -272,6 +278,8 @@ class TimesheetListSerializer(serializers.ModelSerializer):
             "id": obj.team_member.id,
             "username": obj.team_member.username,
             "email": obj.team_member.email,
+            "name": getattr(obj.team_member, "name", "") or "",
+            "profile_picture": getattr(obj.team_member, "profile_picture", "") or "",
         }
 
 
@@ -289,6 +297,8 @@ class TaskCommentSerializer(serializers.ModelSerializer):
         return {
             "id": obj.user.id,
             "username": obj.user.username,
+            "name": getattr(obj.user, "name", "") or "",
+            "profile_picture": getattr(obj.user, "profile_picture", "") or "",
         }
 
 
@@ -319,6 +329,8 @@ class TaskDetailSerializer(serializers.ModelSerializer):
                 "id": user.id,
                 "username": user.username,
                 "email": user.email,
+                "name": getattr(user, "name", "") or "",
+                "profile_picture": getattr(user, "profile_picture", "") or "",
             }
             for user in obj.assignees.all()
         ]
@@ -328,5 +340,7 @@ class TaskDetailSerializer(serializers.ModelSerializer):
             "id": obj.assigned_by.id,
             "username": obj.assigned_by.username,
             "email": obj.assigned_by.email,
+            "name": getattr(obj.assigned_by, "name", "") or "",
+            "profile_picture": getattr(obj.assigned_by, "profile_picture", "") or "",
         }
 

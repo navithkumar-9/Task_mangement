@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import API from '../api/axios';
 
 const getAvatarStyle = (username) => {
     const colors = [
@@ -26,20 +27,8 @@ const Sidebar = () => {
     const navigate = useNavigate();
     const isAdmin = user?.role === 'ADMIN';
 
-    const [profileVersion, setProfileVersion] = useState(0);
-
-    useEffect(() => {
-        const handleProfileUpdate = () => {
-            setProfileVersion(v => v + 1);
-        };
-        window.addEventListener('profileUpdate', handleProfileUpdate);
-        return () => window.removeEventListener('profileUpdate', handleProfileUpdate);
-    }, []);
-
-    const localProfile = JSON.parse(localStorage.getItem(`profile_data_${user?.username}`) || '{}');
-    const displayName = localProfile.name || user?.username || 'User';
-    const profilePic = localProfile.profile_picture || null;
-
+    const displayName = user?.name || user?.username || 'User';
+    const profilePic = user?.profile_picture || null;
 
     const handleLogout = () => {
         logout();

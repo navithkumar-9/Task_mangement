@@ -130,17 +130,8 @@ const ManageUsers = () => {
             setTotalPages(Math.ceil(totalCount / 10) || 1);
         } catch (err) {
             console.error('Failed to fetch users', err);
-            // Fallback to local storage for Admins if API fails, just for testing
-            if (activeTab === 'admins' && !debouncedSearch) {
-                const stored = JSON.parse(
-                    localStorage.getItem('sa_admins_list') || '[]',
-                );
-                setUsers(stored);
-                setTotalPages(1);
-            } else {
-                setUsers([]);
-                setTotalPages(1);
-            }
+            setUsers([]);
+            setTotalPages(1);
         } finally {
             setLoading(false);
         }

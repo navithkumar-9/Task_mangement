@@ -25,17 +25,6 @@ const CreateAdmin = () => {
                     `Admin "${res.data.data.username}" created successfully!`,
                     'success',
                 );
-                const existing = JSON.parse(
-                    localStorage.getItem('sa_admins_list') || '[]',
-                );
-                existing.unshift({
-                    ...res.data.data,
-                    createdAt: new Date().toISOString(),
-                });
-                localStorage.setItem(
-                    'sa_admins_list',
-                    JSON.stringify(existing),
-                );
                 setFormData({ user_name: '', password: '', email: '' });
             }
         } catch (err) {

@@ -24,26 +24,74 @@ const getAvatarStyle = (username) => {
 /* ─── View Profile Modal ─── */
 const UserProfileModal = ({ user, onClose }) => {
   if (!user) return null;
+  const avatarStyle = getAvatarStyle(user.username);
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div
         className="modal-card"
         onClick={(e) => e.stopPropagation()}
-        style={{ background: '#ffffff' }}
+        style={{ background: '#ffffff', width: '420px' }}
       >
         <div className="modal-header">
-          <h2>Team Member Profile</h2>
+          <h2 style={{ margin: 0, fontSize: '1.2rem' }}>Team Member Profile</h2>
           <button className="modal-close" onClick={onClose}>&times;</button>
         </div>
-        <div className="profile-details">
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', margin: '20px 0' }}>
+          {user.profile_picture ? (
+            <img
+              src={user.profile_picture}
+              alt="Avatar"
+              style={{
+                width: '80px',
+                height: '80px',
+                borderRadius: '50%',
+                objectFit: 'cover',
+                border: '3px solid var(--border-color)',
+                boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+              }}
+            />
+          ) : (
+            <div
+              style={{
+                width: '80px',
+                height: '80px',
+                borderRadius: '50%',
+                background: avatarStyle.bg,
+                color: avatarStyle.text,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '2rem',
+                fontWeight: '800',
+                border: '3px solid var(--border-color)',
+                boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+              }}
+            >
+              {user.name?.charAt(0)?.toUpperCase() || user.username?.charAt(0)?.toUpperCase() || 'U'}
+            </div>
+          )}
+          <h3 style={{ margin: '12px 0 2px 0', fontSize: '1.2rem', fontWeight: 800 }}>
+            {user.name || user.username}
+          </h3>
+          <span className="text-muted" style={{ fontSize: '0.85rem' }}>@{user.username}</span>
+        </div>
+        <div className="profile-details" style={{ marginTop: '10px' }}>
           <div className="profile-row">
             <span className="profile-label">ID</span>
             <span className="profile-value">#{user.id}</span>
           </div>
-          <div className="profile-row">
-            <span className="profile-label">Username</span>
-            <span className="profile-value">{user.username}</span>
-          </div>
+          {user.name && (
+            <div className="profile-row">
+              <span className="profile-label">Full Name</span>
+              <span className="profile-value">{user.name}</span>
+            </div>
+          )}
+          {user.employee_id && (
+            <div className="profile-row">
+              <span className="profile-label">Employee ID</span>
+              <span className="profile-value">{user.employee_id}</span>
+            </div>
+          )}
           {user.email && (
             <div className="profile-row">
               <span className="profile-label">Email</span>
@@ -65,8 +113,8 @@ const UserProfileModal = ({ user, onClose }) => {
             </span>
           </div>
         </div>
-        <div className="modal-actions">
-          <button className="btn-primary" onClick={onClose}>Close</button>
+        <div className="modal-actions" style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '24px' }}>
+          <button className="btn-primary" onClick={onClose} style={{ padding: '10px 24px', borderRadius: '8px' }}>Close</button>
         </div>
       </div>
     </div>
@@ -376,10 +424,7 @@ const TeamList = () => {
       setTotalPages(Math.ceil(totalCount / 10) || 1);
     } catch (err) {
       console.error('Failed to fetch team members', err);
-      if (!debouncedSearch) {
-        const stored = JSON.parse(localStorage.getItem('admin_members_list') || '[]');
-        setMembers(stored);
-      }
+      setMembers([]);
       setTotalPages(1);
     } finally {
       setLoading(false);
@@ -465,20 +510,36 @@ const TeamList = () => {
                          <td className="text-muted">#{m.id}</td>
                          <td className="text-bold">
                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                             <div
-                               className="sidebar-user-avatar"
-                               style={{
-                                 background: avatarStyle.bg,
-                                 color: avatarStyle.text,
-                                 width: '30px',
-                                 height: '30px',
-                                 borderRadius: '50%',
-                                 fontSize: '0.8rem',
-                                 fontWeight: '700',
-                               }}
-                             >
-                               {m.username?.charAt(0).toUpperCase()}
-                             </div>
+                             {m.profile_picture ? (
+                               <img
+                                 src={m.profile_picture}
+                                 alt="Avatar"
+                                 style={{
+                                   width: '30px',
+                                   height: '30px',
+                                   borderRadius: '50%',
+                                   objectFit: 'cover',
+                                 }}
+                               />
+                             ) : (
+                               <div
+                                 className="sidebar-user-avatar"
+                                 style={{
+                                   background: avatarStyle.bg,
+                                   color: avatarStyle.text,
+                                   width: '30px',
+                                   height: '30px',
+                                   borderRadius: '50%',
+                                   display: 'flex',
+                                   alignItems: 'center',
+                                   justifyContent: 'center',
+                                   fontSize: '0.8rem',
+                                   fontWeight: '700',
+                                 }}
+                               >
+                                 {m.username?.charAt(0).toUpperCase()}
+                               </div>
+                             )}
                              <span>{m.username}</span>
                            </div>
                          </td>

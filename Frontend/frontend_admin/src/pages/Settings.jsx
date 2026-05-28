@@ -47,12 +47,9 @@ const Settings = () => {
                 if (res.data.success) {
                     const profileData = res.data.data;
                     setProfile(profileData);
-                    
-                    // Load local storage profile override
-                    const localData = JSON.parse(localStorage.getItem(`profile_data_${profileData.username}`) || '{}');
-                    setName(localData.name || profileData.username || '');
-                    setEmployeeId(localData.employee_id || '');
-                    setProfilePic(localData.profile_picture || null);
+                    setName(profileData.name || profileData.username || '');
+                    setEmployeeId(profileData.employee_id || '');
+                    setProfilePic(profileData.profile_picture || null);
                 }
             })
             .catch(console.error);
@@ -72,16 +69,23 @@ const Settings = () => {
             }
             const reader = new FileReader();
             reader.onloadend = () => {
-                setProfilePic(reader.result);
-                // Save profile picture immediately
-                const localKey = `profile_data_${profile?.username}`;
-                const localData = JSON.parse(localStorage.getItem(localKey) || '{}');
-                localData.profile_picture = reader.result;
-                localStorage.setItem(localKey, JSON.stringify(localData));
-                
-                // Dispatch profileUpdate event
-                window.dispatchEvent(new Event('profileUpdate'));
-                showToastNotification('Profile picture updated successfully!');
+                const base64Pic = reader.result;
+                setProfilePic(base64Pic);
+                API.put('/profile/', { profile_picture: base64Pic })
+                    .then((res) => {
+                        if (res.data.success) {
+                            setProfile(res.data.data);
+                            // Dispatch profileUpdate event
+                            window.dispatchEvent(new Event('profileUpdate'));
+                            showToastNotification('Profile picture updated successfully!');
+                        } else {
+                            showToastNotification('Failed to update profile picture.', 'error');
+                        }
+                    })
+                    .catch((err) => {
+                        console.error(err);
+                        showToastNotification('Failed to update profile picture.', 'error');
+                    });
             };
             reader.readAsDataURL(file);
         }
@@ -90,21 +94,24 @@ const Settings = () => {
     const handleSaveDetails = (e) => {
         e.preventDefault();
         setSaving(true);
-        try {
-            const localKey = `profile_data_${profile?.username}`;
-            const localData = JSON.parse(localStorage.getItem(localKey) || '{}');
-            localData.name = name;
-            localData.employee_id = employeeId;
-            localStorage.setItem(localKey, JSON.stringify(localData));
-            
-            // Dispatch profileUpdate event
-            window.dispatchEvent(new Event('profileUpdate'));
-            showToastNotification('Profile details saved successfully!');
-        } catch (err) {
-            showToastNotification('Failed to update details.', 'error');
-        } finally {
-            setSaving(false);
-        }
+        API.put('/profile/', { name, employee_id: employeeId })
+            .then((res) => {
+                if (res.data.success) {
+                    setProfile(res.data.data);
+                    // Dispatch profileUpdate event
+                    window.dispatchEvent(new Event('profileUpdate'));
+                    showToastNotification('Profile details saved successfully!');
+                } else {
+                    showToastNotification('Failed to update details.', 'error');
+                }
+            })
+            .catch((err) => {
+                console.error(err);
+                showToastNotification('Failed to update details.', 'error');
+            })
+            .finally(() => {
+                setSaving(false);
+            });
     };
 
     const handleSavePassword = (e) => {
@@ -118,12 +125,22 @@ const Settings = () => {
             return;
         }
         setSaving(true);
-        // Simulate password change success
-        setTimeout(() => {
-            setSaving(false);
-            showToastNotification('Password changed successfully!');
-            setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
-        }, 800);
+        API.put('/profile/', { password: passwordForm.newPassword })
+            .then((res) => {
+                if (res.data.success) {
+                    showToastNotification('Password changed successfully!');
+                    setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
+                } else {
+                    showToastNotification('Failed to change password.', 'error');
+                }
+            })
+            .catch((err) => {
+                console.error(err);
+                showToastNotification('Failed to change password.', 'error');
+            })
+            .finally(() => {
+                setSaving(false);
+            });
     };
 
     const avatarStyle = getAvatarStyle(profile?.username);

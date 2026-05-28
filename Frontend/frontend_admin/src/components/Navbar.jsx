@@ -64,11 +64,20 @@ const Navbar = () => {
                 <div className="navbar-user-area">
                     {user && (
                         <div className="user-info">
-                            <div className="user-avatar">
-                                {user.username?.charAt(0)?.toUpperCase() || 'A'}
-                            </div>
+                            {user.profile_picture ? (
+                                <img
+                                    src={user.profile_picture}
+                                    alt="Avatar"
+                                    className="user-avatar"
+                                    style={{ objectFit: 'cover' }}
+                                />
+                            ) : (
+                                <div className="user-avatar">
+                                    {user.username?.charAt(0)?.toUpperCase() || 'A'}
+                                </div>
+                            )}
                             <span className="user-name">
-                                {user.username || 'User'}
+                                {user.name || user.username || 'User'}
                             </span>
                         </div>
                     )}

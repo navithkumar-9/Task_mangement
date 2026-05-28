@@ -467,7 +467,18 @@ const Timesheet = () => {
                                                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                                                     {(() => {
                                                         const avStyle = getAvatarStyle(ts.team_member.username);
-                                                        return (
+                                                        return ts.team_member.profile_picture ? (
+                                                            <img
+                                                                src={ts.team_member.profile_picture}
+                                                                alt="Avatar"
+                                                                style={{
+                                                                    width: '28px',
+                                                                    height: '28px',
+                                                                    borderRadius: '50%',
+                                                                    objectFit: 'cover'
+                                                                }}
+                                                            />
+                                                        ) : (
                                                             <div
                                                                 className="sidebar-user-avatar"
                                                                 style={{

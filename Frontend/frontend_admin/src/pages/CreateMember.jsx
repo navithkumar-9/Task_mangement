@@ -25,17 +25,6 @@ const CreateMember = () => {
                     `Member "${res.data.data.username}" created!`,
                     'success',
                 );
-                const existing = JSON.parse(
-                    localStorage.getItem('admin_members_list') || '[]',
-                );
-                existing.unshift({
-                    ...res.data.data,
-                    createdAt: new Date().toISOString(),
-                });
-                localStorage.setItem(
-                    'admin_members_list',
-                    JSON.stringify(existing),
-                );
                 setFormData({ user_name: '', password: '', email: '' });
             }
         } catch (err) {

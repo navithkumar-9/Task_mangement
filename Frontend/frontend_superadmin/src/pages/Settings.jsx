@@ -45,23 +45,6 @@ const Settings = () => {
             </div>
           </div>
         </div>
-        <div className="content-card">
-          <h3 className="content-card-title">Application Info</h3>
-          <div className="settings-fields">
-            <div className="settings-field">
-              <span className="settings-label">App Name</span>
-              <span className="settings-value">TaskFlow</span>
-            </div>
-            <div className="settings-field">
-              <span className="settings-label">Version</span>
-              <span className="settings-value">1.0.0</span>
-            </div>
-            <div className="settings-field">
-              <span className="settings-label">Backend</span>
-              <span className="settings-value">Django REST Framework</span>
-            </div>
-          </div>
-        </div>
       </div>
     </div>
   );
