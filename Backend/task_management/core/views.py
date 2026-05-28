@@ -175,13 +175,48 @@ class ProfileView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-
         return success_response(
             message="Profile fetched successfully",
             data={
                 "id": request.user.id,
                 "username": request.user.username,
                 "role": request.user.role,
+                "name": getattr(request.user, "name", "") or "",
+                "employee_id": getattr(request.user, "employee_id", "") or "",
+                "profile_picture": getattr(request.user, "profile_picture", "") or "",
+            },
+            status_code=status.HTTP_200_OK,
+        )
+
+    def put(self, request):
+        user = request.user
+        name = request.data.get("name")
+        employee_id = request.data.get("employee_id")
+        profile_picture = request.data.get("profile_picture")
+        password = request.data.get("password")
+
+        if name is not None:
+            user.name = name
+        if employee_id is not None:
+            user.employee_id = employee_id
+        if profile_picture is not None:
+            user.profile_picture = profile_picture
+
+        if password:
+            user.set_password(password)
+            user.save()
+        else:
+            user.save()
+
+        return success_response(
+            message="Profile updated successfully",
+            data={
+                "id": user.id,
+                "username": user.username,
+                "role": user.role,
+                "name": getattr(user, "name", "") or "",
+                "employee_id": getattr(user, "employee_id", "") or "",
+                "profile_picture": getattr(user, "profile_picture", "") or "",
             },
             status_code=status.HTTP_200_OK,
         )
@@ -309,6 +344,9 @@ class TeamMemberListForAdminView(APIView):
                 "email": user.email,
                 "phone_number": user.phone_number,
                 "role": user.role,
+                "name": getattr(user, "name", "") or "",
+                "employee_id": getattr(user, "employee_id", "") or "",
+                "profile_picture": getattr(user, "profile_picture", "") or "",
             }
             for user in paginated_queryset
         ]
