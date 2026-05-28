@@ -2,6 +2,25 @@ import { useState, useEffect } from 'react';
 import API from '../api/axios';
 import { useNavigate } from 'react-router-dom';
 
+const getAvatarStyle = (username) => {
+  const colors = [
+    { bg: 'linear-gradient(135deg, #3B82F6, #1D4ED8)', text: '#ffffff' }, // Blue
+    { bg: 'linear-gradient(135deg, #10B981, #047857)', text: '#ffffff' }, // Emerald
+    { bg: 'linear-gradient(135deg, #EC4899, #BE185D)', text: '#ffffff' }, // Pink
+    { bg: 'linear-gradient(135deg, #8B5CF6, #6D28D9)', text: '#ffffff' }, // Violet
+    { bg: 'linear-gradient(135deg, #F59E0B, #B45309)', text: '#ffffff' }, // Amber
+    { bg: 'linear-gradient(135deg, #06B6D4, #0891B2)', text: '#ffffff' }, // Cyan
+    { bg: 'linear-gradient(135deg, #EF4444, #B91C1C)', text: '#ffffff' }, // Rose
+  ];
+  let hash = 0;
+  const name = username || '';
+  for (let i = 0; i < name.length; i++) {
+    hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const index = Math.abs(hash) % colors.length;
+  return colors[index];
+};
+
 /* ─── View Profile Modal ─── */
 const UserProfileModal = ({ user, onClose }) => {
   if (!user) return null;
@@ -439,92 +458,83 @@ const TeamList = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {members.map((m, i) => (
-                    <tr key={m.id || i}>
-                      <td className="text-muted">#{m.id}</td>
-                      <td className="text-bold">{m.username}</td>
-                      <td className="text-muted">{m.email || '—'}</td>
-                      <td className="text-muted">{m.phone_number || '—'}</td>
-                      <td>
-                        <span className={`role-badge role-${m.role?.toLowerCase().replace('_', '') || 'member'}`}>
-                          {m.role}
-                        </span>
-                      </td>
-                      <td><span className="status-badge status-active">Active</span></td>
-                      <td>
-                        <div style={{ display: 'flex', gap: '6px' }}>
-                          {/* View */}
-                          <button
-                            className="btn-icon"
-                            title="View Profile"
-                            onClick={() => setSelectedUser(m)}
-                            style={{
-                              padding: '6px',
-                              borderRadius: '6px',
-                              border: '1px solid var(--border-color)',
-                              background: 'transparent',
-                              cursor: 'pointer',
-                              color: 'var(--text-muted)',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                            }}
-                          >
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                              <circle cx="12" cy="12" r="3" />
-                            </svg>
-                          </button>
-
-                          {/* Edit */}
-                          <button
-                            className="btn-icon"
-                            title="Edit Member"
-                            onClick={() => setEditMember(m)}
-                            style={{
-                              padding: '6px',
-                              borderRadius: '6px',
-                              border: '1px solid var(--border-color)',
-                              background: 'transparent',
-                              cursor: 'pointer',
-                              color: 'var(--primary)',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                            }}
-                          >
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                            </svg>
-                          </button>
-
-                          {/* Delete */}
-                          <button
-                            className="btn-icon"
-                            title="Delete Member"
-                            onClick={() => setDeleteMember(m)}
-                            style={{
-                              padding: '6px',
-                              borderRadius: '6px',
-                              border: '1px solid rgba(255,107,107,0.3)',
-                              background: 'transparent',
-                              cursor: 'pointer',
-                              color: '#ff6b6b',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                            }}
-                          >
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                              <polyline points="3 6 5 6 21 6" />
-                              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                            </svg>
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
+                   {members.map((m, i) => {
+                     const avatarStyle = getAvatarStyle(m.username);
+                     return (
+                       <tr key={m.id || i}>
+                         <td className="text-muted">#{m.id}</td>
+                         <td className="text-bold">
+                           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                             <div
+                               className="sidebar-user-avatar"
+                               style={{
+                                 background: avatarStyle.bg,
+                                 color: avatarStyle.text,
+                                 width: '30px',
+                                 height: '30px',
+                                 borderRadius: '50%',
+                                 fontSize: '0.8rem',
+                                 fontWeight: '700',
+                               }}
+                             >
+                               {m.username?.charAt(0).toUpperCase()}
+                             </div>
+                             <span>{m.username}</span>
+                           </div>
+                         </td>
+                         <td className="text-muted">{m.email || '—'}</td>
+                         <td className="text-muted">{m.phone_number || '—'}</td>
+                         <td>
+                           <span className={`role-badge role-${m.role?.toLowerCase().replace('_', '') || 'member'}`}>
+                             {m.role}
+                           </span>
+                         </td>
+                         <td><span className="status-badge status-active">Active</span></td>
+                         <td>
+                           <div style={{ display: 'flex', gap: '8px' }}>
+                             {/* View */}
+                             <button
+                               className="btn-icon"
+                               title="View Profile"
+                               onClick={() => setSelectedUser(m)}
+                               style={{ border: '1px solid var(--border-color)' }}
+                             >
+                               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                 <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                                 <circle cx="12" cy="12" r="3" />
+                               </svg>
+                             </button>
+ 
+                             {/* Edit */}
+                             <button
+                               className="btn-icon"
+                               title="Edit Member"
+                               onClick={() => setEditMember(m)}
+                               style={{ border: '1px solid var(--border-color)', color: 'var(--primary)' }}
+                             >
+                               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                 <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                                 <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                               </svg>
+                             </button>
+ 
+                             {/* Delete */}
+                             <button
+                               className="btn-icon"
+                               title="Delete Member"
+                               onClick={() => setDeleteMember(m)}
+                               style={{ border: '1px solid rgba(255,107,107,0.3)', color: '#ff6b6b' }}
+                             >
+                               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                 <polyline points="3 6 5 6 21 6" />
+                                 <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                               </svg>
+                             </button>
+                           </div>
+                         </td>
+                       </tr>
+                     );
+                   })}
                 </tbody>
               </table>
             </div>

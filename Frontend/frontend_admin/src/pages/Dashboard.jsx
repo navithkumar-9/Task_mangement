@@ -18,6 +18,25 @@ import { Link } from 'react-router-dom';
 
 const COLORS = ['#49CCF9', '#ffb946', '#7B68EE', '#4bcf82', '#ff6b6b'];
 
+const getAvatarStyle = (username) => {
+    const colors = [
+        { bg: 'linear-gradient(135deg, #3B82F6, #1D4ED8)', text: '#ffffff' }, // Blue
+        { bg: 'linear-gradient(135deg, #10B981, #047857)', text: '#ffffff' }, // Emerald
+        { bg: 'linear-gradient(135deg, #EC4899, #BE185D)', text: '#ffffff' }, // Pink
+        { bg: 'linear-gradient(135deg, #8B5CF6, #6D28D9)', text: '#ffffff' }, // Violet
+        { bg: 'linear-gradient(135deg, #F59E0B, #B45309)', text: '#ffffff' }, // Amber
+        { bg: 'linear-gradient(135deg, #06B6D4, #0891B2)', text: '#ffffff' }, // Cyan
+        { bg: 'linear-gradient(135deg, #EF4444, #B91C1C)', text: '#ffffff' }, // Rose
+    ];
+    let hash = 0;
+    const name = username || '';
+    for (let i = 0; i < name.length; i++) {
+        hash = name.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    const index = Math.abs(hash) % colors.length;
+    return colors[index];
+};
+
 const Dashboard = () => {
     const { user } = useAuth();
     const [profile, setProfile] = useState(null);
@@ -243,35 +262,33 @@ const Dashboard = () => {
 
             {/* Top Header: High-Level Health Counter Cards */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px', marginBottom: '32px' }}>
-                <div style={{ background: '#fff', borderRadius: '16px', padding: '24px', border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-sm)', display: 'flex', alignItems: 'center', gap: '20px' }}>
-                    <div style={{ width: '56px', height: '56px', borderRadius: '14px', background: 'rgba(73,204,249,0.1)', color: '#49CCF9', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <div className="stat-card stat-blue">
+                    <div style={{ width: '56px', height: '56px', borderRadius: '14px', background: 'rgba(73,204,249,0.1)', color: '#49CCF9', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                         <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
                     </div>
-                    <div>
-                        <div style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-muted)' }}>Total Active Tasks</div>
-                        <div style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1.2 }}>{headerMetrics.totalActive}</div>
+                    <div className="stat-info">
+                        <div className="stat-label">Total Active Tasks</div>
+                        <div className="stat-value">{headerMetrics.totalActive}</div>
                     </div>
                 </div>
 
-                <div style={{ background: '#fff', borderRadius: '16px', padding: '24px', border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-sm)', display: 'flex', alignItems: 'center', gap: '20px' }}>
-                    <div style={{ width: '56px', height: '56px', borderRadius: '14px', background: 'rgba(255,107,107,0.1)', color: '#ff6b6b', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <div className="stat-card stat-amber">
+                    <div style={{ width: '56px', height: '56px', borderRadius: '14px', background: 'rgba(255,107,107,0.1)', color: '#ff6b6b', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                         <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
                     </div>
-                    <div>
-                        <div style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-muted)' }}>Overdue Tasks</div>
-                        <div style={{ fontSize: '2rem', fontWeight: 800, color: '#ff6b6b', lineHeight: 1.2 }}>{headerMetrics.overdue}</div>
+                    <div className="stat-info">
+                        <div className="stat-label">Overdue Tasks</div>
+                        <div className="stat-value" style={{ color: '#ff6b6b' }}>{headerMetrics.overdue}</div>
                     </div>
                 </div>
 
-                <div style={{ background: '#fff', borderRadius: '16px', padding: '24px', border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-sm)', display: 'flex', alignItems: 'center', gap: '20px' }}>
-                    <div style={{ width: '56px', height: '56px', borderRadius: '14px', background: 'rgba(75,207,130,0.1)', color: '#4bcf82', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <div className="stat-card stat-green">
+                    <div style={{ width: '56px', height: '56px', borderRadius: '14px', background: 'rgba(75,207,130,0.1)', color: '#4bcf82', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                         <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
                     </div>
-                    <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-muted)' }}>Project Progress</div>
-                        <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
-                            <div style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1.2 }}>{headerMetrics.progress}%</div>
-                        </div>
+                    <div className="stat-info" style={{ flex: 1 }}>
+                        <div className="stat-label">Project Progress</div>
+                        <div className="stat-value">{headerMetrics.progress}%</div>
                         <div style={{ width: '100%', height: '6px', background: 'var(--bg-body)', borderRadius: '3px', marginTop: '8px', overflow: 'hidden' }}>
                             <div style={{ width: `${headerMetrics.progress}%`, height: '100%', background: '#4bcf82', borderRadius: '3px' }}></div>
                         </div>
@@ -282,8 +299,8 @@ const Dashboard = () => {
             {/* Middle Section: Visual Charts */}
             <div style={{ display: 'grid', gridTemplateColumns: '3fr 2fr', gap: '24px', marginBottom: '32px' }}>
                 {/* Workload per Person (Bar Chart) */}
-                <div style={{ background: '#fff', borderRadius: '16px', padding: '24px', border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-sm)' }}>
-                    <h2 style={{ fontSize: '1.1rem', fontWeight: 700, margin: '0 0 24px', color: 'var(--text-primary)' }}>Workload Distribution</h2>
+                <div className="content-card">
+                    <h2 className="content-card-title" style={{ marginBottom: '24px' }}>Workload Distribution</h2>
                     <div style={{ height: '300px', width: '100%' }}>
                         {workloadData.length > 0 ? (
                             <ResponsiveContainer width="100%" height="100%">
@@ -302,8 +319,8 @@ const Dashboard = () => {
                 </div>
 
                 {/* Tasks by Current Status (Pie Chart) */}
-                <div style={{ background: '#fff', borderRadius: '16px', padding: '24px', border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-sm)' }}>
-                    <h2 style={{ fontSize: '1.1rem', fontWeight: 700, margin: '0 0 24px', color: 'var(--text-primary)' }}>Tasks by Status</h2>
+                <div className="content-card">
+                    <h2 className="content-card-title" style={{ marginBottom: '24px' }}>Tasks by Status</h2>
                     <div style={{ height: '300px', width: '100%', display: 'flex', flexDirection: 'column' }}>
                         {statusData.length > 0 ? (
                             <ResponsiveContainer width="100%" height="100%">
@@ -335,39 +352,41 @@ const Dashboard = () => {
             {/* Bottom Section: Actionable Detail */}
             <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '24px' }}>
                 {/* Top 5 Critical/Urgent Tasks */}
-                <div style={{ background: '#fff', borderRadius: '16px', padding: '24px', border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-sm)' }}>
+                <div className="content-card">
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                        <h2 style={{ fontSize: '1.1rem', fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>Top 5 Critical Tasks</h2>
+                        <h2 className="content-card-title" style={{ margin: 0 }}>Top 5 Critical Tasks</h2>
                         <Link to="/tasks" style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--primary)', textDecoration: 'none' }}>View All</Link>
                     </div>
                     
                     {topCriticalTasks.length > 0 ? (
                         <div style={{ overflowX: 'auto' }}>
-                            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                            <table className="data-table">
                                 <thead>
                                     <tr>
-                                        <th style={{ padding: '12px 16px', borderBottom: '1px solid var(--border-light)', color: 'var(--text-muted)', fontWeight: 600, fontSize: '0.85rem' }}>Task Name</th>
-                                        <th style={{ padding: '12px 16px', borderBottom: '1px solid var(--border-light)', color: 'var(--text-muted)', fontWeight: 600, fontSize: '0.85rem' }}>Priority</th>
-                                        <th style={{ padding: '12px 16px', borderBottom: '1px solid var(--border-light)', color: 'var(--text-muted)', fontWeight: 600, fontSize: '0.85rem' }}>Due Date</th>
-                                        <th style={{ padding: '12px 16px', borderBottom: '1px solid var(--border-light)', color: 'var(--text-muted)', fontWeight: 600, fontSize: '0.85rem' }}>Assignee</th>
+                                        <th>Task Name</th>
+                                        <th>Priority</th>
+                                        <th>Due Date</th>
+                                        <th>Assignee</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {topCriticalTasks.map((task, idx) => {
                                         const effectiveDue = task.revised_due_date || task.due_date;
                                         const isOverdue = effectiveDue && new Date(effectiveDue) < new Date(new Date().toDateString());
+                                        const assigneeName = task.assignees?.[0]?.username || '';
+                                        const avStyle = getAvatarStyle(assigneeName);
                                         return (
-                                            <tr key={task.id || idx} style={{ borderBottom: '1px solid var(--border-light)' }}>
-                                                <td style={{ padding: '16px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                                            <tr key={task.id || idx}>
+                                                <td style={{ fontWeight: 600 }}>
                                                     {task.task_name}
                                                     <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '4px', fontWeight: 500 }}>{task.project_name}</div>
                                                 </td>
-                                                <td style={{ padding: '16px' }}>
+                                                <td>
                                                     <span style={{ padding: '4px 10px', borderRadius: '6px', fontSize: '0.7rem', fontWeight: 700, background: `${getPriorityColor(task.priority)}15`, color: getPriorityColor(task.priority) }}>
                                                         {task.priority}
                                                     </span>
                                                 </td>
-                                                <td style={{ padding: '16px', fontSize: '0.85rem', fontWeight: isOverdue ? 700 : 500, color: isOverdue ? '#ff6b6b' : 'var(--text-secondary)' }}>
+                                                <td style={{ fontSize: '0.85rem', fontWeight: isOverdue ? 700 : 500, color: isOverdue ? '#ff6b6b' : 'var(--text-secondary)' }}>
                                                     {task.revised_due_date ? (
                                                         <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
                                                             <span style={{ textDecoration: 'line-through', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
@@ -385,12 +404,26 @@ const Dashboard = () => {
                                                         </>
                                                     ) : 'N/A'}
                                                 </td>
-                                                <td style={{ padding: '16px' }}>
+                                                <td>
                                                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                                        <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: 'var(--primary-light)', color: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.8rem', fontWeight: 700 }}>
-                                                            {task.assignees?.[0]?.username?.charAt(0).toUpperCase() || '?'}
-                                                        </div>
-                                                        <span style={{ fontSize: '0.85rem', fontWeight: 500 }}>{task.assignees?.[0]?.username || 'Unassigned'}{task.assignees?.length > 1 ? ` +${task.assignees.length - 1}` : ''}</span>
+                                                        {assigneeName ? (
+                                                            <div 
+                                                                style={{ 
+                                                                    width: '28px', height: '28px', borderRadius: '50%', 
+                                                                    background: avStyle.bg, color: avStyle.text, 
+                                                                    display: 'flex', alignItems: 'center', justifyContent: 'center', 
+                                                                    fontSize: '0.8rem', fontWeight: 700,
+                                                                    boxShadow: '0 2px 4px rgba(15, 23, 42, 0.08)'
+                                                                }}
+                                                            >
+                                                                {assigneeName.charAt(0).toUpperCase()}
+                                                            </div>
+                                                        ) : (
+                                                            <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: 'var(--border-color)', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.8rem', fontWeight: 700 }}>
+                                                                ?
+                                                            </div>
+                                                        )}
+                                                        <span style={{ fontSize: '0.85rem', fontWeight: 500 }}>{assigneeName || 'Unassigned'}{task.assignees?.length > 1 ? ` +${task.assignees.length - 1}` : ''}</span>
                                                     </div>
                                                 </td>
                                             </tr>
@@ -407,8 +440,8 @@ const Dashboard = () => {
                 </div>
 
                 {/* Recent Activity Feed */}
-                <div style={{ background: '#fff', borderRadius: '16px', padding: '24px', border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-sm)' }}>
-                    <h2 style={{ fontSize: '1.1rem', fontWeight: 700, margin: '0 0 24px', color: 'var(--text-primary)' }}>Recent Activity</h2>
+                <div className="content-card">
+                    <h2 className="content-card-title" style={{ marginBottom: '24px' }}>Recent Activity</h2>
                     
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                         {recentActivity.length > 0 ? recentActivity.map((activity, idx) => (

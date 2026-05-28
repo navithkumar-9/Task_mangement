@@ -1266,7 +1266,7 @@ const Calendar = () => {
                 <TaskDetailModal
                     tasks={selectedTasks}
                     date={selectedDate}
-                    onClose={() => {
+                    onClose={() => {    
                         setSelectedDate(null);
                         setSelectedTasks([]);
                     }}

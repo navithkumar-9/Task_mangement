@@ -576,14 +576,7 @@ const Calendar = () => {
             </div>
 
             {/* Stats Cards */}
-            <div
-                style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(4, 1fr)',
-                    gap: '16px',
-                    marginBottom: '24px',
-                }}
-            >
+            <div className="stats-grid">
                 {[
                     {
                         label: 'Total Deadlines',
@@ -591,6 +584,7 @@ const Calendar = () => {
                         color: '#49CCF9',
                         bg: 'rgba(73,204,249,0.08)',
                         icon: '📋',
+                        statClass: 'stat-blue',
                     },
                     {
                         label: 'Upcoming',
@@ -598,6 +592,7 @@ const Calendar = () => {
                         color: '#7B68EE',
                         bg: 'rgba(123,104,238,0.08)',
                         icon: '🔜',
+                        statClass: 'stat-purple',
                     },
                     {
                         label: 'Completed',
@@ -605,6 +600,7 @@ const Calendar = () => {
                         color: '#4bcf82',
                         bg: 'rgba(75,207,130,0.08)',
                         icon: '✅',
+                        statClass: 'stat-green',
                     },
                     {
                         label: 'Overdue',
@@ -612,55 +608,39 @@ const Calendar = () => {
                         color: '#ff6b6b',
                         bg: 'rgba(255,107,107,0.08)',
                         icon: '⚠️',
+                        statClass: 'stat-amber',
                     },
                 ].map((stat) => (
                     <div
                         key={stat.label}
-                        style={{
-                            background: '#ffffff',
-                            borderRadius: '12px',
-                            padding: '20px',
-                            border: '1px solid var(--border-color)',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '14px',
-                            boxShadow: 'var(--shadow-sm)',
-                        }}
+                        className={`stat-card ${stat.statClass}`}
                     >
                         <div
                             style={{
-                                width: '44px',
-                                height: '44px',
+                                width: '42px',
+                                height: '42px',
                                 borderRadius: '10px',
                                 background: stat.bg,
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
-                                fontSize: '1.2rem',
+                                fontSize: '1.1rem',
                                 flexShrink: 0,
                             }}
                         >
                             {stat.icon}
                         </div>
-                        <div>
+                        <div className="stat-info">
                             <div
+                                className="stat-value"
                                 style={{
-                                    fontSize: '1.5rem',
-                                    fontWeight: 700,
                                     color: stat.color,
-                                    lineHeight: 1,
+                                    fontSize: '1.4rem',
                                 }}
                             >
                                 {stat.value}
                             </div>
-                            <div
-                                style={{
-                                    fontSize: '0.78rem',
-                                    color: 'var(--text-muted)',
-                                    fontWeight: 500,
-                                    marginTop: '2px',
-                                }}
-                            >
+                            <div className="stat-label">
                                 {stat.label}
                             </div>
                         </div>
@@ -669,19 +649,11 @@ const Calendar = () => {
             </div>
 
             {/* Calendar Card */}
-            <div
-                style={{
-                    background: '#ffffff',
-                    borderRadius: '16px',
-                    border: '1px solid var(--border-color)',
-                    boxShadow: 'var(--shadow-sm)',
-                    overflow: 'hidden',
-                }}
-            >
+            <div className="content-card" style={{ padding: '0', overflow: 'hidden' }}>
                 {/* Month Navigation */}
                 <div
                     style={{
-                        padding: '20px 24px',
+                        padding: '16px 20px',
                         borderBottom: '1px solid var(--border-color)',
                         display: 'flex',
                         justifyContent: 'space-between',
@@ -692,24 +664,12 @@ const Calendar = () => {
                         style={{
                             display: 'flex',
                             alignItems: 'center',
-                            gap: '16px',
+                            gap: '12px',
                         }}
                     >
                         <button
                             onClick={() => navigateMonth(-1)}
-                            style={{
-                                width: '36px',
-                                height: '36px',
-                                borderRadius: '8px',
-                                border: '1px solid var(--border-color)',
-                                background: '#fff',
-                                cursor: 'pointer',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                color: 'var(--text-secondary)',
-                                transition: 'all 0.15s',
-                            }}
+                            className="calendar-nav-btn"
                         >
                             <svg
                                 width="16"
@@ -728,9 +688,9 @@ const Calendar = () => {
                         <h2
                             style={{
                                 margin: 0,
-                                fontSize: '1.15rem',
+                                fontSize: '1.05rem',
                                 fontWeight: 700,
-                                minWidth: '200px',
+                                minWidth: '160px',
                                 textAlign: 'center',
                             }}
                         >
@@ -739,19 +699,7 @@ const Calendar = () => {
 
                         <button
                             onClick={() => navigateMonth(1)}
-                            style={{
-                                width: '36px',
-                                height: '36px',
-                                borderRadius: '8px',
-                                border: '1px solid var(--border-color)',
-                                background: '#fff',
-                                cursor: 'pointer',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                color: 'var(--text-secondary)',
-                                transition: 'all 0.15s',
-                            }}
+                            className="calendar-nav-btn"
                         >
                             <svg
                                 width="16"
@@ -770,16 +718,13 @@ const Calendar = () => {
 
                     <button
                         onClick={goToToday}
+                        className="btn-primary"
                         style={{
-                            padding: '8px 16px',
-                            borderRadius: '8px',
-                            border: '1px solid var(--border-color)',
+                            padding: '6px 14px',
                             background: 'var(--primary-light)',
                             color: 'var(--primary)',
-                            fontWeight: 600,
-                            fontSize: '0.82rem',
-                            cursor: 'pointer',
-                            transition: 'all 0.15s',
+                            boxShadow: 'none',
+                            fontSize: '0.8rem',
                         }}
                     >
                         Today
@@ -920,66 +865,10 @@ const Calendar = () => {
                                     <div
                                         key={idx}
                                         onClick={() => handleDayClick(dayObj)}
-                                        style={{
-                                            minHeight: '90px',
-                                            padding: '8px',
-                                            borderRadius: '10px',
-                                            border: todayClass
-                                                ? '2px solid var(--primary)'
-                                                : '1px solid var(--border-light)',
-                                            background: todayClass
-                                                ? 'var(--primary-light)'
-                                                : hasTasks
-                                                  ? '#fafbfc'
-                                                  : '#fff',
-                                            opacity: dayObj.isCurrentMonth
-                                                ? 1
-                                                : 0.4,
-                                            cursor: hasTasks
-                                                ? 'pointer'
-                                                : 'default',
-                                            transition: 'all 0.15s ease',
-                                            position: 'relative',
-                                            ...(hasTasks && {
-                                                boxShadow:
-                                                    '0 1px 3px rgba(0,0,0,0.04)',
-                                            }),
-                                        }}
-                                        onMouseEnter={(e) => {
-                                            if (hasTasks) {
-                                                e.currentTarget.style.transform =
-                                                    'translateY(-1px)';
-                                                e.currentTarget.style.boxShadow =
-                                                    '0 4px 12px rgba(0,0,0,0.08)';
-                                            }
-                                        }}
-                                        onMouseLeave={(e) => {
-                                            e.currentTarget.style.transform =
-                                                'none';
-                                            e.currentTarget.style.boxShadow =
-                                                hasTasks
-                                                    ? '0 1px 3px rgba(0,0,0,0.04)'
-                                                    : 'none';
-                                        }}
+                                        className={`calendar-cell ${!dayObj.isCurrentMonth ? 'calendar-cell-other-month' : ''} ${todayClass ? 'calendar-cell-today' : ''} ${hasTasks && !todayClass ? 'calendar-cell-has-tasks' : ''}`}
                                     >
                                         {/* Day Number */}
-                                        <div
-                                            style={{
-                                                fontSize: '0.82rem',
-                                                fontWeight: todayClass
-                                                    ? 700
-                                                    : 500,
-                                                color: todayClass
-                                                    ? 'var(--primary)'
-                                                    : dayObj.isCurrentMonth
-                                                      ? 'var(--text-primary)'
-                                                      : 'var(--text-muted)',
-                                                marginBottom: '4px',
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                justifyContent: 'space-between',
-                                            }}
-                                        >
+                                        <div className="calendar-cell-day-num">
                                             <span>{dayObj.day}</span>
                                             {hasTasks && (
                                                 <span
@@ -1020,11 +909,8 @@ const Calendar = () => {
                                                 return (
                                                     <div
                                                         key={task.id || tIdx}
+                                                        className="calendar-pill"
                                                         style={{
-                                                            padding: '2px 6px',
-                                                            borderRadius: '4px',
-                                                            fontSize: '0.65rem',
-                                                            fontWeight: 600,
                                                             color: taskOverdue
                                                                 ? '#ff6b6b'
                                                                 : pColor.color,
@@ -1032,13 +918,6 @@ const Calendar = () => {
                                                                 taskOverdue
                                                                     ? 'rgba(255,107,107,0.1)'
                                                                     : pColor.bg,
-                                                            marginBottom: '2px',
-                                                            whiteSpace:
-                                                                'nowrap',
-                                                            overflow: 'hidden',
-                                                            textOverflow:
-                                                                'ellipsis',
-                                                            borderLeft: `2px solid ${taskOverdue ? '#ff6b6b' : pColor.color}`,
                                                             textDecoration:
                                                                 task.status ===
                                                                 'COMPLETED'
@@ -1077,27 +956,11 @@ const Calendar = () => {
             </div>
 
             {/* Upcoming Deadlines List */}
-            <div
-                style={{
-                    marginTop: '24px',
-                    background: '#ffffff',
-                    borderRadius: '16px',
-                    border: '1px solid var(--border-color)',
-                    boxShadow: 'var(--shadow-sm)',
-                    overflow: 'hidden',
-                }}
-            >
-                <div
-                    style={{
-                        padding: '16px 24px',
-                        borderBottom: '1px solid var(--border-color)',
-                        fontWeight: 700,
-                        fontSize: '0.95rem',
-                    }}
-                >
+            <div className="content-card" style={{ marginTop: '24px' }}>
+                <div className="content-card-title" style={{ marginBottom: '14px' }}>
                     Upcoming Deadlines
                 </div>
-                <div style={{ padding: '8px 24px 16px' }}>
+                <div style={{ padding: '0' }}>
                     {filteredTasks
                         .filter(
                             (t) =>

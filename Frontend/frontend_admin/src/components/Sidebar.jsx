@@ -1,10 +1,45 @@
+import { useState, useEffect } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+
+const getAvatarStyle = (username) => {
+    const colors = [
+        { bg: 'linear-gradient(135deg, #3B82F6, #1D4ED8)', text: '#ffffff' }, // Blue
+        { bg: 'linear-gradient(135deg, #10B981, #047857)', text: '#ffffff' }, // Emerald
+        { bg: 'linear-gradient(135deg, #EC4899, #BE185D)', text: '#ffffff' }, // Pink
+        { bg: 'linear-gradient(135deg, #8B5CF6, #6D28D9)', text: '#ffffff' }, // Violet
+        { bg: 'linear-gradient(135deg, #F59E0B, #B45309)', text: '#ffffff' }, // Amber
+        { bg: 'linear-gradient(135deg, #06B6D4, #0891B2)', text: '#ffffff' }, // Cyan
+        { bg: 'linear-gradient(135deg, #EF4444, #B91C1C)', text: '#ffffff' }, // Rose
+    ];
+    let hash = 0;
+    const name = username || '';
+    for (let i = 0; i < name.length; i++) {
+        hash = name.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    const index = Math.abs(hash) % colors.length;
+    return colors[index];
+};
 
 const Sidebar = () => {
     const { user, logout } = useAuth();
     const navigate = useNavigate();
     const isAdmin = user?.role === 'ADMIN';
+
+    const [profileVersion, setProfileVersion] = useState(0);
+
+    useEffect(() => {
+        const handleProfileUpdate = () => {
+            setProfileVersion(v => v + 1);
+        };
+        window.addEventListener('profileUpdate', handleProfileUpdate);
+        return () => window.removeEventListener('profileUpdate', handleProfileUpdate);
+    }, []);
+
+    const localProfile = JSON.parse(localStorage.getItem(`profile_data_${user?.username}`) || '{}');
+    const displayName = localProfile.name || user?.username || 'User';
+    const profilePic = localProfile.profile_picture || null;
+
 
     const handleLogout = () => {
         logout();
@@ -202,12 +237,33 @@ const Sidebar = () => {
             </div>
             <div className="sidebar-bottom">
                 <div className="sidebar-user">
-                    <div className="sidebar-user-avatar">
-                        {user?.username?.charAt(0)?.toUpperCase() || 'U'}
-                    </div>
+                    {profilePic ? (
+                        <img
+                            src={profilePic}
+                            alt="Avatar"
+                            className="profile-edit-avatar-img"
+                            style={{
+                                width: '32px',
+                                height: '32px',
+                                borderRadius: '50%',
+                                objectFit: 'cover',
+                                flexShrink: 0,
+                            }}
+                        />
+                    ) : (
+                        <div
+                            className="sidebar-user-avatar"
+                            style={{
+                                ...getAvatarStyle(user?.username),
+                                borderRadius: '50%',
+                            }}
+                        >
+                            {displayName?.charAt(0)?.toUpperCase()}
+                        </div>
+                    )}
                     <div className="sidebar-user-info">
                         <span className="sidebar-user-name">
-                            {user?.username || 'User'}
+                            {displayName}
                         </span>
                         <span className="sidebar-user-role">
                             {user?.role || 'MEMBER'}

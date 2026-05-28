@@ -6,6 +6,25 @@ const getTodayString = () => {
     const today = new Date();
     return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
 };
+const getAvatarStyle = (username) => {
+    const colors = [
+        { bg: 'linear-gradient(135deg, #3B82F6, #1D4ED8)', text: '#ffffff' }, // Blue
+        { bg: 'linear-gradient(135deg, #10B981, #047857)', text: '#ffffff' }, // Emerald
+        { bg: 'linear-gradient(135deg, #EC4899, #BE185D)', text: '#ffffff' }, // Pink
+        { bg: 'linear-gradient(135deg, #8B5CF6, #6D28D9)', text: '#ffffff' }, // Violet
+        { bg: 'linear-gradient(135deg, #F59E0B, #B45309)', text: '#ffffff' }, // Amber
+        { bg: 'linear-gradient(135deg, #06B6D4, #0891B2)', text: '#ffffff' }, // Cyan
+        { bg: 'linear-gradient(135deg, #EF4444, #B91C1C)', text: '#ffffff' }, // Rose
+    ];
+    let hash = 0;
+    const name = username || '';
+    for (let i = 0; i < name.length; i++) {
+        hash = name.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    const index = Math.abs(hash) % colors.length;
+    return colors[index];
+};
+
 
 const Timesheet = () => {
     const { user } = useAuth();
@@ -251,106 +270,73 @@ const Timesheet = () => {
                 )}
             </div>
 
-            <div
-                className="content-card"
-                style={{
-                    marginTop: '24px',
-                    background: 'var(--card-bg)',
-                    borderRadius: '12px',
-                    border: '1px solid var(--border-color)',
-                }}
-            >
+            <div className="content-card" style={{ marginTop: '24px' }}>
                 <div
                     className="content-card-header"
                     style={{
-                        padding: '20px',
+                        padding: '16px 20px',
                         borderBottom: '1px solid var(--border-color)',
                         display: 'flex',
+                        flexWrap: 'wrap',
                         alignItems: 'center',
-                        gap: '12px',
+                        gap: '16px',
                     }}
                 >
-                    <label
-                        style={{
-                            fontSize: '0.9rem',
-                            fontWeight: 600,
-                            color: 'var(--text-muted)',
-                        }}
-                    >
-                        Filter by Date:
-                    </label>
-                    <input
-                        type="date"
-                        className="search-input"
-                        style={{
-                            width: 'auto',
-                            padding: '8px 12px',
-                            borderRadius: '6px',
-                            border: '1px solid var(--border-color)',
-                        }}
-                        value={dateFilter}
-                        onChange={(e) => setDateFilter(e.target.value)}
-                    />
-                    {dateFilter && (
-                        <button
-                            className="btn-danger"
-                            style={{
-                                background: 'transparent',
-                                border: 'none',
-                                color: 'var(--primary)',
-                                cursor: 'pointer',
-                            }}
-                            onClick={() => setDateFilter('')}
-                        >
-                            Clear
-                        </button>
-                    )}
-                    <label
-                        style={{
-                            fontSize: '0.9rem',
-                            fontWeight: 600,
-                            color: 'var(--text-muted)',
-                            marginLeft: '12px',
-                        }}
-                    >
-                        Task Name:
-                    </label>
-                    <input
-                        type="text"
-                        className="search-input"
-                        placeholder="Task name"
-                        style={{
-                            width: 'auto',
-                            padding: '8px 12px',
-                            borderRadius: '6px',
-                            border: '1px solid var(--border-color)',
-                        }}
-                        value={taskNameFilter}
-                        onChange={(e) => setTaskNameFilter(e.target.value)}
-                    />
-                    <label
-                        style={{
-                            fontSize: '0.9rem',
-                            fontWeight: 600,
-                            color: 'var(--text-muted)',
-                            marginLeft: '12px',
-                        }}
-                    >
-                        Project Name:
-                    </label>
-                    <input
-                        type="text"
-                        className="search-input"
-                        placeholder="Project name"
-                        style={{
-                            width: 'auto',
-                            padding: '8px 12px',
-                            borderRadius: '6px',
-                            border: '1px solid var(--border-color)',
-                        }}
-                        value={projectNameFilter}
-                        onChange={(e) => setProjectNameFilter(e.target.value)}
-                    />
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <label className="form-label" style={{ margin: 0, whiteSpace: 'nowrap' }}>
+                            Filter by Date:
+                        </label>
+                        <input
+                            type="date"
+                            className="search-input"
+                            style={{ width: '150px', padding: '8px 12px' }}
+                            value={dateFilter}
+                            onChange={(e) => setDateFilter(e.target.value)}
+                        />
+                        {dateFilter && (
+                            <button
+                                className="btn-danger"
+                                style={{
+                                    background: 'transparent',
+                                    border: 'none',
+                                    color: 'var(--danger)',
+                                    cursor: 'pointer',
+                                    padding: '4px 8px',
+                                }}
+                                onClick={() => setDateFilter('')}
+                            >
+                                Clear
+                            </button>
+                        )}
+                    </div>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <label className="form-label" style={{ margin: 0, whiteSpace: 'nowrap' }}>
+                            Task Name:
+                        </label>
+                        <input
+                            type="text"
+                            className="search-input"
+                            placeholder="Search task..."
+                            style={{ width: '160px', padding: '8px 12px' }}
+                            value={taskNameFilter}
+                            onChange={(e) => setTaskNameFilter(e.target.value)}
+                        />
+                    </div>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <label className="form-label" style={{ margin: 0, whiteSpace: 'nowrap' }}>
+                            Project Name:
+                        </label>
+                        <input
+                            type="text"
+                            className="search-input"
+                            placeholder="Search project..."
+                            style={{ width: '160px', padding: '8px 12px' }}
+                            value={projectNameFilter}
+                            onChange={(e) => setProjectNameFilter(e.target.value)}
+                        />
+                    </div>
                 </div>
                 {loading ? (
                     <div
@@ -478,14 +464,33 @@ const Timesheet = () => {
                                     >
                                         <td style={{ padding: '16px 20px' }}>
                                             {ts.team_member ? (
-                                                <span
-                                                    style={{
-                                                        fontWeight: 600,
-                                                        color: 'var(--primary)',
-                                                    }}
-                                                >
-                                                    @{ts.team_member.username}
-                                                </span>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                    {(() => {
+                                                        const avStyle = getAvatarStyle(ts.team_member.username);
+                                                        return (
+                                                            <div
+                                                                className="sidebar-user-avatar"
+                                                                style={{
+                                                                    background: avStyle.bg,
+                                                                    color: avStyle.text,
+                                                                    width: '28px',
+                                                                    height: '28px',
+                                                                    borderRadius: '50%',
+                                                                    fontSize: '0.75rem',
+                                                                    fontWeight: '700',
+                                                                    display: 'flex',
+                                                                    alignItems: 'center',
+                                                                    justifyContent: 'center',
+                                                                }}
+                                                            >
+                                                                {ts.team_member.username?.charAt(0).toUpperCase()}
+                                                            </div>
+                                                        );
+                                                    })()}
+                                                    <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
+                                                        @{ts.team_member.username}
+                                                    </span>
+                                                </div>
                                             ) : (
                                                 '—'
                                             )}
