@@ -479,11 +479,11 @@ const TeamList = () => {
           />
         </div>
         {loading ? (
-          <div className="empty-state">
-            <div className="spinner"></div>
-            <p>Loading members...</p>
-          </div>
-        ) : members.length === 0 ? (
+                        <div className="page-loader" style={{ padding: '60px 0' }}>
+                            <div className="page-loader-spinner"></div>
+                            <div className="page-loader-text">Loading members...</div>
+                        </div>
+                    ) : members.length === 0 ? (
           <div className="empty-state">
             <p>{debouncedSearch ? 'No members match your search' : 'No team members found'}</p>
           </div>

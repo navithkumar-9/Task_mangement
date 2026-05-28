@@ -211,11 +211,11 @@ const Timesheet = () => {
                     />
                 </div>
                 {loading ? (
-                    <div className="empty-state">
-                        <div className="spinner"></div>
-                        <p>Loading timesheets...</p>
-                    </div>
-                ) : timesheets.length === 0 ? (
+                        <div className="page-loader" style={{ padding: '60px 0' }}>
+                            <div className="page-loader-spinner"></div>
+                            <div className="page-loader-text">Loading timesheets...</div>
+                        </div>
+                    ) : timesheets.length === 0 ? (
                     <div className="empty-state">
                         <p>
                             {dateFilter

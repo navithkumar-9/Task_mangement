@@ -265,16 +265,11 @@ const Dashboard = () => {
 
     if (loading) {
         return (
-            <div
-                className="page"
-                style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    minHeight: '60vh',
-                }}
-            >
-                <div className="spinner"></div>
+            <div className="page" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '60vh' }}>
+                <div className="page-loader">
+                    <div className="page-loader-spinner"></div>
+                    <div className="page-loader-text">Loading dashboard...</div>
+                </div>
             </div>
         );
     }

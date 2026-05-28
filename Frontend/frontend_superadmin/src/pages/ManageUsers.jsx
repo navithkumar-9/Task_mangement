@@ -182,11 +182,11 @@ const ManageUsers = () => {
                 </div>
 
                 {loading ? (
-                    <div className="empty-state">
-                        <div className="spinner"></div>
-                        <p>Loading users...</p>
-                    </div>
-                ) : users.length === 0 ? (
+                        <div className="page-loader" style={{ padding: '60px 0' }}>
+                            <div className="page-loader-spinner"></div>
+                            <div className="page-loader-text">Loading users...</div>
+                        </div>
+                    ) : users.length === 0 ? (
                     <div className="empty-state">
                         <svg
                             width="48"

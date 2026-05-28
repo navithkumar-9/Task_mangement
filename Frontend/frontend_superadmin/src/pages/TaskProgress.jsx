@@ -83,11 +83,11 @@ const TaskProgress = () => {
           />
         </div>
         {loading ? (
-          <div className="empty-state">
-            <div className="spinner"></div>
-            <p>Loading tasks...</p>
-          </div>
-        ) : tasks.length === 0 ? (
+                        <div className="page-loader" style={{ padding: '60px 0' }}>
+                            <div className="page-loader-spinner"></div>
+                            <div className="page-loader-text">Loading tasks...</div>
+                        </div>
+                    ) : tasks.length === 0 ? (
           <div className="empty-state">
             <p>{debouncedSearch ? 'No tasks match your search' : 'No tasks found'}</p>
           </div>

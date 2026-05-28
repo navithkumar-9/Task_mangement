@@ -856,18 +856,11 @@ const Calendar = () => {
                 </div>
 
                 {loading ? (
-                    <div style={{ padding: '80px', textAlign: 'center' }}>
-                        <div className="spinner"></div>
-                        <p
-                            style={{
-                                color: 'var(--text-muted)',
-                                marginTop: '12px',
-                            }}
-                        >
-                            Loading calendar...
-                        </p>
-                    </div>
-                ) : (
+                        <div className="page-loader" style={{ padding: '60px 0' }}>
+                            <div className="page-loader-spinner"></div>
+                            <div className="page-loader-text">Loading calendar...</div>
+                        </div>
+                    ) : (
                     <div style={{ padding: '16px 24px 24px' }}>
                         {/* Day Headers */}
                         <div

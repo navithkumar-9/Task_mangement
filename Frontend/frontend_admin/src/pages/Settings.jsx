@@ -30,6 +30,7 @@ const Settings = () => {
     const [profilePic, setProfilePic] = useState(null);
     const [saving, setSaving] = useState(false);
     const [toast, setToast] = useState(null);
+    const [uploadingPic, setUploadingPic] = useState(false);
 
     // Password Form State
     const [passwordForm, setPasswordForm] = useState({
@@ -70,11 +71,12 @@ const Settings = () => {
             const reader = new FileReader();
             reader.onloadend = () => {
                 const base64Pic = reader.result;
-                setProfilePic(base64Pic);
+                setUploadingPic(true);
                 API.put('/profile/', { profile_picture: base64Pic })
                     .then((res) => {
                         if (res.data.success) {
                             setProfile(res.data.data);
+                            setProfilePic(base64Pic);
                             // Dispatch profileUpdate event
                             window.dispatchEvent(new Event('profileUpdate'));
                             showToastNotification('Profile picture updated successfully!');
@@ -85,6 +87,9 @@ const Settings = () => {
                     .catch((err) => {
                         console.error(err);
                         showToastNotification('Failed to update profile picture.', 'error');
+                    })
+                    .finally(() => {
+                        setUploadingPic(false);
                     });
             };
             reader.readAsDataURL(file);
@@ -143,6 +148,17 @@ const Settings = () => {
             });
     };
 
+    if (!profile) {
+        return (
+            <div className="page" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '60vh' }}>
+                <div className="empty-state" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                    <div className="spinner" style={{ borderTopColor: 'var(--primary)', width: '40px', height: '40px' }}></div>
+                    <p style={{ marginTop: '16px', color: 'var(--text-muted)', fontWeight: 600 }}>Loading Settings...</p>
+                </div>
+            </div>
+        );
+    }
+
     const avatarStyle = getAvatarStyle(profile?.username);
 
     return (
@@ -163,7 +179,7 @@ const Settings = () => {
             <div className="settings-grid" style={{ maxWidth: '1000px', display: 'grid', gridTemplateColumns: '320px 1fr', gap: '24px' }}>
                 {/* Left Card: Profile Preview */}
                 <div className="content-card" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', height: 'fit-content' }}>
-                    <div className="profile-edit-avatar-wrapper">
+                    <div className="profile-edit-avatar-wrapper" style={{ position: 'relative' }}>
                         {profilePic ? (
                             <img src={profilePic} alt="Profile" className="profile-edit-avatar-img" />
                         ) : (
@@ -181,6 +197,20 @@ const Settings = () => {
                                 }}
                             >
                                 {name?.charAt(0)?.toUpperCase() || 'U'}
+                            </div>
+                        )}
+                        {uploadingPic && (
+                            <div style={{
+                                position: 'absolute',
+                                inset: 0,
+                                background: 'rgba(15, 23, 42, 0.65)',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                borderRadius: '50%',
+                                zIndex: 5
+                            }}>
+                                <div className="spinner" style={{ width: '28px', height: '28px', borderWidth: '3px', borderTopColor: '#ffffff' }}></div>
                             </div>
                         )}
                         <label className="profile-edit-avatar-overlay" htmlFor="profile-upload-file">
@@ -281,8 +311,9 @@ const Settings = () => {
                                 </div>
                             </div>
 
-                            <div style={{ marginTop: '16px' }}>
-                                <button type="submit" className="btn-primary" disabled={saving}>
+                             <div style={{ marginTop: '16px' }}>
+                                <button type="submit" className="btn-primary" disabled={saving} style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+                                    {saving && <span className="spinner" style={{ width: '16px', height: '16px', borderWidth: '2px', borderTopColor: '#ffffff' }}></span>}
                                     {saving ? 'Saving...' : 'Save Details'}
                                 </button>
                             </div>
@@ -365,8 +396,9 @@ const Settings = () => {
                                 </div>
                             </div>
 
-                            <div style={{ marginTop: '24px' }}>
-                                <button type="submit" className="btn-primary" disabled={saving}>
+                             <div style={{ marginTop: '24px' }}>
+                                <button type="submit" className="btn-primary" disabled={saving} style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+                                    {saving && <span className="spinner" style={{ width: '16px', height: '16px', borderWidth: '2px', borderTopColor: '#ffffff' }}></span>}
                                     {saving ? 'Updating...' : 'Change Password'}
                                 </button>
                             </div>
