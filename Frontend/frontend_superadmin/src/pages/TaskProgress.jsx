@@ -102,6 +102,7 @@ const TaskProgress = () => {
                   <th>Assignee</th>
                   <th>Priority</th>
                   <th>Status</th>
+                  <th>Created At</th>
                   <th>Due Date</th>
                 </tr>
               </thead>
@@ -114,6 +115,9 @@ const TaskProgress = () => {
                     <td>{task.assignees && task.assignees.length > 0 ? <span className="text-bold">@{task.assignees.map(a => a.username).join(', ')}</span> : '—'}</td>
                     <td>{getPriorityBadge(task.priority)}</td>
                     <td>{getStatusBadge(task.status)}</td>
+                    <td className="text-muted">
+                      {task.created_at ? new Date(task.created_at).toLocaleDateString() : '—'}
+                    </td>
                     <td className="text-muted">
                       {task.revised_due_date ? (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>

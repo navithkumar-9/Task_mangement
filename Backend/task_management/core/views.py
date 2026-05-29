@@ -10,6 +10,7 @@ from .serializers import (
     CreateAdminSerializer,
     CreateTeamLeaderSerializer,
     UpdateTeamMemberSerializer,
+    UpdateAdminSerializer,
     TaskCreateSerializer,
     TaskListSerializer,
     TaskStatusUpdateSerializer,
@@ -264,6 +265,88 @@ class AdminListView(APIView):
                 "message": "Admins fetched successfully",
                 "data": data,
             }
+        )
+
+
+class AdminDetailView(APIView):
+
+    permission_classes = [IsAuthenticated, IsSuperAdmin]
+
+    def get_admin(self, admin_id):
+        try:
+            return User.objects.get(id=admin_id, role=UserRole.ADMIN.value)
+        except User.DoesNotExist:
+            return None
+
+    def get(self, request, admin_id):
+        admin = self.get_admin(admin_id)
+        if not admin:
+            return error_response(
+                message="Admin not found",
+                status_code=status.HTTP_404_NOT_FOUND,
+            )
+
+        return success_response(
+            message="Admin fetched successfully",
+            data={
+                "id": admin.id,
+                "username": admin.username,
+                "email": admin.email,
+                "phone_number": admin.phone_number,
+                "role": admin.role,
+            },
+            status_code=status.HTTP_200_OK,
+        )
+
+    def put(self, request, admin_id):
+        admin = self.get_admin(admin_id)
+        if not admin:
+            return error_response(
+                message="Admin not found",
+                status_code=status.HTTP_404_NOT_FOUND,
+            )
+
+        serializer = UpdateAdminSerializer(
+            admin,
+            data=request.data,
+            partial=True,
+            context={"request": request},
+        )
+
+        if not serializer.is_valid():
+            return error_response(
+                message="Validation failed",
+                errors=serializer.errors,
+                status_code=status.HTTP_400_BAD_REQUEST,
+            )
+
+        updated_admin = serializer.save()
+
+        return success_response(
+            message="Admin updated successfully",
+            data={
+                "id": updated_admin.id,
+                "username": updated_admin.username,
+                "email": updated_admin.email,
+                "phone_number": updated_admin.phone_number,
+                "role": updated_admin.role,
+            },
+            status_code=status.HTTP_200_OK,
+        )
+
+    def delete(self, request, admin_id):
+        admin = self.get_admin(admin_id)
+        if not admin:
+            return error_response(
+                message="Admin not found",
+                status_code=status.HTTP_404_NOT_FOUND,
+            )
+
+        admin.delete()
+
+        return success_response(
+            message="Admin deleted successfully",
+            status_code=status.HTTP_200_OK,
         )
 
 
@@ -745,10 +828,14 @@ class AdminTimesheetListView(APIView):
             "task__assigned_by",
         )
         
-        if date_filter:
+        start_date = request.GET.get("start_date")
+        end_date = request.GET.get("end_date")
+        if start_date and end_date:
+            queryset = queryset.filter(start_time__range=(start_date, end_date))
+        elif date_filter:
             queryset = queryset.filter(start_time__date=date_filter)
 
-        # New filters: task name and project name
+        # Filters: task name and project name
         task_name = request.GET.get("task_name")
         project_name = request.GET.get("project_name")
         if task_name:
@@ -756,15 +843,21 @@ class AdminTimesheetListView(APIView):
         if project_name:
             queryset = queryset.filter(task__project_name__icontains=project_name)
 
+        paginator = CustomPagination()
+        paginated_queryset = paginator.paginate_queryset(queryset, request)
+
         serializer = TimesheetListSerializer(
-            queryset,
+            paginated_queryset,
             many=True,
         )
 
-        return success_response(
-            message="Team timesheets fetched successfully",
-            data=serializer.data,
-            status_code=status.HTTP_200_OK,
+        return paginator.get_paginated_response(
+            {
+                "isV1": True,
+                "success": True,
+                "message": "Team timesheets fetched successfully",
+                "data": serializer.data,
+            }
         )
 
 
@@ -781,7 +874,11 @@ class SuperAdminTimesheetListView(APIView):
             "task__assigned_by",
         )
         
-        if date_filter:
+        start_date = request.GET.get("start_date")
+        end_date = request.GET.get("end_date")
+        if start_date and end_date:
+            queryset = queryset.filter(start_time__range=(start_date, end_date))
+        elif date_filter:
             queryset = queryset.filter(start_time__date=date_filter)
 
         # New filters: task name and project name
@@ -792,15 +889,21 @@ class SuperAdminTimesheetListView(APIView):
         if project_name:
             queryset = queryset.filter(task__project_name__icontains=project_name)
 
+        paginator = CustomPagination()
+        paginated_queryset = paginator.paginate_queryset(queryset, request)
+
         serializer = TimesheetListSerializer(
-            queryset,
+            paginated_queryset,
             many=True,
         )
 
-        return success_response(
-            message="All timesheets fetched successfully",
-            data=serializer.data,
-            status_code=status.HTTP_200_OK,
+        return paginator.get_paginated_response(
+            {
+                "isV1": True,
+                "success": True,
+                "message": "All timesheets fetched successfully",
+                "data": serializer.data,
+            }
         )
 
 
@@ -817,7 +920,11 @@ class TeamMemberTimesheetListView(APIView):
             "task__assigned_by",
         )
 
-        if date_filter:
+        start_date = request.GET.get("start_date")
+        end_date = request.GET.get("end_date")
+        if start_date and end_date:
+            queryset = queryset.filter(start_time__range=(start_date, end_date))
+        elif date_filter:
             queryset = queryset.filter(start_time__date=date_filter)
 
         # New filters: task name and project name
@@ -828,15 +935,21 @@ class TeamMemberTimesheetListView(APIView):
         if project_name:
             queryset = queryset.filter(task__project_name__icontains=project_name)
 
+        paginator = CustomPagination()
+        paginated_queryset = paginator.paginate_queryset(queryset, request)
+
         serializer = TimesheetListSerializer(
-            queryset,
+            paginated_queryset,
             many=True,
         )
 
-        return success_response(
-            message="Your timesheets fetched successfully",
-            data=serializer.data,
-            status_code=status.HTTP_200_OK,
+        return paginator.get_paginated_response(
+            {
+                "isV1": True,
+                "success": True,
+                "message": "Your timesheets fetched successfully",
+                "data": serializer.data,
+            }
         )
 
 

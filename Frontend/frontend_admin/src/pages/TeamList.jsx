@@ -26,95 +26,195 @@ const UserProfileModal = ({ user, onClose }) => {
   if (!user) return null;
   const avatarStyle = getAvatarStyle(user.username);
   return (
-    <div className="modal-overlay" onClick={onClose}>
+    <div
+      onClick={onClose}
+      style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        width: '100%',
+        height: '100%',
+        background: 'rgba(15, 23, 42, 0.6)',
+        backdropFilter: 'blur(8px)',
+        WebkitBackdropFilter: 'blur(8px)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 1000,
+        animation: 'fadeIn 0.2s ease',
+      }}
+    >
       <div
-        className="modal-card"
         onClick={(e) => e.stopPropagation()}
-        style={{ background: '#ffffff', width: '420px' }}
+        style={{
+          background: '#ffffff',
+          width: '500px',
+          maxWidth: '95vw',
+          maxHeight: '90vh',
+          overflowY: 'auto',
+          borderRadius: '16px',
+          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+          animation: 'modalSlideIn 0.3s ease',
+        }}
       >
-        <div className="modal-header">
-          <h2 style={{ margin: 0, fontSize: '1.2rem' }}>Team Member Profile</h2>
-          <button className="modal-close" onClick={onClose}>&times;</button>
-        </div>
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', margin: '20px 0' }}>
-          {user.profile_picture ? (
-            <img
-              src={user.profile_picture}
-              alt="Avatar"
-              style={{
-                width: '80px',
-                height: '80px',
-                borderRadius: '50%',
-                objectFit: 'cover',
-                border: '3px solid var(--border-color)',
-                boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-              }}
-            />
-          ) : (
-            <div
-              style={{
-                width: '80px',
-                height: '80px',
-                borderRadius: '50%',
-                background: avatarStyle.bg,
-                color: avatarStyle.text,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '2rem',
-                fontWeight: '800',
-                border: '3px solid var(--border-color)',
-                boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-              }}
-            >
-              {user.name?.charAt(0)?.toUpperCase() || user.username?.charAt(0)?.toUpperCase() || 'U'}
+        {/* Header */}
+        <div style={{
+          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+          padding: '24px 28px',
+          borderRadius: '16px 16px 0 0',
+          position: 'relative',
+        }}>
+          <button
+            onClick={onClose}
+            style={{
+              position: 'absolute',
+              top: '16px',
+              right: '16px',
+              background: 'rgba(255,255,255,0.2)',
+              border: 'none',
+              borderRadius: '50%',
+              width: '32px',
+              height: '32px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              color: '#fff',
+              transition: 'background 0.2s',
+            }}
+            onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.35)'}
+            onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.2)'}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div style={{
+              background: 'rgba(255,255,255,0.2)',
+              borderRadius: '12px',
+              padding: '10px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}>
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                <circle cx="12" cy="7" r="4" />
+              </svg>
             </div>
-          )}
-          <h3 style={{ margin: '12px 0 2px 0', fontSize: '1.2rem', fontWeight: 800 }}>
-            {user.name || user.username}
-          </h3>
-          <span className="text-muted" style={{ fontSize: '0.85rem' }}>@{user.username}</span>
-        </div>
-        <div className="profile-details" style={{ marginTop: '10px' }}>
-          <div className="profile-row">
-            <span className="profile-label">ID</span>
-            <span className="profile-value">#{user.id}</span>
-          </div>
-          {user.name && (
-            <div className="profile-row">
-              <span className="profile-label">Full Name</span>
-              <span className="profile-value">{user.name}</span>
+            <div>
+              <h2 style={{ margin: 0, color: '#fff', fontSize: '1.2rem', fontWeight: 700 }}>Team Member Profile</h2>
+              <p style={{ margin: '2px 0 0', color: 'rgba(255,255,255,0.8)', fontSize: '0.82rem' }}>
+                @{user.username}
+              </p>
             </div>
-          )}
-          {user.employee_id && (
-            <div className="profile-row">
-              <span className="profile-label">Employee ID</span>
-              <span className="profile-value">{user.employee_id}</span>
-            </div>
-          )}
-          {user.email && (
-            <div className="profile-row">
-              <span className="profile-label">Email</span>
-              <span className="profile-value">{user.email}</span>
-            </div>
-          )}
-          {user.phone_number && (
-            <div className="profile-row">
-              <span className="profile-label">Phone Number</span>
-              <span className="profile-value">{user.phone_number}</span>
-            </div>
-          )}
-          <div className="profile-row">
-            <span className="profile-label">Role</span>
-            <span className="profile-value">
-              <span className={`role-badge role-${user.role?.toLowerCase().replace('_', '') || 'member'}`}>
-                {user.role}
-              </span>
-            </span>
           </div>
         </div>
-        <div className="modal-actions" style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '24px' }}>
-          <button className="btn-primary" onClick={onClose} style={{ padding: '10px 24px', borderRadius: '8px' }}>Close</button>
+
+        {/* Body */}
+        <div style={{ padding: '24px 28px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', margin: '10px 0 24px 0' }}>
+            {user.profile_picture ? (
+              <img
+                src={user.profile_picture}
+                alt="Avatar"
+                style={{
+                  width: '90px',
+                  height: '90px',
+                  borderRadius: '50%',
+                  objectFit: 'cover',
+                  border: '3px solid #e2e8f0',
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                }}
+              />
+            ) : (
+              <div
+                style={{
+                  width: '90px',
+                  height: '90px',
+                  borderRadius: '50%',
+                  background: avatarStyle.bg,
+                  color: avatarStyle.text,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '2.2rem',
+                  fontWeight: '800',
+                  border: '3px solid #e2e8f0',
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                }}
+              >
+                {user.name?.charAt(0)?.toUpperCase() || user.username?.charAt(0)?.toUpperCase() || 'U'}
+              </div>
+            )}
+            <h3 style={{ margin: '14px 0 2px 0', fontSize: '1.25rem', fontWeight: 800, color: '#1e293b' }}>
+              {user.name || user.username}
+            </h3>
+            <span style={{ fontSize: '0.85rem', color: '#64748b', fontWeight: 500 }}>@{user.username}</span>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
+            <div style={{ background: '#f8fafc', borderRadius: '12px', padding: '14px 16px' }}>
+              <div style={{ fontSize: '0.7rem', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 700, marginBottom: '6px' }}>User ID</div>
+              <div style={{ fontWeight: 600, color: '#1e293b', fontSize: '0.9rem' }}>#{user.id}</div>
+            </div>
+            <div style={{ background: '#f8fafc', borderRadius: '12px', padding: '14px 16px' }}>
+              <div style={{ fontSize: '0.7rem', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 700, marginBottom: '6px' }}>Employee ID</div>
+              <div style={{ fontWeight: 600, color: '#1e293b', fontSize: '0.9rem' }}>{user.employee_id || '-'}</div>
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
+            <div style={{ background: '#f8fafc', borderRadius: '12px', padding: '14px 16px' }}>
+              <div style={{ fontSize: '0.7rem', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 700, marginBottom: '6px' }}>Email Address</div>
+              <div style={{ fontWeight: 600, color: '#1e293b', fontSize: '0.9rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={user.email}>{user.email || '-'}</div>
+            </div>
+            <div style={{ background: '#f8fafc', borderRadius: '12px', padding: '14px 16px' }}>
+              <div style={{ fontSize: '0.7rem', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 700, marginBottom: '6px' }}>Phone Number</div>
+              <div style={{ fontWeight: 600, color: '#1e293b', fontSize: '0.9rem' }}>{user.phone_number || '-'}</div>
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+            <div style={{ background: '#f8fafc', borderRadius: '12px', padding: '14px 16px' }}>
+              <div style={{ fontSize: '0.7rem', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 700, marginBottom: '6px' }}>Role</div>
+              <div style={{ fontWeight: 600, color: '#1e293b', fontSize: '0.9rem' }}>
+                <span className={`role-badge role-${user.role?.toLowerCase().replace('_', '') || 'member'}`}>
+                  {user.role}
+                </span>
+              </div>
+            </div>
+            <div style={{ background: '#f8fafc', borderRadius: '12px', padding: '14px 16px' }}>
+              <div style={{ fontSize: '0.7rem', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 700, marginBottom: '6px' }}>Status</div>
+              <div style={{ fontWeight: 600, color: '#1e293b', fontSize: '0.9rem' }}>
+                <span className="status-badge status-active">Active</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div style={{ padding: '16px 28px', borderTop: '1px solid #f1f5f9', display: 'flex', justifyContent: 'flex-end' }}>
+          <button
+            onClick={onClose}
+            style={{
+              padding: '10px 24px',
+              borderRadius: '8px',
+              border: 'none',
+              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              color: '#fff',
+              cursor: 'pointer',
+              fontSize: '0.9rem',
+              fontWeight: 600,
+              transition: 'opacity 0.2s',
+            }}
+            onMouseEnter={(e) => e.target.style.opacity = '0.9'}
+            onMouseLeave={(e) => e.target.style.opacity = '1'}
+          >
+            Close
+          </button>
         </div>
       </div>
     </div>
@@ -137,6 +237,20 @@ const EditMemberModal = ({ member, onClose, onSave }) => {
     e.preventDefault();
     setSaving(true);
     setError('');
+    // Indian phone number validation
+    if (form.phone_number) {
+      const phoneStr = String(form.phone_number);
+      if (phoneStr.length !== 10 || !/^\d{10}$/.test(phoneStr)) {
+        setError('Phone number must be exactly 10 digits.');
+        setSaving(false);
+        return;
+      }
+      if (!/^[6-9]/.test(phoneStr)) {
+        setError('Indian phone number must start with 6, 7, 8, or 9.');
+        setSaving(false);
+        return;
+      }
+    }
     try {
       const payload = {};
       if (form.user_name !== member.username) payload.user_name = form.user_name;
@@ -153,7 +267,8 @@ const EditMemberModal = ({ member, onClose, onSave }) => {
       onSave();
     } catch (err) {
       const data = err.response?.data;
-      setError(data?.message || data?.errors ? JSON.stringify(data.errors) : 'Failed to update member');
+      const phoneErr = data?.errors?.phone_number;
+      setError(phoneErr ? (Array.isArray(phoneErr) ? phoneErr[0] : phoneErr) : (data?.message || 'Failed to update member'));
     } finally {
       setSaving(false);
     }
@@ -180,25 +295,55 @@ const EditMemberModal = ({ member, onClose, onSave }) => {
   };
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
+    <div
+      onClick={onClose}
+      style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        width: '100%',
+        height: '100%',
+        background: 'rgba(15, 23, 42, 0.6)',
+        backdropFilter: 'blur(8px)',
+        WebkitBackdropFilter: 'blur(8px)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 1000,
+        animation: 'fadeIn 0.2s ease',
+      }}
+    >
       <div
-        className="modal-card"
         onClick={(e) => e.stopPropagation()}
-        style={{ background: '#ffffff', width: '480px' }}
+        style={{
+          background: '#ffffff',
+          width: '480px',
+          maxWidth: '95vw',
+          borderRadius: '16px',
+          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+          animation: 'modalSlideIn 0.3s ease',
+        }}
       >
-        <div className="modal-header">
-          <h2 style={{ margin: 0, fontSize: '1.2rem' }}>Edit Team Member</h2>
-          <button className="modal-close" onClick={onClose}>&times;</button>
+        <div style={{
+          background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+          padding: '20px 24px',
+          borderRadius: '16px 16px 0 0',
+        }}>
+          <h2 style={{ margin: 0, color: '#fff', fontSize: '1.15rem', fontWeight: 700 }}>Edit Team Member</h2>
+          <p style={{ margin: '2px 0 0', color: 'rgba(255,255,255,0.8)', fontSize: '0.82rem' }}>
+            @{member.username}
+          </p>
         </div>
 
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit} style={{ padding: '24px' }}>
           {error && (
             <div style={{
               padding: '10px 14px',
-              background: 'rgba(255,107,107,0.1)',
-              color: '#ff6b6b',
+              background: '#fef2f2',
+              color: '#dc2626',
               borderRadius: '8px',
               fontSize: '0.85rem',
+              fontWeight: 500,
               marginBottom: '16px',
             }}>
               {error}
@@ -230,39 +375,51 @@ const EditMemberModal = ({ member, onClose, onSave }) => {
           <div style={{ marginBottom: '24px' }}>
             <label style={labelStyle}>Phone Number</label>
             <input
-              type="number"
+              type="tel"
+              maxLength={10}
               style={inputStyle}
-              placeholder="Optional"
+              placeholder="10-digit Indian phone number"
               value={form.phone_number || ''}
-              onChange={(e) => setForm({ ...form, phone_number: e.target.value })}
+              onChange={(e) => {
+                const val = e.target.value.replace(/\D/g, '');
+                setForm({ ...form, phone_number: val });
+              }}
             />
+            <span style={{ fontSize: '0.75rem', color: '#9ca3af', marginTop: '4px', display: 'block' }}>
+              Must be 10 digits starting with 6, 7, 8, or 9
+            </span>
           </div>
 
           <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
             <button
               type="button"
-              className="btn-secondary"
               onClick={onClose}
               style={{
                 padding: '10px 20px',
                 borderRadius: '8px',
-                border: '1px solid var(--border-color)',
-                background: 'transparent',
+                border: '1px solid #d1d5db',
+                background: '#fff',
                 cursor: 'pointer',
-                fontWeight: 600,
-                color: 'var(--text-muted)',
+                fontSize: '0.9rem',
+                fontWeight: 500,
+                color: '#374151',
               }}
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="btn-primary"
               disabled={saving}
               style={{
-                padding: '10px 24px',
+                padding: '10px 20px',
                 borderRadius: '8px',
+                border: 'none',
+                background: 'linear-gradient(135deg, #f59e0b, #d97706)',
+                color: '#fff',
+                cursor: 'pointer',
+                fontSize: '0.9rem',
                 fontWeight: 600,
+                opacity: saving ? 0.7 : 1,
               }}
             >
               {saving ? 'Saving...' : 'Save Changes'}

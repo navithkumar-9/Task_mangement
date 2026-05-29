@@ -9076,549 +9076,97 @@ const Tasks = () => {
 
 
                         {/* Modal Header */}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-                        <div className="modern-modal-header">
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-                            <div className="modern-modal-title-area">
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-                                <div
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-                                    className="modern-modal-dot"
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-                                    style={{ color: COLUMNS_BASE.find(c => c.id === (form.status || 'PENDING'))?.color || '#49CCF9' }}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-                                ></div>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-                                <h2 className="modern-modal-title">
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-                                    {editTask ? editTask.task_name : 'New Task'}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+                        <div style={{
+                            background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+                            padding: '20px 28px',
+                            borderRadius: '16px 16px 0 0',
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            position: 'relative',
+                        }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                <h2 style={{ margin: 0, color: '#fff', fontSize: '1.15rem', fontWeight: 700 }}>
+                                    {editTask ? 'Edit Task' : 'New Task'}
                                 </h2>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
                                 {editTask && (
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
                                     <span
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-                                        className="modern-badge"
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
                                         style={{
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-                                            background: (COLUMNS_BASE.find(c => c.id === editTask.status)?.color || '#49CCF9') + '15',
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-                                            color: COLUMNS_BASE.find(c => c.id === editTask.status)?.color || '#49CCF9',
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+                                            padding: '4px 10px',
+                                            borderRadius: '6px',
+                                            fontSize: '0.75rem',
+                                            fontWeight: 600,
+                                            background: 'rgba(255,255,255,0.2)',
+                                            color: '#fff',
                                         }}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
                                     >
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
                                         {COLUMNS_BASE.find(c => c.id === editTask.status)?.label}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
                                     </span>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
                                 )}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
                             </div>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-                            <div className="modern-modal-header-actions">
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                                 {editTask && isAdmin && (
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-                                    <button onClick={deleteTask} className="modern-modal-delete-btn">
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+                                    <button
+                                        onClick={deleteTask}
+                                        style={{
+                                            background: '#ef4444',
+                                            color: '#fff',
+                                            border: 'none',
+                                            padding: '8px 16px',
+                                            borderRadius: '6px',
+                                            fontWeight: 600,
+                                            fontSize: '0.85rem',
+                                            cursor: 'pointer',
+                                            transition: 'background 0.2s',
+                                        }}
+                                        onMouseEnter={(e) => e.currentTarget.style.background = '#dc2626'}
+                                        onMouseLeave={(e) => e.currentTarget.style.background = '#ef4444'}
+                                    >
                                         Delete
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
                                     </button>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
                                 )}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-                                <button onClick={() => setShowModal(false)} className="modern-modal-close-btn">
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+                                <button
+                                    onClick={() => setShowModal(false)}
+                                    style={{
+                                        background: 'rgba(255,255,255,0.2)',
+                                        border: 'none',
+                                        borderRadius: '50%',
+                                        width: '32px',
+                                        height: '32px',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        cursor: 'pointer',
+                                        color: '#fff',
+                                        fontSize: '1.2rem',
+                                        fontWeight: 'bold',
+                                        lineHeight: 1,
+                                        transition: 'background 0.2s',
+                                    }}
+                                    onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.35)'}
+                                    onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.2)'}
+                                >
                                     ×
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
                                 </button>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
                             </div>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
                         </div>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
                         {/* Modal Body */}
 
 
@@ -10835,7 +10383,21 @@ const Tasks = () => {
 
 
 
-                                    </div>
+                                    
+
+                                        {editTask && (
+                                            <div className="modern-form-group">
+                                                <label className="modern-form-label">Created At</label>
+                                                <input
+                                                    type="text"
+                                                    className="modern-form-input"
+                                                    value={editTask.created_at ? new Date(editTask.created_at).toLocaleString() : '—'}
+                                                    disabled
+                                                    style={{ background: '#f8fafc', color: '#64748b', cursor: 'not-allowed', borderColor: '#cbd5e1' }}
+                                                />
+                                            </div>
+                                        )}
+</div>
 
 
 

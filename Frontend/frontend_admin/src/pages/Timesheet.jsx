@@ -49,13 +49,20 @@ const Timesheet = () => {
     });
     const [formError, setFormError] = useState('');
     const [viewingTimesheet, setViewingTimesheet] = useState(null);
+    const [page, setPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
+    const [totalCount, setTotalCount] = useState(0);
 
     useEffect(() => {
         fetchTimesheets();
         if (!isAdmin) {
             fetchMyTasks();
         }
-    }, [isAdmin, dateFilter, taskNameFilter, projectNameFilter]);
+    }, [isAdmin, dateFilter, taskNameFilter, projectNameFilter, page]);
+
+    useEffect(() => {
+        setPage(1);
+    }, [dateFilter, taskNameFilter, projectNameFilter]);
 
     const fetchTimesheets = async () => {
         setLoading(true);
@@ -63,8 +70,14 @@ const Timesheet = () => {
             const endpointBase = isAdmin
                 ? '/timesheets/admin/'
                 : '/timesheets/my-timesheets/';
-            let query = `page_size=1000`;
-            if (dateFilter) query += `&date=${dateFilter}`;
+            let query = `page=${page}`;
+            if (dateFilter) {
+                const localDate = new Date(dateFilter + 'T00:00:00');
+                const startUTC = localDate.toISOString();
+                const endDate = new Date(dateFilter + 'T23:59:59.999');
+                const endUTC = endDate.toISOString();
+                query += `&start_date=${encodeURIComponent(startUTC)}&end_date=${encodeURIComponent(endUTC)}`;
+            }
             if (taskNameFilter)
                 query += `&task_name=${encodeURIComponent(taskNameFilter)}`;
             if (projectNameFilter)
@@ -72,6 +85,9 @@ const Timesheet = () => {
             const endpoint = `${endpointBase}?${query}`;
             const res = await API.get(endpoint);
             let items = [];
+            const count = res.data.count || 0;
+            setTotalCount(count);
+            setTotalPages(Math.ceil(count / 10) || 1);
             if (res.data.results && res.data.results.data)
                 items = res.data.results.data;
             else if (res.data.data) items = res.data.data;
@@ -216,13 +232,13 @@ const Timesheet = () => {
     };
 
     const formatDateTime = (dateStr) => {
-        if (!dateStr) return '—';
+        if (!dateStr) return '-';
         const d = new Date(dateStr);
         return d.toLocaleString([], { dateStyle: 'short', timeStyle: 'short' });
     };
 
     return (
-        <div className="page tasks-page">
+        <div className="page" style={{ maxWidth: '100%' }}>
             <div
                 className="page-header"
                 style={{
@@ -501,7 +517,7 @@ const Timesheet = () => {
                                                     </span>
                                                 </div>
                                             ) : (
-                                                '—'
+                                                '-'
                                             )}
                                         </td>
                                         <td style={{ padding: '16px 20px' }}>
@@ -658,11 +674,49 @@ const Timesheet = () => {
                         </table>
                     </div>
                 )}
-            </div>
-
+                {!loading && timesheets.length > 0 && (
+                    <div className="pagination" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '16px', padding: '16px 20px', borderTop: '1px solid var(--border-color)' }}>
+                        <button
+                            className="pagination-btn"
+                            disabled={page <= 1}
+                            onClick={() => setPage(page - 1)}
+                            style={{
+                                padding: '8px 16px',
+                                borderRadius: '6px',
+                                border: '1px solid var(--border-color)',
+                                background: page <= 1 ? 'var(--bg-color)' : 'var(--primary)',
+                                color: page <= 1 ? 'var(--text-muted)' : '#fff',
+                                cursor: page <= 1 ? 'not-allowed' : 'pointer',
+                                fontWeight: 600,
+                                fontSize: '0.85rem',
+                            }}
+                        >
+                            â† Previous
+                        </button>
+                        <span className="pagination-info" style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: 500 }}>
+                            Page {page} of {totalPages}
+                        </span>
+                        <button
+                            className="pagination-btn"
+                            disabled={page >= totalPages}
+                            onClick={() => setPage(page + 1)}
+                            style={{
+                                padding: '8px 16px',
+                                borderRadius: '6px',
+                                border: '1px solid var(--border-color)',
+                                background: page >= totalPages ? 'var(--bg-color)' : 'var(--primary)',
+                                color: page >= totalPages ? 'var(--text-muted)' : '#fff',
+                                cursor: page >= totalPages ? 'not-allowed' : 'pointer',
+                                fontWeight: 600,
+                                fontSize: '0.85rem',
+                            }}
+                        >
+                            Next â†’
+                        </button>
+                    </div>
+                )}
             {showModal && !isAdmin && (
                 <div
-                    className="modal-overlay"
                     onClick={() => setShowModal(false)}
                     style={{
                         position: 'fixed',
@@ -670,48 +724,64 @@ const Timesheet = () => {
                         left: 0,
                         width: '100%',
                         height: '100%',
-                        background: 'rgba(0,0,0,0.5)',
+                        background: 'rgba(15, 23, 42, 0.6)',
+                        backdropFilter: 'blur(8px)',
+                        WebkitBackdropFilter: 'blur(8px)',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        zIndex: 100,
+                        zIndex: 1000,
+                        animation: 'fadeIn 0.2s ease',
                     }}
                 >
                     <div
-                        className="modal-card"
                         onClick={(e) => e.stopPropagation()}
                         style={{
                             background: '#ffffff',
-                            width: '500px',
-                            borderRadius: '12px',
-                            padding: '24px',
+                            width: '520px',
+                            maxWidth: '95vw',
+                            borderRadius: '16px',
+                            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+                            animation: 'modalSlideIn 0.3s ease',
                         }}
                     >
-                        <div
-                            className="modal-header"
-                            style={{
-                                display: 'flex',
-                                justifyContent: 'space-between',
-                                alignItems: 'center',
-                                marginBottom: '20px',
-                            }}
-                        >
-                            <h2 style={{ margin: 0 }}>{form.timesheet_id ? 'Edit Logged Time' : 'Log Time'}</h2>
+                        <div style={{
+                            background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+                            padding: '20px 24px',
+                            borderRadius: '16px 16px 0 0',
+                            position: 'relative',
+                        }}>
                             <button
-                                className="modal-close"
                                 onClick={() => setShowModal(false)}
                                 style={{
-                                    background: '#ffffff ', 
+                                    position: 'absolute',
+                                    top: '16px',
+                                    right: '16px',
+                                    background: 'rgba(255,255,255,0.2)',
                                     border: 'none',
-                                    fontSize: '1.5rem',
+                                    borderRadius: '50%',
+                                    width: '32px',
+                                    height: '32px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
                                     cursor: 'pointer',
-                                    color: 'var(--text-muted)',
+                                    color: '#fff',
+                                    transition: 'background 0.2s',
                                 }}
+                                onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.35)'}
+                                onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.2)'}
                             >
-                                ×
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                    <line x1="18" y1="6" x2="6" y2="18" />
+                                    <line x1="6" y1="6" x2="18" y2="18" />
+                                </svg>
                             </button>
+                            <h2 style={{ margin: 0, color: '#fff', fontSize: '1.15rem', fontWeight: 700 }}>
+                                {form.timesheet_id ? 'Edit Logged Time' : 'Log Time'}
+                            </h2>
                         </div>
-                        <form onSubmit={handleSubmit}>
+                        <form onSubmit={handleSubmit} style={{ padding: '24px' }}>
                             {formError && (
                                 <div
                                     className="alert-error"
@@ -953,16 +1023,20 @@ const Timesheet = () => {
                                     display: 'flex',
                                     justifyContent: 'flex-end',
                                     gap: '12px',
+                                    marginTop: '24px',
                                 }}
                             >
                                 <button
                                     type="button"
-                                    className="btn-danger"
                                     style={{
-                                        background: 'transparent',
-                                        color: 'var(--text-muted)',
-                                        border: 'none',
+                                        padding: '10px 20px',
+                                        borderRadius: '8px',
+                                        border: '1px solid #d1d5db',
+                                        background: '#fff',
                                         cursor: 'pointer',
+                                        fontSize: '0.9rem',
+                                        fontWeight: 500,
+                                        color: '#374151',
                                     }}
                                     onClick={() => setShowModal(false)}
                                 >
@@ -970,14 +1044,14 @@ const Timesheet = () => {
                                 </button>
                                 <button
                                     type="submit"
-                                    className="btn-primary"
                                     style={{
                                         padding: '10px 20px',
                                         borderRadius: '8px',
                                         border: 'none',
-                                        background: 'var(--primary)',
+                                        background: 'linear-gradient(135deg, #f59e0b, #d97706)',
                                         color: '#fff',
                                         cursor: 'pointer',
+                                        fontSize: '0.9rem',
                                         fontWeight: 600,
                                     }}
                                 >
@@ -991,7 +1065,6 @@ const Timesheet = () => {
 
             {viewingTimesheet && (
                 <div
-                    className="modal-overlay"
                     onClick={() => setViewingTimesheet(null)}
                     style={{
                         position: 'fixed',
@@ -999,138 +1072,173 @@ const Timesheet = () => {
                         left: 0,
                         width: '100%',
                         height: '100%',
-                        background: 'rgba(0,0,0,0.5)',
+                        background: 'rgba(15, 23, 42, 0.6)',
+                        backdropFilter: 'blur(8px)',
+                        WebkitBackdropFilter: 'blur(8px)',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        zIndex: 100,
+                        zIndex: 1000,
+                        animation: 'fadeIn 0.2s ease',
                     }}
                 >
                     <div
-                        className="modal-card"
                         onClick={(e) => e.stopPropagation()}
                         style={{
                             background: '#ffffff',
-                            width: '550px',
-                            borderRadius: '12px',
-                            padding: '24px',
-                            boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+                            width: '580px',
+                            maxWidth: '95vw',
+                            maxHeight: '90vh',
+                            overflowY: 'auto',
+                            borderRadius: '16px',
+                            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+                            animation: 'modalSlideIn 0.3s ease',
                         }}
                     >
-                        <div
-                            className="modal-header"
-                            style={{
-                                display: 'flex',
-                                justifyContent: 'space-between',
-                                alignItems: 'center',
-                                marginBottom: '20px',
-                                borderBottom: '1px solid var(--border-color)',
-                                paddingBottom: '12px',
-                            }}
-                        >
-                            <h2 style={{ margin: 0, fontSize: '1.25rem', color: 'var(--text-color)' }}>Timesheet Details</h2>
+                        {/* Header */}
+                        <div style={{
+                            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                            padding: '24px 28px',
+                            borderRadius: '16px 16px 0 0',
+                            position: 'relative',
+                        }}>
                             <button
-                                className="modal-close"
                                 onClick={() => setViewingTimesheet(null)}
                                 style={{
-                                    background: 'transparent',
+                                    position: 'absolute',
+                                    top: '16px',
+                                    right: '16px',
+                                    background: 'rgba(255,255,255,0.2)',
                                     border: 'none',
-                                    fontSize: '1.5rem',
+                                    borderRadius: '50%',
+                                    width: '32px',
+                                    height: '32px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
                                     cursor: 'pointer',
-                                    color: 'var(--text-muted)',
+                                    color: '#fff',
+                                    transition: 'background 0.2s',
                                 }}
+                                onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.35)'}
+                                onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.2)'}
                             >
-                                ×
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                    <line x1="18" y1="6" x2="6" y2="18" />
+                                    <line x1="6" y1="6" x2="18" y2="18" />
+                                </svg>
                             </button>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                <div style={{
+                                    background: 'rgba(255,255,255,0.2)',
+                                    borderRadius: '12px',
+                                    padding: '10px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                }}>
+                                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                        <circle cx="12" cy="12" r="10"/>
+                                        <polyline points="12 6 12 12 16 14"/>
+                                    </svg>
+                                </div>
+                                <div>
+                                    <h2 style={{ margin: 0, color: '#fff', fontSize: '1.2rem', fontWeight: 700 }}>Timesheet Details</h2>
+                                    <p style={{ margin: '2px 0 0', color: 'rgba(255,255,255,0.8)', fontSize: '0.82rem' }}>
+                                        {viewingTimesheet.task?.project_name} - {viewingTimesheet.task?.task_name}
+                                    </p>
+                                </div>
+                            </div>
                         </div>
-                        
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                            <div style={{ display: 'flex', gap: '12px' }}>
-                                <div style={{ flex: 1 }}>
-                                    <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>Team Member</label>
-                                    <div style={{ fontWeight: 600, color: 'var(--primary)', marginTop: '4px' }}>
-                                        @{viewingTimesheet.team_member?.username || '—'}
-                                    </div>
+
+                        {/* Body */}
+                        <div style={{ padding: '24px 28px' }}>
+                            {/* Team Member & Assigned By */}
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px' }}>
+                                <div style={{ background: '#f8fafc', borderRadius: '12px', padding: '14px 16px' }}>
+                                    <div style={{ fontSize: '0.7rem', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 700, marginBottom: '6px' }}>Team Member</div>
+                                    <div style={{ fontWeight: 600, color: '#1e293b', fontSize: '0.95rem' }}>@{viewingTimesheet.team_member?.username || '-'}</div>
                                 </div>
-                                <div style={{ flex: 1 }}>
-                                    <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>Project</label>
-                                    <div style={{ fontWeight: 600, marginTop: '4px' }}>
-                                        {viewingTimesheet.task?.project_name || '—'}
-                                    </div>
+                                <div style={{ background: '#f8fafc', borderRadius: '12px', padding: '14px 16px' }}>
+                                    <div style={{ fontSize: '0.7rem', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 700, marginBottom: '6px' }}>Assigned By</div>
+                                    <div style={{ fontWeight: 600, color: '#1e293b', fontSize: '0.95rem' }}>@{viewingTimesheet.task?.assigned_by?.username || '-'}</div>
                                 </div>
                             </div>
 
-                            <div style={{ display: 'flex', gap: '12px' }}>
-                                <div style={{ flex: 1 }}>
-                                    <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>Task Name</label>
-                                    <div style={{ fontWeight: 600, marginTop: '4px' }}>
-                                        {viewingTimesheet.task?.task_name || '—'}
-                                    </div>
+                            {/* Priority & Status */}
+                            <div style={{ display: 'flex', gap: '12px', marginBottom: '20px', flexWrap: 'wrap' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                    <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>Priority:</span>
+                                    {getPriorityBadge(viewingTimesheet.task?.priority)}
                                 </div>
-                                <div style={{ flex: 1 }}>
-                                    <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>Priority / Status</label>
-                                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginTop: '4px' }}>
-                                        {getPriorityBadge(viewingTimesheet.task?.priority)}
-                                        {getStatusBadge(viewingTimesheet.status)}
-                                    </div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                    <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>Status:</span>
+                                    {getStatusBadge(viewingTimesheet.status)}
                                 </div>
                             </div>
 
-                            <div style={{ display: 'flex', gap: '12px', borderTop: '1px solid var(--border-color)', paddingTop: '12px' }}>
-                                <div style={{ flex: 1 }}>
-                                    <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>Logged Duration</label>
-                                    <div style={{ fontSize: '0.9rem', marginTop: '4px' }}>
-                                        {formatDateTime(viewingTimesheet.start_time)} to {formatDateTime(viewingTimesheet.end_time)}
-                                    </div>
+                            {/* Divider */}
+                            <div style={{ height: '1px', background: 'linear-gradient(90deg, transparent, #e2e8f0, transparent)', margin: '4px 0 20px' }} />
+
+                            {/* Duration */}
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px', marginBottom: '20px' }}>
+                                <div style={{ textAlign: 'center', background: '#f0fdf4', borderRadius: '12px', padding: '14px' }}>
+                                    <div style={{ fontSize: '0.7rem', color: '#16a34a', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 700, marginBottom: '4px' }}>Start</div>
+                                    <div style={{ fontWeight: 600, color: '#15803d', fontSize: '0.85rem' }}>{formatDateTime(viewingTimesheet.start_time)}</div>
                                 </div>
-                                <div style={{ flex: 1 }}>
-                                    <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>Total Time</label>
-                                    <div style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--primary)', marginTop: '4px' }}>
-                                        {viewingTimesheet.working_hours || '—'} hrs
-                                    </div>
+                                <div style={{ textAlign: 'center', background: '#fef2f2', borderRadius: '12px', padding: '14px' }}>
+                                    <div style={{ fontSize: '0.7rem', color: '#dc2626', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 700, marginBottom: '4px' }}>End</div>
+                                    <div style={{ fontWeight: 600, color: '#b91c1c', fontSize: '0.85rem' }}>{formatDateTime(viewingTimesheet.end_time)}</div>
+                                </div>
+                                <div style={{ textAlign: 'center', background: '#eff6ff', borderRadius: '12px', padding: '14px' }}>
+                                    <div style={{ fontSize: '0.7rem', color: '#2563eb', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 700, marginBottom: '4px' }}>Total</div>
+                                    <div style={{ fontWeight: 700, color: '#1d4ed8', fontSize: '1.05rem' }}>{viewingTimesheet.working_hours || '-'} hrs</div>
                                 </div>
                             </div>
 
-                            <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '12px' }}>
-                                <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>Logged At</label>
-                                <div style={{ fontSize: '0.9rem', marginTop: '4px', color: 'var(--text-muted)' }}>
-                                    {formatDateTime(viewingTimesheet.created_at)}
-                                </div>
-                            </div>
-
-                            <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '12px' }}>
-                                <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>Description</label>
-                                <div style={{ 
+                            {/* Description */}
+                            <div style={{ marginBottom: '20px' }}>
+                                <div style={{ fontSize: '0.7rem', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 700, marginBottom: '8px' }}>Description</div>
+                                <div style={{
                                     background: '#f8fafc',
-                                    border: '1px solid var(--border-color)',
-                                    borderRadius: '8px',
-                                    padding: '12px 16px',
-                                    marginTop: '6px',
+                                    border: '1px solid #e2e8f0',
+                                    borderRadius: '12px',
+                                    padding: '14px 16px',
                                     fontSize: '0.9rem',
-                                    lineHeight: '1.5',
+                                    lineHeight: '1.6',
                                     whiteSpace: 'pre-wrap',
                                     color: '#334155',
                                     maxHeight: '150px',
-                                    overflowY: 'auto'
+                                    overflowY: 'auto',
                                 }}>
                                     {viewingTimesheet.description || 'No description provided.'}
                                 </div>
                             </div>
+
+                            {/* Logged At */}
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#94a3b8', fontSize: '0.8rem' }}>
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                                Logged at {formatDateTime(viewingTimesheet.created_at)}
+                            </div>
                         </div>
 
-                        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '24px', borderTop: '1px solid var(--border-color)', paddingTop: '16px' }}>
+                        {/* Footer */}
+                        <div style={{ padding: '16px 28px', borderTop: '1px solid #f1f5f9', display: 'flex', justifyContent: 'flex-end' }}>
                             <button
-                                className="btn-secondary"
                                 onClick={() => setViewingTimesheet(null)}
                                 style={{
-                                    padding: '8px 16px',
-                                    borderRadius: '6px',
-                                    border: '1px solid var(--border-color)',
-                                    background: 'transparent',
+                                    padding: '10px 24px',
+                                    borderRadius: '8px',
+                                    border: 'none',
+                                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                                    color: '#fff',
                                     cursor: 'pointer',
                                     fontSize: '0.9rem',
                                     fontWeight: 600,
+                                    transition: 'opacity 0.2s',
                                 }}
+                                onMouseEnter={(e) => e.target.style.opacity = '0.9'}
+                                onMouseLeave={(e) => e.target.style.opacity = '1'}
                             >
                                 Close
                             </button>
@@ -1138,6 +1246,7 @@ const Timesheet = () => {
                     </div>
                 </div>
             )}
+        </div>
         </div>
     );
 };

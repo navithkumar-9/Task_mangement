@@ -7,6 +7,7 @@ from .views import (
     CreateTeamLeaderView,
     ProfileView,
     AdminListView,
+    AdminDetailView,
     TeamMemberListForSuperAdminView,
     TeamMemberListForAdminView,
     TeamMemberDetailView,
@@ -37,6 +38,10 @@ urlpatterns = [
     path(
         "admins/",
         AdminListView.as_view(),
+    ),
+    path(
+        "admins/<int:admin_id>/",
+        AdminDetailView.as_view(),
     ),
     path(
         "super-admin/team-members/",

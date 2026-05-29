@@ -506,7 +506,7 @@ const Calendar = () => {
     };
 
     return (
-        <div className="page">
+        <div className="page" style={{ maxWidth: '100%' }}>
             {/* Header */}
             <div
                 className="page-header"

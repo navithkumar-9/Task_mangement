@@ -8,7 +8,7 @@ class User_model(AbstractUser):
     user_name = models.CharField(max_length=100)
     email = models.EmailField(unique=True)
     password = models.CharField(max_length=100)
-    phone_number = models.IntegerField(
+    phone_number = models.BigIntegerField(
         unique=True,
         blank=True,
         null=True,
