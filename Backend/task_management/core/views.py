@@ -790,6 +790,14 @@ class UpdateTimesheetView(APIView):
                 status_code=status.HTTP_404_NOT_FOUND,
             )
 
+        from django.utils import timezone
+        from datetime import timedelta
+        if timezone.now() - timesheet.created_at > timedelta(hours=24):
+            return error_response(
+                message="Timesheet cannot be updated after 24 hours of creation.",
+                status_code=status.HTTP_400_BAD_REQUEST,
+            )
+
         serializer = TimesheetUpdateSerializer(
             timesheet,
             data=request.data,
@@ -811,6 +819,9 @@ class UpdateTimesheetView(APIView):
             data=serializer.data,
             status_code=status.HTTP_200_OK,
         )
+
+    def put(self, request, timesheet_id):
+        return self.patch(request, timesheet_id)
 
 
 class AdminTimesheetListView(APIView):

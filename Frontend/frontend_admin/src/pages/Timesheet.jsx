@@ -631,7 +631,7 @@ const Timesheet = () => {
                                                         <circle cx="12" cy="12" r="3" />
                                                     </svg>
                                                 </button>
-                                                {!isAdmin && new Date(ts.start_time).toDateString() === new Date().toDateString() && (
+                                                {!isAdmin && ts.created_at && (new Date() - new Date(ts.created_at) <= 86400000) && (
                                                     <button
                                                         onClick={() => {
                                                             setFormError('');
