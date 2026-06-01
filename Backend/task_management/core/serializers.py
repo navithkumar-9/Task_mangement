@@ -2,7 +2,7 @@ from rest_framework import serializers
 from django.contrib.auth import authenticate
 from .models import User_model
 from .roles import UserRole
-from .models import Task, Timesheet, TaskComment, SubTask
+from .models import Task, Timesheet, TaskComment, SubTask, Notification
 from django.contrib.auth import get_user_model
 from .emails import send_task_notification_email_async
 
@@ -390,5 +390,32 @@ class TaskDetailSerializer(serializers.ModelSerializer):
             "email": obj.assigned_by.email,
             "name": getattr(obj.assigned_by, "name", "") or "",
             "profile_picture": getattr(obj.assigned_by, "profile_picture", "") or "",
+        }
+
+
+# ─── Notification Serializer ───
+
+class NotificationSerializer(serializers.ModelSerializer):
+    sender = serializers.SerializerMethodField()
+    task_info = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Notification
+        fields = ["id", "sender", "task_info", "message", "is_read", "created_at"]
+        read_only_fields = ["id", "sender", "task_info", "message", "created_at"]
+
+    def get_sender(self, obj):
+        return {
+            "id": obj.sender.id,
+            "username": obj.sender.username,
+            "name": getattr(obj.sender, "name", "") or "",
+            "profile_picture": getattr(obj.sender, "profile_picture", "") or "",
+        }
+
+    def get_task_info(self, obj):
+        return {
+            "id": obj.task.id,
+            "task_name": obj.task.task_name,
+            "project_name": obj.task.project_name,
         }
 

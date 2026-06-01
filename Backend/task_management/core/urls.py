@@ -26,6 +26,10 @@ from .views import (
     TaskCommentListCreateView,
     SubTaskListCreateView,
     SubTaskUpdateDeleteView,
+    NotificationListView,
+    NotificationUnreadCountView,
+    NotificationMarkReadView,
+    NotificationMarkAllReadView,
 )
 
 urlpatterns = [
@@ -117,5 +121,22 @@ urlpatterns = [
     path(
         "tasks/<int:task_id>/subtasks/<int:subtask_id>/",
         SubTaskUpdateDeleteView.as_view(),
+    ),
+    # notifications
+    path(
+        "notifications/",
+        NotificationListView.as_view(),
+    ),
+    path(
+        "notifications/unread-count/",
+        NotificationUnreadCountView.as_view(),
+    ),
+    path(
+        "notifications/<int:notification_id>/read/",
+        NotificationMarkReadView.as_view(),
+    ),
+    path(
+        "notifications/mark-all-read/",
+        NotificationMarkAllReadView.as_view(),
     ),
 ]

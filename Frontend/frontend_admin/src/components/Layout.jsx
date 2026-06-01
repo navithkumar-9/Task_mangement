@@ -1,10 +1,14 @@
+import NotificationPopup from './NotificationPopup';
 import Sidebar from './Sidebar';
 
 const Layout = ({ children }) => {
     return (
         <div className="app-layout">
             <Sidebar />
-            <main className="main-content">{children}</main>
+            <div className="main-wrapper">
+                <main className="main-content">{children}</main>
+                <NotificationPopup />
+            </div>
         </div>
     );
 };

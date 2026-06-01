@@ -20,13 +20,14 @@ from .serializers import (
     TaskCommentSerializer,
     SubTaskSerializer,
     TaskDetailSerializer,
+    NotificationSerializer,
 )
 from .permissions import IsAdmin, IsSuperAdmin
 from .roles import UserRole
 from .response import success_response, error_response
 from .pagination import CustomPagination
 from django.db.models import Q
-from .models import Task, Timesheet, TaskComment, SubTask
+from .models import Task, Timesheet, TaskComment, SubTask, Notification
 
 load_dotenv()
 
@@ -1053,6 +1054,32 @@ class TaskCommentListCreateView(APIView):
             user=request.user,
             content=content,
         )
+
+        # ── Create notifications for relevant users ──
+        sender = request.user
+        assignee_ids = set(task.assignees.values_list("id", flat=True))
+        admin_id = task.assigned_by_id
+
+        # Collect all recipient IDs (assignees + admin creator), excluding the commenter
+        recipient_ids = assignee_ids | {admin_id}
+        recipient_ids.discard(sender.id)
+
+        sender_display = getattr(sender, "name", "") or sender.username
+        notif_message = f"{sender_display} commented on task \"{task.task_name}\""
+
+        notifications = [
+            Notification(
+                recipient_id=rid,
+                sender=sender,
+                task=task,
+                comment=comment,
+                message=notif_message,
+            )
+            for rid in recipient_ids
+        ]
+        if notifications:
+            Notification.objects.bulk_create(notifications)
+
         serializer = TaskCommentSerializer(comment)
         return success_response(
             message="Comment added",
@@ -1160,5 +1187,91 @@ class SubTaskUpdateDeleteView(APIView):
         return success_response(
             message="Subtask deleted",
             data=None,
+            status_code=status.HTTP_200_OK,
+        )
+
+
+# ─── Notifications ───
+
+class NotificationListView(APIView):
+    """GET all notifications for the authenticated user."""
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        queryset = Notification.objects.filter(
+            recipient=request.user
+        ).select_related("sender", "task")
+
+        unread = request.GET.get("unread")
+        if unread and unread.lower() in ("true", "1"):
+            queryset = queryset.filter(is_read=False)
+
+        paginator = CustomPagination()
+        paginated_queryset = paginator.paginate_queryset(queryset, request)
+        serializer = NotificationSerializer(paginated_queryset, many=True)
+
+        return paginator.get_paginated_response(
+            {
+                "isV1": True,
+                "success": True,
+                "message": "Notifications fetched successfully",
+                "data": serializer.data,
+            }
+        )
+
+
+class NotificationUnreadCountView(APIView):
+    """GET unread notification count for the authenticated user."""
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        count = Notification.objects.filter(
+            recipient=request.user, is_read=False
+        ).count()
+
+        return success_response(
+            message="Unread count fetched",
+            data={"count": count},
+            status_code=status.HTTP_200_OK,
+        )
+
+
+class NotificationMarkReadView(APIView):
+    """PATCH mark a single notification as read."""
+    permission_classes = [IsAuthenticated]
+
+    def patch(self, request, notification_id):
+        try:
+            notification = Notification.objects.get(
+                id=notification_id, recipient=request.user
+            )
+        except Notification.DoesNotExist:
+            return error_response(
+                message="Notification not found",
+                status_code=status.HTTP_404_NOT_FOUND,
+            )
+
+        notification.is_read = True
+        notification.save()
+
+        return success_response(
+            message="Notification marked as read",
+            data=NotificationSerializer(notification).data,
+            status_code=status.HTTP_200_OK,
+        )
+
+
+class NotificationMarkAllReadView(APIView):
+    """PATCH mark all notifications as read for the authenticated user."""
+    permission_classes = [IsAuthenticated]
+
+    def patch(self, request):
+        updated = Notification.objects.filter(
+            recipient=request.user, is_read=False
+        ).update(is_read=True)
+
+        return success_response(
+            message=f"{updated} notifications marked as read",
+            data={"updated": updated},
             status_code=status.HTTP_200_OK,
         )
