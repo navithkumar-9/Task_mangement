@@ -30,6 +30,11 @@ from .views import (
     NotificationUnreadCountView,
     NotificationMarkReadView,
     NotificationMarkAllReadView,
+    CreateAnnouncementView,
+    AnnouncementListView,
+    AnnouncementDetailView,
+    SuperAdminAnnouncementListView,
+    SuperAdminTeamMemberDetailView,
 )
 
 urlpatterns = [
@@ -50,6 +55,10 @@ urlpatterns = [
     path(
         "super-admin/team-members/",
         TeamMemberListForSuperAdminView.as_view(),
+    ),
+    path(
+        "super-admin/team-members/<int:member_id>/",
+        SuperAdminTeamMemberDetailView.as_view(),
     ),
     path(
         "admin/team-members/",
@@ -139,4 +148,9 @@ urlpatterns = [
         "notifications/mark-all-read/",
         NotificationMarkAllReadView.as_view(),
     ),
+    # announcements
+    path("announcements/create/", CreateAnnouncementView.as_view()),
+    path("announcements/", AnnouncementListView.as_view()),
+    path("announcements/<int:announcement_id>/", AnnouncementDetailView.as_view()),
+    path("announcements/super-admin/", SuperAdminAnnouncementListView.as_view()),
 ]

@@ -24,6 +24,8 @@ export const AuthProvider = ({ children }) => {
                         if (!prev) return prev;
                         const updated = {
                             ...prev,
+                            id: profileData.id,
+                            can_crud_tasks: profileData.can_crud_tasks,
                             name: profileData.name,
                             employee_id: profileData.employee_id,
                             profile_picture: profileData.profile_picture,

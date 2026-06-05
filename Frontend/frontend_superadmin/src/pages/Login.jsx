@@ -42,16 +42,7 @@ const Login = () => {
         <div className="login-card">
           <div className="login-header">
             <div className="login-icon">
-              <img
-                src="/logo.jpg"
-                alt="Logo"
-                style={{
-                  width: '40px',
-                  height: '40px',
-                  borderRadius: '8px',
-                  objectFit: 'cover',
-                }}
-              />
+              <img src="/logo.jpg" alt="Logo" className="ext-login-131"/>
             </div>
             <h1>Tracker</h1>
             <p className="login-subtitle">Super Admin Portal</p>

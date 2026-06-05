@@ -33,6 +33,49 @@
     position: sticky;
     top: 0;
     height: 100vh;
+    transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.sidebar.collapsed {
+    width: 72px;
+}
+.sidebar.collapsed .sidebar-brand-info,
+.sidebar.collapsed .nav-label,
+.sidebar.collapsed .nav-section-label,
+.sidebar.collapsed .sidebar-user-info {
+    display: none;
+}
+.sidebar.collapsed .nav-item {
+    justify-content: center;
+    padding: 10px 0;
+}
+.sidebar.collapsed .sidebar-brand {
+    justify-content: center;
+    padding: 0 0 20px;
+}
+.sidebar.collapsed .sidebar-user {
+    justify-content: center;
+}
+.sidebar.collapsed .sidebar-bottom {
+    flex-direction: column;
+    gap: 12px;
+    align-items: center;
+    justify-content: center;
+}
+.sidebar-toggle-btn {
+    background: transparent;
+    border: none;
+    color: #94a3b8;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6px;
+    border-radius: 6px;
+    transition: all 0.2s;
+}
+.sidebar-toggle-btn:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: #fff;
 }
 .sidebar-top {
     padding: 20px 14px 14px;
@@ -2029,7 +2072,7 @@ button[type="submit"] .spinner,
 }
 .calendar-grid {
     display: grid;
-    grid-template-columns: repeat(7, 1fr);
+    grid-template-columns: repeat(7, minmax(0, 1fr));
     gap: 6px;
 }
 .calendar-cell {
@@ -2587,4 +2630,2110 @@ button[type="submit"] .spinner,
         width: calc(100vw - 32px);
         max-width: 360px;
     }
+}
+
+
+/* ==========================================================================
+   EXTRACTED INLINE STYLES
+   ========================================================================== */
+
+.ext-sidebar-1 {
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  object-fit: cover;
+}
+
+.ext-sidebar-2 {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.ext-announcements-3 {
+  max-width: 1000px;
+}
+
+.ext-announcements-4 {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.ext-announcements-5 {
+  padding: 16px 20px;
+  margin-bottom: 20px;
+}
+
+.ext-announcements-6 {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.ext-announcements-7 {
+  width: 100%;
+  border: none;
+  background: transparent;
+  padding: 4px 0;
+}
+
+.ext-announcements-8 {
+  padding: 60px 20px;
+  background: var(--bg-white);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+}
+
+.ext-announcements-9 {
+  margin: 0;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.ext-announcements-10 {
+  margin: 4px 0 0 0;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.ext-announcements-11 {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.ext-announcements-12 {
+  padding: 20px 24px;
+  border-radius: 12px;
+  transition: transform 0.2s, box-shadow 0.2s;
+  position: relative;
+}
+
+.ext-announcements-13 {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.ext-announcements-14 {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.ext-announcements-15 {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.ext-announcements-16 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ext-announcements-17 {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.ext-announcements-18 {
+  font-size: 0.75rem;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: var(--bg-body);
+  color: var(--text-muted);
+}
+
+.ext-announcements-19 {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.ext-announcements-20 {
+  display: flex;
+  gap: 4px;
+}
+
+.ext-announcements-21 {
+  background: transparent;
+  border: none;
+  padding: 6px;
+  border-radius: 6px;
+  cursor: pointer;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ext-announcements-22 {
+  background: transparent;
+  border: none;
+  padding: 6px;
+  border-radius: 6px;
+  cursor: pointer;
+  color: #ff6b6b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ext-announcements-23 {
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin-top: 16px;
+  margin-bottom: 8px;
+  color: var(--text-primary);
+}
+
+.ext-announcements-24 {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  white-space: pre-wrap;
+  margin: 0;
+}
+
+.ext-announcements-25 {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 16px;
+}
+
+.ext-announcements-26 {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.ext-announcements-27 {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(15, 23, 42, 0.4);
+  backdrop-filter: blur(4px);
+  z-index: 999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ext-announcements-28 {
+  background: #ffffff;
+  width: 540px;
+  max-width: 90vw;
+  border-radius: 16px;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  animation: modalSlideIn 0.25s ease;
+}
+
+.ext-announcements-29 {
+  background: linear-gradient(135deg, #49ccf9 0%, #7b68ee 100%);
+  padding: 20px 24px;
+  border-radius: 16px 16px 0 0;
+  position: relative;
+}
+
+.ext-announcements-30 {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  background: rgba(255,255,255,0.2);
+  border: none;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #fff;
+}
+
+.ext-announcements-31 {
+  margin: 0;
+  color: #fff;
+  font-size: 1.2rem;
+  font-weight: 700;
+}
+
+.ext-announcements-32 {
+  padding: 24px;
+}
+
+.ext-announcements-33 {
+  padding: 12px;
+  background: rgba(255,107,107,0.1);
+  color: #ff6b6b;
+  border-radius: 6px;
+  margin-bottom: 16px;
+  font-size: 0.85rem;
+}
+
+.ext-announcements-34 {
+  min-height: 120px;
+}
+
+.ext-announcements-35 {
+  padding: 10px 14px;
+  background: var(--bg-body);
+  border: 1.5px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  font-size: 0.88rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.ext-announcements-36 {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  margin-top: 24px;
+}
+
+.ext-announcements-37 {
+  background: transparent;
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
+  padding: 10px 20px;
+}
+
+.ext-announcements-38 {
+  padding: 10px 20px;
+}
+
+.ext-calendar-39 {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  backdrop-filter: blur(4px);
+}
+
+.ext-calendar-40 {
+  background: #ffffff;
+  border-radius: 16px;
+  width: 520px;
+  max-height: 80vh;
+  overflow: hidden;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+  animation: slideUp 0.25s ease-out;
+}
+
+.ext-calendar-41 {
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.ext-calendar-42 {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.ext-calendar-43 {
+  margin: 4px 0 0;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.ext-calendar-44 {
+  background: none;
+  border: none;
+  font-size: 1.4rem;
+  cursor: pointer;
+  color: var(--text-muted);
+  padding: 4px 8px;
+  border-radius: 6px;
+}
+
+.ext-calendar-45 {
+  padding: 16px 24px;
+  overflow-y: auto;
+  max-height: 60vh;
+}
+
+.ext-calendar-46 {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 8px;
+}
+
+.ext-calendar-47 {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.ext-calendar-48 {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 0 0 10px;
+}
+
+.ext-calendar-49 {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+.ext-calendar-50 {
+  font-size: 0.72rem;
+  color: #ffb946;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.ext-calendar-51 {
+  text-decoration: line-through;
+  opacity: 0.7;
+}
+
+.ext-calendar-52 {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin: 0 0 12px;
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2px;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.ext-calendar-53 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.ext-calendar-54 {
+  font-size: 0.78rem;
+  color: var(--primary);
+  font-weight: 600;
+}
+
+.ext-calendar-55 {
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  background: rgba(255,107,107,0.15);
+  color: #ff6b6b;
+}
+
+.ext-calendar-56 {
+  max-width: 100%;
+}
+
+.ext-calendar-57 {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.ext-calendar-58 {
+  padding: 8px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  font-size: 0.88rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  background: #fff;
+  cursor: pointer;
+  outline: none;
+  min-width: 180px;
+}
+
+.ext-calendar-59 {
+  background: transparent;
+  border: none;
+  color: var(--primary);
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+.ext-calendar-60 {
+  padding: 0;
+  overflow: hidden;
+}
+
+.ext-calendar-61 {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.ext-calendar-62 {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  min-width: 160px;
+  text-align: center;
+}
+
+.ext-calendar-63 {
+  padding: 6px 14px;
+  background: var(--primary-light);
+  color: var(--primary);
+  box-shadow: none;
+  font-size: 0.8rem;
+}
+
+.ext-calendar-64 {
+  padding: 12px 24px;
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  gap: 20px;
+  align-items: center;
+  background: var(--bg-body);
+}
+
+.ext-calendar-65 {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.ext-calendar-66 {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ext-calendar-67 {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+.ext-calendar-68 {
+  padding: 60px 0;
+}
+
+.ext-calendar-69 {
+  padding: 16px 24px 24px;
+}
+
+.ext-calendar-70 {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
+.ext-calendar-71 {
+  text-align: center;
+  padding: 8px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.ext-calendar-72 {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 4px;
+}
+
+.ext-calendar-73 {
+  font-size: 0.62rem;
+  color: var(--primary);
+  font-weight: 600;
+  padding-top: 2px;
+}
+
+.ext-calendar-74 {
+  margin-top: 24px;
+}
+
+.ext-calendar-75 {
+  margin-bottom: 14px;
+}
+
+.ext-calendar-76 {
+  padding: 0;
+}
+
+.ext-calendar-77 {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.ext-calendar-78 {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
+}
+
+.ext-calendar-79 {
+  min-width: 0;
+  flex: 1;
+}
+
+.ext-calendar-80 {
+  font-weight: 600;
+  font-size: 0.88rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ext-calendar-81 {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.ext-calendar-82 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.ext-calendar-83 {
+  padding: 24px;
+  text-align: center;
+  color: var(--text-muted);
+}
+
+.ext-completed-tasks-84 {
+  margin-bottom: 24px;
+}
+
+.ext-completed-tasks-85 {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  align-items: center;
+}
+
+.ext-completed-tasks-86 {
+  margin: 0;
+  white-space: nowrap;
+}
+
+.ext-completed-tasks-87 {
+  width: 150px;
+  padding: 8px 12px;
+}
+
+.ext-completed-tasks-88 {
+  background: transparent;
+  border: none;
+  color: var(--danger);
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+
+.ext-completed-tasks-89 {
+  width: 180px;
+  padding: 8px 12px;
+}
+
+.ext-completed-tasks-90 {
+  padding: 40px 0;
+  text-align: center;
+}
+
+.ext-completed-tasks-91 {
+  padding: 16px 20px;
+}
+
+.ext-completed-tasks-92 {
+  display: flex;
+  flex-direction: column;
+}
+
+.ext-completed-tasks-93 {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.ext-completed-tasks-94 {
+  font-size: 0.72rem;
+  color: var(--primary);
+  font-weight: 500;
+  margin-top: 2px;
+}
+
+.ext-completed-tasks-95 {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.ext-completed-tasks-96 {
+  font-size: 0.75rem;
+  background: rgba(73, 204, 249, 0.08);
+  color: var(--primary);
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-weight: 500;
+}
+
+.ext-completed-tasks-97 {
+  color: var(--text-muted);
+}
+
+.ext-completed-tasks-98 {
+  padding: 16px 20px;
+  color: var(--text-muted);
+}
+
+.ext-completed-tasks-99 {
+  padding: 6px 12px;
+  font-size: 0.8rem;
+  background: var(--primary-light);
+  color: var(--primary);
+  box-shadow: none;
+}
+
+.ext-completed-tasks-100 {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 16px;
+  margin-top: 24px;
+}
+
+.ext-completed-tasks-101 {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.ext-completed-tasks-102 {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(15, 23, 42, 0.65);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.ext-completed-tasks-103 {
+  background: #ffffff;
+  width: 1000px;
+  max-width: 95vw;
+  height: 85vh;
+  border-radius: 16px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.ext-completed-tasks-104 {
+  background: linear-gradient(135deg, #10B981, #059669);
+  padding: 20px 28px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: #ffffff;
+}
+
+.ext-completed-tasks-105 {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+.ext-completed-tasks-106 {
+  background: rgba(255,255,255,0.2);
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.ext-completed-tasks-107 {
+  background: rgba(255,255,255,0.2);
+  border: none;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  color: #fff;
+  cursor: pointer;
+  font-size: 1.2rem;
+}
+
+.ext-completed-tasks-108 {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
+.ext-completed-tasks-109 {
+  flex: 1.2;
+  padding: 28px;
+  overflow-y: auto;
+  border-right: 1px solid #e2e8f0;
+}
+
+.ext-completed-tasks-110 {
+  margin-bottom: 20px;
+}
+
+.ext-completed-tasks-111 {
+  margin: 0 0 6px;
+  font-size: 0.8rem;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.ext-completed-tasks-112 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.ext-completed-tasks-113 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  margin-bottom: 20px;
+}
+
+.ext-completed-tasks-114 {
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.ext-completed-tasks-115 {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #334155;
+}
+
+.ext-completed-tasks-116 {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.ext-completed-tasks-117 {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #f8fafc;
+  padding: 4px 10px;
+  border-radius: 20px;
+  border: 1px solid #e2e8f0;
+}
+
+.ext-completed-tasks-118 {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: #334155;
+}
+
+.ext-completed-tasks-119 {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #94a3b8;
+}
+
+.ext-completed-tasks-120 {
+  background: #f8fafc;
+  border-radius: 12px;
+  padding: 16px;
+  border: 1px solid #e2e8f0;
+  font-size: 0.88rem;
+  color: #334155;
+  line-height: 1.6;
+  white-space: pre-line;
+}
+
+.ext-completed-tasks-121 {
+  flex: 1.5;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.ext-completed-tasks-122 {
+  padding: 24px 28px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.ext-completed-tasks-123 {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.ext-completed-tasks-124 {
+  margin: 0;
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.ext-completed-tasks-125 {
+  height: 6px;
+  border-radius: 3px;
+  background: #e2e8f0;
+  overflow: hidden;
+  margin-bottom: 16px;
+}
+
+.ext-completed-tasks-126 {
+  max-height: 150px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ext-completed-tasks-127 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.ext-completed-tasks-128 {
+  cursor: pointer;
+  width: 15px;
+  height: 15px;
+}
+
+.ext-completed-tasks-129 {
+  margin: 0;
+  font-size: 0.82rem;
+  color: #94a3b8;
+  font-style: italic;
+}
+
+.ext-completed-tasks-130 {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: #f8fafc;
+}
+
+.ext-dashboard-131 {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+}
+
+.ext-dashboard-132 {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 20px;
+  margin-bottom: 32px;
+}
+
+.ext-dashboard-133 {
+  width: 56px;
+  height: 56px;
+  border-radius: 14px;
+  background: rgba(73,204,249,0.1);
+  color: #49CCF9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.ext-dashboard-134 {
+  width: 56px;
+  height: 56px;
+  border-radius: 14px;
+  background: rgba(255,107,107,0.1);
+  color: #ff6b6b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.ext-dashboard-135 {
+  color: #ff6b6b;
+}
+
+.ext-dashboard-136 {
+  width: 56px;
+  height: 56px;
+  border-radius: 14px;
+  background: rgba(75,207,130,0.1);
+  color: #4bcf82;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.ext-dashboard-137 {
+  flex: 1;
+}
+
+.ext-dashboard-138 {
+  width: 100%;
+  height: 6px;
+  background: var(--bg-body);
+  border-radius: 3px;
+  margin-top: 8px;
+  overflow: hidden;
+}
+
+.ext-dashboard-139 {
+  display: grid;
+  grid-template-columns: 3fr 2fr;
+  gap: 24px;
+  margin-bottom: 32px;
+}
+
+.ext-dashboard-140 {
+  height: 300px;
+  width: 100%;
+}
+
+.ext-dashboard-141 {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+}
+
+.ext-dashboard-142 {
+  height: 300px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.ext-dashboard-143 {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 24px;
+}
+
+.ext-dashboard-144 {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.ext-dashboard-145 {
+  margin: 0;
+}
+
+.ext-dashboard-146 {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--primary);
+  text-decoration: none;
+}
+
+.ext-dashboard-147 {
+  overflow-x: auto;
+}
+
+.ext-dashboard-148 {
+  font-weight: 600;
+}
+
+.ext-dashboard-149 {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-top: 4px;
+  font-weight: 500;
+}
+
+.ext-dashboard-150 {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ext-dashboard-151 {
+  text-decoration: line-through;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.ext-dashboard-152 {
+  font-size: 0.65rem;
+  margin-left: 6px;
+  padding: 2px 4px;
+  border-radius: 4px;
+  background: rgba(255,185,70,0.1);
+  color: #ffb946;
+  font-weight: 700;
+}
+
+.ext-dashboard-153 {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: #ff6b6b;
+  color: #fff;
+  font-size: 0.65rem;
+}
+
+.ext-dashboard-154 {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  object-fit: cover;
+  box-shadow: 0 2px 4px rgba(15, 23, 42, 0.08);
+}
+
+.ext-dashboard-155 {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--border-color);
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.ext-dashboard-156 {
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.ext-dashboard-157 {
+  padding: 40px;
+  text-align: center;
+  color: var(--text-muted);
+  background: var(--bg-body);
+  border-radius: 12px;
+}
+
+.ext-dashboard-158 {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.ext-dashboard-159 {
+  display: flex;
+  gap: 16px;
+  position: relative;
+}
+
+.ext-dashboard-160 {
+  position: absolute;
+  left: 19px;
+  top: 40px;
+  bottom: -20px;
+  width: 2px;
+  background: var(--border-light);
+}
+
+.ext-dashboard-161 {
+  flex: 1;
+  padding-bottom: 4px;
+}
+
+.ext-dashboard-162 {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 4px;
+}
+
+.ext-dashboard-163 {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.ext-dashboard-164 {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+  margin-left: 12px;
+}
+
+.ext-dashboard-165 {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
+.ext-dashboard-166 {
+  text-align: center;
+  color: var(--text-muted);
+  padding: 20px;
+}
+
+.ext-login-167 {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  object-fit: cover;
+}
+
+.ext-settings-168 {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 60vh;
+}
+
+.ext-settings-169 {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.ext-settings-170 {
+  border-top-color: var(--primary);
+  width: 40px;
+  height: 40px;
+}
+
+.ext-settings-171 {
+  margin-top: 16px;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.ext-settings-172 {
+  max-width: 1000px;
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  gap: 24px;
+}
+
+.ext-settings-173 {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  height: fit-content;
+}
+
+.ext-settings-174 {
+  position: relative;
+}
+
+.ext-settings-175 {
+  position: absolute;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.65);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  z-index: 5;
+}
+
+.ext-settings-176 {
+  width: 28px;
+  height: 28px;
+  border-width: 3px;
+  border-top-color: #ffffff;
+}
+
+.ext-settings-177 {
+  display: none;
+}
+
+.ext-settings-178 {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: var(--text-primary);
+  margin: 0 0 4px;
+}
+
+.ext-settings-179 {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin: 0 0 12px;
+}
+
+.ext-settings-180 {
+  padding: 28px;
+}
+
+.ext-settings-181 {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.ext-settings-182 {
+  margin-top: 16px;
+}
+
+.ext-settings-183 {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ext-settings-184 {
+  width: 16px;
+  height: 16px;
+  border-width: 2px;
+  border-top-color: #ffffff;
+}
+
+.ext-tasks-185 {
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+  font-size: 0.9rem;
+}
+
+.ext-tasks-186 {
+  cursor: pointer;
+}
+
+.ext-tasks-187 {
+  text-transform: uppercase;
+}
+
+.ext-tasks-188 {
+  font-weight: 600;
+  color: var(--primary);
+}
+
+.ext-tasks-189 {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.ext-tasks-190 {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.ext-tasks-191 {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+.ext-tasks-192 {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  text-decoration: line-through;
+}
+
+.ext-tasks-193 {
+  font-size: 0.6rem;
+  margin-left: 4px;
+  padding: 1px 4px;
+  border-radius: 3px;
+  background: #ffb94620;
+  color: #ffb946;
+  font-weight: 700;
+}
+
+.ext-tasks-194 {
+  font-size: 0.6rem;
+  margin-left: 4px;
+  padding: 1px 4px;
+  border-radius: 3px;
+  background: #ff6b6b20;
+  color: #ff6b6b;
+  font-weight: 700;
+}
+
+.ext-tasks-195 {
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  padding: 20px 28px;
+  border-radius: 16px 16px 0 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  position: relative;
+}
+
+.ext-tasks-196 {
+  margin: 0;
+  color: #fff;
+  font-size: 1.15rem;
+  font-weight: 700;
+}
+
+.ext-tasks-197 {
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  background: rgba(255,255,255,0.2);
+  color: #fff;
+}
+
+.ext-tasks-198 {
+  background: #ef4444;
+  color: #fff;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.ext-tasks-199 {
+  background: rgba(255,255,255,0.2);
+  border: none;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #fff;
+  font-size: 1.2rem;
+  font-weight: bold;
+  line-height: 1;
+  transition: background 0.2s;
+}
+
+.ext-tasks-200 {
+  margin-bottom: 16px;
+}
+
+.ext-tasks-201 {
+  font-size: 1rem;
+  font-weight: 600;
+  background: #ffffff;
+  border-color: #cbd5e1;
+}
+
+.ext-tasks-202 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 4px;
+}
+
+.ext-tasks-203 {
+  appearance: none;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'></polyline></svg>");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  background-size: 16px;
+}
+
+.ext-tasks-204 {
+  background: #f8fafc;
+  color: #64748b;
+  cursor: not-allowed;
+  border-color: #cbd5e1;
+}
+
+.ext-tasks-205 {
+  font-size: 0.7rem;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: #ef444415;
+  color: #ef4444;
+  font-weight: 700;
+}
+
+.ext-tasks-206 {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  margin: 4px 0 0;
+  padding-left: 4px;
+}
+
+.ext-tasks-207 {
+  margin-top: 20px;
+}
+
+.ext-tasks-208 {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  padding: 8px;
+}
+
+.ext-tasks-209 {
+  object-fit: cover;
+}
+
+.ext-tasks-210 {
+  text-align: center;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.ext-tasks-211 {
+  font-size: 0.85rem;
+}
+
+.ext-team-list-212 {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(15, 23, 42, 0.6);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: fadeIn 0.2s ease;
+}
+
+.ext-team-list-213 {
+  background: #ffffff;
+  width: 500px;
+  max-width: 95vw;
+  max-height: 90vh;
+  overflow-y: auto;
+  border-radius: 16px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  animation: modalSlideIn 0.3s ease;
+}
+
+.ext-team-list-214 {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 24px 28px;
+  border-radius: 16px 16px 0 0;
+  position: relative;
+}
+
+.ext-team-list-215 {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  background: rgba(255,255,255,0.2);
+  border: none;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #fff;
+  transition: background 0.2s;
+}
+
+.ext-team-list-216 {
+  background: rgba(255,255,255,0.2);
+  border-radius: 12px;
+  padding: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ext-team-list-217 {
+  margin: 2px 0 0;
+  color: rgba(255,255,255,0.8);
+  font-size: 0.82rem;
+}
+
+.ext-team-list-218 {
+  padding: 24px 28px;
+}
+
+.ext-team-list-219 {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 10px 0 24px 0;
+}
+
+.ext-team-list-220 {
+  width: 90px;
+  height: 90px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid #e2e8f0;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.ext-team-list-221 {
+  margin: 14px 0 2px 0;
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: #1e293b;
+}
+
+.ext-team-list-222 {
+  font-size: 0.85rem;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.ext-team-list-223 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.ext-team-list-224 {
+  background: #f8fafc;
+  border-radius: 12px;
+  padding: 14px 16px;
+}
+
+.ext-team-list-225 {
+  font-size: 0.7rem;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+
+.ext-team-list-226 {
+  font-weight: 600;
+  color: #1e293b;
+  font-size: 0.9rem;
+}
+
+.ext-team-list-227 {
+  font-weight: 600;
+  color: #1e293b;
+  font-size: 0.9rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ext-team-list-228 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.ext-team-list-229 {
+  padding: 16px 28px;
+  border-top: 1px solid #f1f5f9;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.ext-team-list-230 {
+  padding: 10px 24px;
+  border-radius: 8px;
+  border: none;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: #fff;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 600;
+  transition: opacity 0.2s;
+}
+
+.ext-team-list-231 {
+  background: #ffffff;
+  width: 480px;
+  max-width: 95vw;
+  border-radius: 16px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  animation: modalSlideIn 0.3s ease;
+}
+
+.ext-team-list-232 {
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  padding: 20px 24px;
+  border-radius: 16px 16px 0 0;
+}
+
+.ext-team-list-233 {
+  padding: 10px 14px;
+  background: #fef2f2;
+  color: #dc2626;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  margin-bottom: 16px;
+}
+
+.ext-team-list-234 {
+  font-size: 0.75rem;
+  color: #9ca3af;
+  margin-top: 4px;
+  display: block;
+}
+
+.ext-team-list-235 {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+}
+
+.ext-team-list-236 {
+  padding: 10px 20px;
+  border-radius: 8px;
+  border: 1px solid #d1d5db;
+  background: #fff;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #374151;
+}
+
+.ext-team-list-237 {
+  background: #ffffff;
+  width: 420px;
+  text-align: center;
+  padding: 32px;
+}
+
+.ext-team-list-238 {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: rgba(255,107,107,0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 16px;
+}
+
+.ext-team-list-239 {
+  margin: 0 0 8px;
+  font-size: 1.2rem;
+}
+
+.ext-team-list-240 {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  margin: 0 0 24px;
+}
+
+.ext-team-list-241 {
+  color: var(--primary);
+}
+
+.ext-team-list-242 {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+}
+
+.ext-team-list-243 {
+  padding: 10px 24px;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  background: transparent;
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+.ext-team-list-244 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-weight: 600;
+}
+
+.ext-team-list-245 {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.ext-team-list-246 {
+  display: flex;
+  gap: 8px;
+}
+
+.ext-team-list-247 {
+  border: 1px solid var(--border-color);
+}
+
+.ext-team-list-248 {
+  border: 1px solid var(--border-color);
+  color: var(--primary);
+}
+
+.ext-team-list-249 {
+  border: 1px solid rgba(255,107,107,0.3);
+  color: #ff6b6b;
+}
+
+.ext-timesheet-250 {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px;
+}
+
+.ext-timesheet-251 {
+  background: transparent;
+  border: none;
+  color: var(--danger);
+  cursor: pointer;
+  padding: 4px 8px;
+}
+
+.ext-timesheet-252 {
+  width: 160px;
+  padding: 8px 12px;
+}
+
+.ext-timesheet-253 {
+  padding: 40px;
+  text-align: center;
+}
+
+.ext-timesheet-254 {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.ext-timesheet-255 {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border-color);
+  color: var(--text-muted);
+}
+
+.ext-timesheet-256 {
+  border-bottom: 1px solid var(--border-color);
+}
+
+.ext-timesheet-257 {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.ext-timesheet-258 {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
+.ext-timesheet-259 {
+  max-width: 250px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ext-timesheet-260 {
+  font-size: 0.75rem;
+  color: var(--primary);
+  font-weight: 600;
+}
+
+.ext-timesheet-261 {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.ext-timesheet-262 {
+  padding: 6px;
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+  background: transparent;
+  cursor: pointer;
+  color: var(--primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ext-timesheet-263 {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 20px;
+  border-top: 1px solid var(--border-color);
+}
+
+.ext-timesheet-264 {
+  background: #ffffff;
+  width: 520px;
+  max-width: 95vw;
+  border-radius: 16px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  animation: modalSlideIn 0.3s ease;
+}
+
+.ext-timesheet-265 {
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  padding: 20px 24px;
+  border-radius: 16px 16px 0 0;
+  position: relative;
+}
+
+.ext-timesheet-266 {
+  padding: 12px;
+  background: rgba(255,107,107,0.1);
+  color: #ff6b6b;
+  border-radius: 6px;
+  margin-bottom: 16px;
+}
+
+.ext-timesheet-267 {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.ext-timesheet-268 {
+  width: 100%;
+  padding: 10px;
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+}
+
+.ext-timesheet-269 {
+  width: 100%;
+  padding: 10px;
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+  min-height: 80px;
+  resize: vertical;
+}
+
+.ext-timesheet-270 {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.ext-timesheet-271 {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.ext-timesheet-272 {
+  width: 100%;
+  padding: 10px;
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-color);
+  color: var(--text-muted);
+}
+
+.ext-timesheet-273 {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.ext-timesheet-274 {
+  padding: 10px 20px;
+  border-radius: 8px;
+  border: none;
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  color: #fff;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.ext-timesheet-275 {
+  background: #ffffff;
+  width: 580px;
+  max-width: 95vw;
+  max-height: 90vh;
+  overflow-y: auto;
+  border-radius: 16px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  animation: modalSlideIn 0.3s ease;
+}
+
+.ext-timesheet-276 {
+  font-weight: 600;
+  color: #1e293b;
+  font-size: 0.95rem;
+}
+
+.ext-timesheet-277 {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.ext-timesheet-278 {
+  font-size: 0.75rem;
+  color: #64748b;
+  font-weight: 600;
+}
+
+.ext-timesheet-279 {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, #e2e8f0, transparent);
+  margin: 4px 0 20px;
+}
+
+.ext-timesheet-280 {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.ext-timesheet-281 {
+  text-align: center;
+  background: #f0fdf4;
+  border-radius: 12px;
+  padding: 14px;
+}
+
+.ext-timesheet-282 {
+  font-size: 0.7rem;
+  color: #16a34a;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.ext-timesheet-283 {
+  font-weight: 600;
+  color: #15803d;
+  font-size: 0.85rem;
+}
+
+.ext-timesheet-284 {
+  text-align: center;
+  background: #fef2f2;
+  border-radius: 12px;
+  padding: 14px;
+}
+
+.ext-timesheet-285 {
+  font-size: 0.7rem;
+  color: #dc2626;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.ext-timesheet-286 {
+  font-weight: 600;
+  color: #b91c1c;
+  font-size: 0.85rem;
+}
+
+.ext-timesheet-287 {
+  text-align: center;
+  background: #eff6ff;
+  border-radius: 12px;
+  padding: 14px;
+}
+
+.ext-timesheet-288 {
+  font-size: 0.7rem;
+  color: #2563eb;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.ext-timesheet-289 {
+  font-weight: 700;
+  color: #1d4ed8;
+  font-size: 1.05rem;
+}
+
+.ext-timesheet-290 {
+  font-size: 0.7rem;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.ext-timesheet-291 {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 14px 16px;
+  font-size: 0.9rem;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  color: #334155;
+  max-height: 150px;
+  overflow-y: auto;
+}
+
+.ext-timesheet-292 {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #94a3b8;
+  font-size: 0.8rem;
 }

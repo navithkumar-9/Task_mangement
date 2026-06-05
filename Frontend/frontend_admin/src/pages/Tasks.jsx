@@ -88,8 +88,9 @@ const Tasks = () => {
     const [searchParams, setSearchParams] = useSearchParams();
 
     const isAdmin = user?.role === 'ADMIN';
+    const canCrud = isAdmin || user?.can_crud_tasks;
 
-    const COLUMNS = isAdmin
+    const COLUMNS = canCrud
         ? COLUMNS_BASE
         : COLUMNS_BASE.filter((c) => c.id !== 'COMPLETED');
 
@@ -100,6 +101,7 @@ const Tasks = () => {
     const [showModal, setShowModal] = useState(false);
 
     const [editTask, setEditTask] = useState(null);
+    const canEditOrDelete = isAdmin || (!editTask ? user?.can_crud_tasks : (user?.can_crud_tasks && (editTask.assigned_by?.id === user.id || editTask.assigned_by?.username === user.username)));
 
     const [loading, setLoading] = useState(false);
 
@@ -156,10 +158,10 @@ const Tasks = () => {
     useEffect(() => {
         fetchTasks();
 
-        if (isAdmin) {
+        if (canCrud) {
             fetchTeamMembers();
         }
-    }, [isAdmin, debouncedSearch]);
+    }, [canCrud, debouncedSearch]);
 
     /* ── Auto-open task from notification (URL ?taskId=X) ── */
     useEffect(() => {
@@ -180,7 +182,7 @@ const Tasks = () => {
         setLoading(true);
 
         try {
-            const endpoint = isAdmin
+            const endpoint = canCrud
                 ? `/tasks/admin/?page_size=100${debouncedSearch ? `&search=${encodeURIComponent(debouncedSearch)}` : ''}`
                 : `/tasks/my-tasks/?page_size=100${debouncedSearch ? `&search=${encodeURIComponent(debouncedSearch)}` : ''}`;
 
@@ -344,7 +346,7 @@ const Tasks = () => {
     // ─── Modal open/close ───
 
     const openCreate = (status = 'PENDING') => {
-        if (!isAdmin) return;
+        if (!canCrud) return;
 
         setError(null);
 
@@ -408,7 +410,7 @@ const Tasks = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
 
-        if (!isAdmin) return;
+        if (!canEditOrDelete) return;
 
         setError(null);
 
@@ -443,7 +445,7 @@ const Tasks = () => {
     };
 
     const deleteTask = async () => {
-        if (!isAdmin || !editTask) return;
+        if (!canEditOrDelete || !editTask) return;
 
         if (!window.confirm('Are you sure you want to delete this task?'))
             return;
@@ -471,7 +473,9 @@ const Tasks = () => {
         );
 
         try {
-            if (isAdmin) {
+            const taskObj = tasks.find((t) => t.id === id);
+            const isCreator = taskObj?.assigned_by?.id === user.id || taskObj?.assigned_by?.username === user.username;
+            if (isAdmin || (user?.can_crud_tasks && isCreator)) {
                 await API.patch(`/tasks/${id}/`, { status: newStatus });
             } else {
                 await API.patch(`/tasks/update-status/${id}/`, {
@@ -513,16 +517,7 @@ const Tasks = () => {
 
     return (
         <div className="page tasks-page">
-            <div
-                className="page-header"
-                style={{
-                    display: 'flex',
-
-                    justifyContent: 'space-between',
-
-                    alignItems: 'flex-start',
-                }}
-            >
+            <div className="page-header ext-calendar-57">
                 <div>
                     <h1 className="page-title">Tasks</h1>
 
@@ -532,15 +527,7 @@ const Tasks = () => {
                     </p>
                 </div>
 
-                <div
-                    style={{
-                        display: 'flex',
-
-                        gap: '12px',
-
-                        alignItems: 'center',
-                    }}
-                >
+                <div className="ext-announcements-6">
                     <input
                         type="text"
                         className="search-input"
@@ -558,7 +545,7 @@ const Tasks = () => {
                         }}
                     />
 
-                    {isAdmin && (
+                    {canCrud && (
                         <button
                             className="btn-primary"
                             onClick={() => openCreate()}
@@ -582,7 +569,7 @@ const Tasks = () => {
             </div>
 
             {loading ? (
-                <div className="page-loader" style={{ padding: '60px 0' }}>
+                <div className="page-loader ext-calendar-68">
                     <div className="page-loader-spinner"></div>
                     <div className="page-loader-text">Loading tasks...</div>
                 </div>
@@ -619,13 +606,7 @@ const Tasks = () => {
                                             style={{ cursor: 'pointer' }}
                                         >
                                             <div className="kanban-card-top">
-                                                <span
-                                                    className={`priority-badge priority-${task.priority?.toLowerCase()}`}
-                                                    style={{
-                                                        textTransform:
-                                                            'uppercase',
-                                                    }}
-                                                >
+                                                <span className={`${`priority-badge priority-${task.priority?.toLowerCase()} ext-tasks-187`}`}>
                                                     {task.priority}
                                                 </span>
                                             </div>
@@ -635,14 +616,7 @@ const Tasks = () => {
                                             </h4>
 
                                             {task.project_name && (
-                                                <p
-                                                    className="kanban-card-desc"
-                                                    style={{
-                                                        fontWeight: 600,
-
-                                                        color: 'var(--primary)',
-                                                    }}
-                                                >
+                                                <p className="kanban-card-desc ext-tasks-188">
                                                     Project: {task.project_name}
                                                 </p>
                                             )}
@@ -659,16 +633,7 @@ const Tasks = () => {
                                                 {task.assignees &&
                                                     task.assignees.length >
                                                         0 && (
-                                                        <div
-                                                            style={{
-                                                                display: 'flex',
-                                                                gap: '4px',
-                                                                flexWrap:
-                                                                    'wrap',
-                                                                alignItems:
-                                                                    'center',
-                                                            }}
-                                                        >
+                                                        <div className="ext-tasks-189">
                                                             {task.assignees.map(
                                                                 (a) => {
                                                                     const avStyle =
@@ -721,18 +686,7 @@ const Tasks = () => {
                                                                             }}
                                                                         >
                                                                             {a.profile_picture ? (
-                                                                                <img
-                                                                                    src={
-                                                                                        a.profile_picture
-                                                                                    }
-                                                                                    alt="Avatar"
-                                                                                    style={{
-                                                                                        width: '100%',
-                                                                                        height: '100%',
-                                                                                        objectFit:
-                                                                                            'cover',
-                                                                                    }}
-                                                                                />
+                                                                                <img src={ a.profile_picture } alt="Avatar" className="ext-tasks-190"/>
                                                                             ) : (
                                                                                 a.username
                                                                                     ?.charAt(
@@ -749,25 +703,10 @@ const Tasks = () => {
 
                                                 {/* Due date with revised logic */}
 
-                                                <div
-                                                    style={{
-                                                        display: 'flex',
-                                                        flexDirection: 'column',
-                                                        alignItems: 'flex-end',
-                                                        gap: '2px',
-                                                    }}
-                                                >
+                                                <div className="ext-tasks-191">
                                                     {task.revised_due_date ? (
                                                         <>
-                                                            <span
-                                                                style={{
-                                                                    fontSize:
-                                                                        '0.7rem',
-                                                                    color: 'var(--text-muted)',
-                                                                    textDecoration:
-                                                                        'line-through',
-                                                                }}
-                                                            >
+                                                            <span className="ext-tasks-192">
                                                                 {new Date(
                                                                     task.due_date,
                                                                 ).toLocaleDateString()}
@@ -787,22 +726,7 @@ const Tasks = () => {
                                                                     task.revised_due_date,
                                                                 ).toLocaleDateString()}
 
-                                                                <span
-                                                                    style={{
-                                                                        fontSize:
-                                                                            '0.6rem',
-                                                                        marginLeft:
-                                                                            '4px',
-                                                                        padding:
-                                                                            '1px 4px',
-                                                                        borderRadius:
-                                                                            '3px',
-                                                                        background:
-                                                                            '#ffb94620',
-                                                                        color: '#ffb946',
-                                                                        fontWeight: 700,
-                                                                    }}
-                                                                >
+                                                                <span className="ext-tasks-193">
                                                                     REVISED
                                                                 </span>
                                                             </span>
@@ -825,22 +749,7 @@ const Tasks = () => {
                                                             {isOverdue(
                                                                 task,
                                                             ) && (
-                                                                <span
-                                                                    style={{
-                                                                        fontSize:
-                                                                            '0.6rem',
-                                                                        marginLeft:
-                                                                            '4px',
-                                                                        padding:
-                                                                            '1px 4px',
-                                                                        borderRadius:
-                                                                            '3px',
-                                                                        background:
-                                                                            '#ff6b6b20',
-                                                                        color: '#ff6b6b',
-                                                                        fontWeight: 700,
-                                                                    }}
-                                                                >
+                                                                <span className="ext-tasks-194">
                                                                     OVERDUE
                                                                 </span>
                                                             )}
@@ -882,7 +791,7 @@ const Tasks = () => {
                                         </div>
                                     ))}
 
-                                    {isAdmin && (
+                                    {canCrud && (
                                         <button
                                             className="kanban-add-btn"
                                             onClick={() => openCreate(col.id)}
@@ -931,46 +840,13 @@ const Tasks = () => {
                         onClick={(e) => e.stopPropagation()}
                     >
                         {/* Modal Header */}
-                        <div
-                            style={{
-                                background:
-                                    'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
-                                padding: '20px 28px',
-                                borderRadius: '16px 16px 0 0',
-                                display: 'flex',
-                                justifyContent: 'space-between',
-                                alignItems: 'center',
-                                position: 'relative',
-                            }}
-                        >
-                            <div
-                                style={{
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '12px',
-                                }}
-                            >
-                                <h2
-                                    style={{
-                                        margin: 0,
-                                        color: '#fff',
-                                        fontSize: '1.15rem',
-                                        fontWeight: 700,
-                                    }}
-                                >
+                        <div className="ext-tasks-195">
+                            <div className="ext-announcements-14">
+                                <h2 className="ext-tasks-196">
                                     {editTask ? 'Edit Task' : 'New Task'}
                                 </h2>
                                 {editTask && (
-                                    <span
-                                        style={{
-                                            padding: '4px 10px',
-                                            borderRadius: '6px',
-                                            fontSize: '0.75rem',
-                                            fontWeight: 600,
-                                            background: 'rgba(255,255,255,0.2)',
-                                            color: '#fff',
-                                        }}
-                                    >
+                                    <span className="ext-tasks-197">
                                         {
                                             COLUMNS_BASE.find(
                                                 (c) => c.id === editTask.status,
@@ -979,36 +855,9 @@ const Tasks = () => {
                                     </span>
                                 )}
                             </div>
-                            <div
-                                style={{
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '10px',
-                                }}
-                            >
-                                {editTask && isAdmin && (
-                                    <button
-                                        onClick={deleteTask}
-                                        style={{
-                                            background: '#ef4444',
-                                            color: '#fff',
-                                            border: 'none',
-                                            padding: '8px 16px',
-                                            borderRadius: '6px',
-                                            fontWeight: 600,
-                                            fontSize: '0.85rem',
-                                            cursor: 'pointer',
-                                            transition: 'background 0.2s',
-                                        }}
-                                        onMouseEnter={(e) =>
-                                            (e.currentTarget.style.background =
-                                                '#dc2626')
-                                        }
-                                        onMouseLeave={(e) =>
-                                            (e.currentTarget.style.background =
-                                                '#ef4444')
-                                        }
-                                    >
+                            <div className="ext-completed-tasks-127">
+                                {editTask && canEditOrDelete && (
+                                    <button onClick={deleteTask} className="ext-tasks-198" onMouseEnter={(e) => (e.currentTarget.style.background = '#dc2626') } onMouseLeave={(e) => (e.currentTarget.style.background = '#ef4444') } >
                                         Delete
                                     </button>
                                 )}
@@ -1052,10 +901,7 @@ const Tasks = () => {
                             <div className="modern-modal-left">
                                 <form onSubmit={handleSubmit} id="task-form">
                                     {error && (
-                                        <div
-                                            className="alert-error"
-                                            style={{ marginBottom: '16px' }}
-                                        >
+                                        <div className="alert-error ext-tasks-200">
                                             {error}
                                         </div>
                                     )}
@@ -1078,7 +924,7 @@ const Tasks = () => {
                                                 })
                                             }
                                             required
-                                            disabled={!isAdmin}
+                                            disabled={!canEditOrDelete}
                                             style={{
                                                 fontSize: '1rem',
                                                 fontWeight: 600,
@@ -1090,14 +936,7 @@ const Tasks = () => {
 
                                     {/* Meta Grid */}
 
-                                    <div
-                                        style={{
-                                            display: 'grid',
-                                            gridTemplateColumns: '1fr 1fr',
-                                            gap: '16px',
-                                            marginBottom: '4px',
-                                        }}
-                                    >
+                                    <div className="ext-tasks-202">
                                         <div className="modern-form-group">
                                             <label className="modern-form-label">
                                                 Project
@@ -1115,7 +954,7 @@ const Tasks = () => {
                                                     })
                                                 }
                                                 required
-                                                disabled={!isAdmin}
+                                                disabled={!canEditOrDelete}
                                             />
                                         </div>
 
@@ -1133,7 +972,7 @@ const Tasks = () => {
                                                         status: e.target.value,
                                                     })
                                                 }
-                                                disabled={!isAdmin}
+                                                disabled={!canEditOrDelete}
                                                 style={{
                                                     appearance: 'none',
                                                     backgroundImage: `url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'></polyline></svg>")`,
@@ -1170,7 +1009,7 @@ const Tasks = () => {
                                                             e.target.value,
                                                     })
                                                 }
-                                                disabled={!isAdmin}
+                                                disabled={!canEditOrDelete}
                                                 style={{
                                                     appearance: 'none',
                                                     backgroundImage: `url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'></polyline></svg>")`,
@@ -1212,7 +1051,7 @@ const Tasks = () => {
                                                 }
                                                 required
                                                 disabled={
-                                                    !isAdmin ||
+                                                    !canEditOrDelete ||
                                                     (editTask &&
                                                         editTask.revised_due_date)
                                                 }
@@ -1224,53 +1063,19 @@ const Tasks = () => {
                                                 <label className="modern-form-label">
                                                     Created At
                                                 </label>
-                                                <input
-                                                    type="text"
-                                                    className="modern-form-input"
-                                                    value={
-                                                        editTask.created_at
-                                                            ? new Date(
-                                                                  editTask.created_at,
-                                                              ).toLocaleString()
-                                                            : '—'
-                                                    }
-                                                    disabled
-                                                    style={{
-                                                        background: '#f8fafc',
-                                                        color: '#64748b',
-                                                        cursor: 'not-allowed',
-                                                        borderColor: '#cbd5e1',
-                                                    }}
-                                                />
+                                                <input type="text" className="modern-form-input ext-tasks-204" value={ editTask.created_at ? new Date( editTask.created_at, ).toLocaleString() : '—' } disabled/>
                                             </div>
                                         )}
                                     </div>
 
                                     {/* Revised Due Date */}
 
-                                    {editTask && isAdmin && (
+                                    {editTask && canEditOrDelete && (
                                         <div className="modern-form-group">
-                                            <label
-                                                className="modern-form-label"
-                                                style={{
-                                                    display: 'flex',
-                                                    alignItems: 'center',
-                                                    gap: '8px',
-                                                }}
-                                            >
+                                            <label className="modern-form-label ext-announcements-16">
                                                 Revised Due Date
                                                 {isOverdue(editTask) && (
-                                                    <span
-                                                        style={{
-                                                            fontSize: '0.7rem',
-                                                            padding: '2px 8px',
-                                                            borderRadius: '4px',
-                                                            background:
-                                                                '#ef444415',
-                                                            color: '#ef4444',
-                                                            fontWeight: 700,
-                                                        }}
-                                                    >
+                                                    <span className="ext-tasks-205">
                                                         Overdue
                                                     </span>
                                                 )}
@@ -1309,7 +1114,7 @@ const Tasks = () => {
                                                     description: e.target.value,
                                                 })
                                             }
-                                            disabled={!isAdmin}
+                                            disabled={!canEditOrDelete}
                                         />
                                     </div>
 
@@ -1343,7 +1148,7 @@ const Tasks = () => {
                                                     )}
                                                 </div>
 
-                                                {isAdmin && (
+                                                {canCrud && (
                                                     <button
                                                         type="button"
                                                         onClick={() =>
@@ -1438,7 +1243,7 @@ const Tasks = () => {
                                                             {sub.title}
                                                         </span>
 
-                                                        {isAdmin && (
+                                                        {canCrud && (
                                                             <button
                                                                 type="button"
                                                                 onClick={() =>
@@ -1515,14 +1320,7 @@ const Tasks = () => {
 
                                             {subtasks.length === 0 &&
                                                 !showSubtaskInput && (
-                                                    <p
-                                                        style={{
-                                                            fontSize: '0.82rem',
-                                                            color: 'var(--text-muted)',
-                                                            margin: '4px 0 0',
-                                                            paddingLeft: '4px',
-                                                        }}
-                                                    >
+                                                    <p className="ext-tasks-206">
                                                         No subtasks yet
                                                     </p>
                                                 )}
@@ -1531,11 +1329,8 @@ const Tasks = () => {
 
                                     {/* ─── Assignees ─── */}
 
-                                    {isAdmin && (
-                                        <div
-                                            className="modern-form-group"
-                                            style={{ marginTop: '20px' }}
-                                        >
+                                    {canCrud && (
+                                        <div className="modern-form-group ext-tasks-207">
                                             <label className="modern-form-label">
                                                 Assign To (
                                                 {form.assignee_ids.length}{' '}
@@ -1544,18 +1339,14 @@ const Tasks = () => {
 
                                             <div className="modern-assignee-grid">
                                                 {teamMembers.length === 0 ? (
-                                                    <div
-                                                        style={{
-                                                            color: 'var(--text-muted)',
-                                                            fontSize: '0.85rem',
-                                                            padding: '8px',
-                                                        }}
-                                                    >
+                                                    <div className="ext-tasks-208">
                                                         No team members
                                                         available
                                                     </div>
                                                 ) : (
-                                                    teamMembers.map((m) => {
+                                                    teamMembers
+                                                        .filter((m) => m.id !== user?.id)
+                                                        .map((m) => {
                                                         const isSelected =
                                                             form.assignee_ids.includes(
                                                                 m.id,
@@ -1569,12 +1360,12 @@ const Tasks = () => {
                                                         return (
                                                             <div
                                                                 key={m.id}
-                                                                className={`modern-assignee-item ${isSelected ? 'selected' : ''}`}
-                                                                onClick={() =>
-                                                                    toggleAssignee(
-                                                                        m.id,
-                                                                    )
-                                                                }
+                                                                className={`modern-assignee-item ${isSelected ? 'selected' : ''} ${!canEditOrDelete ? 'disabled' : ''}`}
+                                                                onClick={() => {
+                                                                    if (canEditOrDelete) {
+                                                                        toggleAssignee(m.id);
+                                                                    }
+                                                                }}
                                                             >
                                                                 <input
                                                                     type="checkbox"
@@ -1586,17 +1377,7 @@ const Tasks = () => {
                                                                 />
 
                                                                 {m.profile_picture ? (
-                                                                    <img
-                                                                        src={
-                                                                            m.profile_picture
-                                                                        }
-                                                                        alt="Avatar"
-                                                                        className="modern-assignee-avatar"
-                                                                        style={{
-                                                                            objectFit:
-                                                                                'cover',
-                                                                        }}
-                                                                    />
+                                                                    <img src={ m.profile_picture } alt="Avatar" className="modern-assignee-avatar ext-tasks-209"/>
                                                                 ) : (
                                                                     <div
                                                                         className="modern-assignee-avatar"
@@ -1627,7 +1408,7 @@ const Tasks = () => {
 
                                     {/* Save buttons */}
 
-                                    {isAdmin && (
+                                    {canEditOrDelete && (
                                         <div className="modern-modal-footer">
                                             <button
                                                 type="button"
@@ -1721,23 +1502,9 @@ const Tasks = () => {
                                         )}
 
                                         {loadingComments ? (
-                                            <div
-                                                style={{
-                                                    textAlign: 'center',
-                                                    padding: '20px',
-                                                    display: 'flex',
-                                                    flexDirection: 'column',
-                                                    alignItems: 'center',
-                                                    gap: '8px',
-                                                }}
-                                            >
+                                            <div className="ext-tasks-210">
                                                 <div className="spinner"></div>
-                                                <div
-                                                    className="page-loader-text"
-                                                    style={{
-                                                        fontSize: '0.85rem',
-                                                    }}
-                                                >
+                                                <div className="page-loader-text ext-tasks-211">
                                                     Loading activity...
                                                 </div>
                                             </div>
@@ -1755,18 +1522,7 @@ const Tasks = () => {
                                                     >
                                                         {comment.user
                                                             ?.profile_picture ? (
-                                                            <img
-                                                                src={
-                                                                    comment.user
-                                                                        .profile_picture
-                                                                }
-                                                                alt="Avatar"
-                                                                className="modern-comment-avatar"
-                                                                style={{
-                                                                    objectFit:
-                                                                        'cover',
-                                                                }}
-                                                            />
+                                                            <img src={ comment.user .profile_picture } alt="Avatar" className="modern-comment-avatar ext-tasks-209"/>
                                                         ) : (
                                                             <div
                                                                 className="modern-comment-avatar"
@@ -1823,16 +1579,7 @@ const Tasks = () => {
                                                 );
 
                                                 return user?.profile_picture ? (
-                                                    <img
-                                                        src={
-                                                            user.profile_picture
-                                                        }
-                                                        alt="Avatar"
-                                                        className="modern-comment-input-avatar"
-                                                        style={{
-                                                            objectFit: 'cover',
-                                                        }}
-                                                    />
+                                                    <img src={ user.profile_picture } alt="Avatar" className="modern-comment-input-avatar ext-tasks-209"/>
                                                 ) : (
                                                     <div
                                                         className="modern-comment-input-avatar"

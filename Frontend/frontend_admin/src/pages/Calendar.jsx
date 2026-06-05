@@ -82,19 +82,7 @@ const TaskDetailModal = ({ tasks, date, onClose }) => {
     });
 
     return (
-        <div
-            style={{
-                position: 'fixed',
-                inset: 0,
-                background: 'rgba(0,0,0,0.45)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                zIndex: 1000,
-                backdropFilter: 'blur(4px)',
-            }}
-            onClick={onClose}
-        >
+        <div className="ext-calendar-39" onClick={onClose}>
             <div
                 onClick={(e) => e.stopPropagation()}
                 style={{
@@ -108,59 +96,22 @@ const TaskDetailModal = ({ tasks, date, onClose }) => {
                 }}
             >
                 {/* Header */}
-                <div
-                    style={{
-                        padding: '20px 24px',
-                        borderBottom: '1px solid var(--border-color)',
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                    }}
-                >
+                <div className="ext-calendar-41">
                     <div>
-                        <h2
-                            style={{
-                                margin: 0,
-                                fontSize: '1.1rem',
-                                fontWeight: 700,
-                            }}
-                        >
+                        <h2 className="ext-calendar-42">
                             Tasks Due
                         </h2>
-                        <p
-                            style={{
-                                margin: '4px 0 0',
-                                fontSize: '0.8rem',
-                                color: 'var(--text-muted)',
-                            }}
-                        >
+                        <p className="ext-calendar-43">
                             {dateStr}
                         </p>
                     </div>
-                    <button
-                        onClick={onClose}
-                        style={{
-                            background: 'none',
-                            border: 'none',
-                            fontSize: '1.4rem',
-                            cursor: 'pointer',
-                            color: 'var(--text-muted)',
-                            padding: '4px 8px',
-                            borderRadius: '6px',
-                        }}
-                    >
+                    <button onClick={onClose} className="ext-calendar-44">
                         &times;
                     </button>
                 </div>
 
                 {/* Tasks List */}
-                <div
-                    style={{
-                        padding: '16px 24px',
-                        overflowY: 'auto',
-                        maxHeight: '60vh',
-                    }}
-                >
+                <div className="ext-calendar-45">
                     {tasks.map((task) => {
                         const pStyle =
                             priorityColors[task.priority] ||
@@ -185,22 +136,8 @@ const TaskDetailModal = ({ tasks, date, onClose }) => {
                                     transition: 'transform 0.15s',
                                 }}
                             >
-                                <div
-                                    style={{
-                                        display: 'flex',
-                                        justifyContent: 'space-between',
-                                        alignItems: 'flex-start',
-                                        marginBottom: '8px',
-                                    }}
-                                >
-                                    <h3
-                                        style={{
-                                            margin: 0,
-                                            fontSize: '0.95rem',
-                                            fontWeight: 600,
-                                            color: 'var(--text-primary)',
-                                        }}
-                                    >
+                                <div className="ext-calendar-46">
+                                    <h3 className="ext-calendar-47">
                                         {task.task_name}
                                     </h3>
                                     <span
@@ -220,19 +157,13 @@ const TaskDetailModal = ({ tasks, date, onClose }) => {
                                     </span>
                                 </div>
 
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '0 0 10px' }}>
-                                    <p
-                                        style={{
-                                            fontSize: '0.8rem',
-                                            color: 'var(--text-secondary)',
-                                            margin: 0,
-                                        }}
-                                    >
+                                <div className="ext-calendar-48">
+                                    <p className="ext-calendar-49">
                                         {task.project_name}
                                     </p>
                                     {task.revised_due_date && (
-                                        <span style={{ fontSize: '0.72rem', color: '#ffb946', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                                            <span style={{ textDecoration: 'line-through', opacity: 0.7 }}>{new Date(task.due_date).toLocaleDateString()}</span>
+                                        <span className="ext-calendar-50">
+                                            <span className="ext-calendar-51">{new Date(task.due_date).toLocaleDateString()}</span>
                                             &rarr;
                                             <span>{new Date(task.revised_due_date).toLocaleDateString()} (Revised)</span>
                                         </span>
@@ -240,30 +171,12 @@ const TaskDetailModal = ({ tasks, date, onClose }) => {
                                 </div>
 
                                 {task.description && (
-                                    <p
-                                        style={{
-                                            fontSize: '0.8rem',
-                                            color: 'var(--text-muted)',
-                                            margin: '0 0 12px',
-                                            lineHeight: 1.4,
-                                            display: '-webkit-box',
-                                            WebkitLineClamp: 2,
-                                            WebkitBoxOrient: 'vertical',
-                                            overflow: 'hidden',
-                                        }}
-                                    >
+                                    <p className="ext-calendar-52">
                                         {task.description}
                                     </p>
                                 )}
 
-                                <div
-                                    style={{
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        gap: '10px',
-                                        flexWrap: 'wrap',
-                                    }}
-                                >
+                                <div className="ext-calendar-53">
                                     <span
                                         style={{
                                             padding: '3px 10px',
@@ -278,29 +191,13 @@ const TaskDetailModal = ({ tasks, date, onClose }) => {
                                     </span>
 
                                     {task.assignees && task.assignees.length > 0 && (
-                                        <span
-                                            style={{
-                                                fontSize: '0.78rem',
-                                                color: 'var(--primary)',
-                                                fontWeight: 600,
-                                            }}
-                                        >
+                                        <span className="ext-calendar-54">
                                             @{task.assignees.map(a => a.username).join(', ')}
                                         </span>
                                     )}
 
                                     {isOverdue && (
-                                        <span
-                                            style={{
-                                                padding: '2px 8px',
-                                                borderRadius: '4px',
-                                                fontSize: '0.68rem',
-                                                fontWeight: 700,
-                                                background:
-                                                    'rgba(255,107,107,0.15)',
-                                                color: '#ff6b6b',
-                                            }}
-                                        >
+                                        <span className="ext-calendar-55">
                                             OVERDUE
                                         </span>
                                     )}
@@ -506,16 +403,9 @@ const Calendar = () => {
     };
 
     return (
-        <div className="page" style={{ maxWidth: '100%' }}>
+        <div className="page ext-calendar-56">
             {/* Header */}
-            <div
-                className="page-header"
-                style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'flex-start',
-                }}
-            >
+            <div className="page-header ext-calendar-57">
                 <div>
                     <h1 className="page-title">Calendar</h1>
                     <p className="page-subtitle">
@@ -523,14 +413,8 @@ const Calendar = () => {
                     </p>
                 </div>
                 {isAdmin && teamMembers.length > 0 && (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                        <label
-                            style={{
-                                fontSize: '0.85rem',
-                                fontWeight: 600,
-                                color: 'var(--text-muted)',
-                            }}
-                        >
+                    <div className="ext-announcements-14">
+                        <label className="ext-announcements-26">
                             Team Member:
                         </label>
                         <select
@@ -649,24 +533,10 @@ const Calendar = () => {
             </div>
 
             {/* Calendar Card */}
-            <div className="content-card" style={{ padding: '0', overflow: 'hidden' }}>
+            <div className="content-card ext-calendar-60">
                 {/* Month Navigation */}
-                <div
-                    style={{
-                        padding: '16px 20px',
-                        borderBottom: '1px solid var(--border-color)',
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                    }}
-                >
-                    <div
-                        style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '12px',
-                        }}
-                    >
+                <div className="ext-calendar-61">
+                    <div className="ext-announcements-14">
                         <button
                             onClick={() => navigateMonth(-1)}
                             className="calendar-nav-btn"
@@ -685,15 +555,7 @@ const Calendar = () => {
                             </svg>
                         </button>
 
-                        <h2
-                            style={{
-                                margin: 0,
-                                fontSize: '1.05rem',
-                                fontWeight: 700,
-                                minWidth: '160px',
-                                textAlign: 'center',
-                            }}
-                        >
+                        <h2 className="ext-calendar-62">
                             {MONTHS[currentMonth]} {currentYear}
                         </h2>
 
@@ -716,39 +578,14 @@ const Calendar = () => {
                         </button>
                     </div>
 
-                    <button
-                        onClick={goToToday}
-                        className="btn-primary"
-                        style={{
-                            padding: '6px 14px',
-                            background: 'var(--primary-light)',
-                            color: 'var(--primary)',
-                            boxShadow: 'none',
-                            fontSize: '0.8rem',
-                        }}
-                    >
+                    <button onClick={goToToday} className="btn-primary ext-calendar-63">
                         Today
                     </button>
                 </div>
 
                 {/* Legend */}
-                <div
-                    style={{
-                        padding: '12px 24px',
-                        borderBottom: '1px solid var(--border-color)',
-                        display: 'flex',
-                        gap: '20px',
-                        alignItems: 'center',
-                        background: 'var(--bg-body)',
-                    }}
-                >
-                    <span
-                        style={{
-                            fontSize: '0.75rem',
-                            color: 'var(--text-muted)',
-                            fontWeight: 600,
-                        }}
-                    >
+                <div className="ext-calendar-64">
+                    <span className="ext-calendar-65">
                         PRIORITY:
                     </span>
                     {[
@@ -756,14 +593,7 @@ const Calendar = () => {
                         { label: 'Medium', color: '#ffb946' },
                         { label: 'Low', color: '#4bcf82' },
                     ].map((item) => (
-                        <div
-                            key={item.label}
-                            style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '6px',
-                            }}
-                        >
+                        <div key={item.label} className="ext-calendar-66">
                             <div
                                 style={{
                                     width: '8px',
@@ -772,12 +602,7 @@ const Calendar = () => {
                                     background: item.color,
                                 }}
                             />
-                            <span
-                                style={{
-                                    fontSize: '0.75rem',
-                                    color: 'var(--text-secondary)',
-                                }}
-                            >
+                            <span className="ext-calendar-67">
                                 {item.label}
                             </span>
                         </div>
@@ -785,47 +610,23 @@ const Calendar = () => {
                 </div>
 
                 {loading ? (
-                        <div className="page-loader" style={{ padding: '60px 0' }}>
+                        <div className="page-loader ext-calendar-68">
                             <div className="page-loader-spinner"></div>
                             <div className="page-loader-text">Loading calendar...</div>
                         </div>
                     ) : (
-                    <div style={{ padding: '16px 24px 24px' }}>
+                    <div className="ext-calendar-69">
                         {/* Day Headers */}
-                        <div
-                            style={{
-                                display: 'grid',
-                                gridTemplateColumns: 'repeat(7, 1fr)',
-                                gap: '4px',
-                                marginBottom: '8px',
-                            }}
-                        >
+                        <div className="ext-calendar-70">
                             {DAYS.map((day) => (
-                                <div
-                                    key={day}
-                                    style={{
-                                        textAlign: 'center',
-                                        padding: '8px',
-                                        fontSize: '0.75rem',
-                                        fontWeight: 700,
-                                        color: 'var(--text-muted)',
-                                        textTransform: 'uppercase',
-                                        letterSpacing: '0.5px',
-                                    }}
-                                >
+                                <div key={day} className="ext-calendar-71">
                                     {day}
                                 </div>
                             ))}
                         </div>
 
                         {/* Calendar Grid */}
-                        <div
-                            style={{
-                                display: 'grid',
-                                gridTemplateColumns: 'repeat(7, 1fr)',
-                                gap: '4px',
-                            }}
-                        >
+                        <div className="ext-calendar-72">
                             {calendarDays.map((dayObj, idx) => {
                                 const dateKey = getDateKey(dayObj);
                                 const dayTasks = tasksByDate[dateKey] || [];
@@ -929,14 +730,7 @@ const Calendar = () => {
                                             })}
 
                                         {dayTasks.length > 3 && (
-                                            <div
-                                                style={{
-                                                    fontSize: '0.62rem',
-                                                    color: 'var(--primary)',
-                                                    fontWeight: 600,
-                                                    paddingTop: '2px',
-                                                }}
-                                            >
+                                            <div className="ext-calendar-73">
                                                 +{dayTasks.length - 3} more
                                             </div>
                                         )}
@@ -949,11 +743,11 @@ const Calendar = () => {
             </div>
 
             {/* Upcoming Deadlines List */}
-            <div className="content-card" style={{ marginTop: '24px' }}>
-                <div className="content-card-title" style={{ marginBottom: '14px' }}>
+            <div className="content-card ext-calendar-74">
+                <div className="content-card-title ext-calendar-75">
                     Upcoming Deadlines
                 </div>
-                <div style={{ padding: '0' }}>
+                <div className="ext-calendar-76">
                     {filteredTasks
                         .filter(
                             (t) =>
@@ -981,26 +775,8 @@ const Calendar = () => {
                             );
 
                             return (
-                                <div
-                                    key={task.id}
-                                    style={{
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'space-between',
-                                        padding: '12px 0',
-                                        borderBottom:
-                                            '1px solid var(--border-light)',
-                                    }}
-                                >
-                                    <div
-                                        style={{
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            gap: '12px',
-                                            flex: 1,
-                                            minWidth: 0,
-                                        }}
-                                    >
+                                <div key={task.id} className="ext-calendar-77">
+                                    <div className="ext-calendar-78">
                                         <div
                                             style={{
                                                 width: '8px',
@@ -1010,24 +786,11 @@ const Calendar = () => {
                                                 flexShrink: 0,
                                             }}
                                         />
-                                        <div style={{ minWidth: 0, flex: 1 }}>
-                                            <div
-                                                style={{
-                                                    fontWeight: 600,
-                                                    fontSize: '0.88rem',
-                                                    whiteSpace: 'nowrap',
-                                                    overflow: 'hidden',
-                                                    textOverflow: 'ellipsis',
-                                                }}
-                                            >
+                                        <div className="ext-calendar-79">
+                                            <div className="ext-calendar-80">
                                                 {task.task_name}
                                             </div>
-                                            <div
-                                                style={{
-                                                    fontSize: '0.75rem',
-                                                    color: 'var(--text-muted)',
-                                                }}
-                                            >
+                                            <div className="ext-calendar-81">
                                                 {task.project_name}
                                                 {task.assignees && task.assignees.length > 0 &&
                                                     ` • @${task.assignees.map(a => a.username).join(', ')}`}
@@ -1035,14 +798,7 @@ const Calendar = () => {
                                         </div>
                                     </div>
 
-                                    <div
-                                        style={{
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            gap: '10px',
-                                            flexShrink: 0,
-                                        }}
-                                    >
+                                    <div className="ext-calendar-82">
                                         <span
                                             style={{
                                                 padding: '3px 8px',
@@ -1087,13 +843,7 @@ const Calendar = () => {
                             parseLocalDate(t.revised_due_date || t.due_date) >=
                                 getTodayLocal(),
                     ).length === 0 && (
-                        <div
-                            style={{
-                                padding: '24px',
-                                textAlign: 'center',
-                                color: 'var(--text-muted)',
-                            }}
-                        >
+                        <div className="ext-calendar-83">
                             No upcoming deadlines
                         </div>
                     )}

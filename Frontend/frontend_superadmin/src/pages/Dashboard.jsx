@@ -265,7 +265,7 @@ const Dashboard = () => {
 
     if (loading) {
         return (
-            <div className="page" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '60vh' }}>
+            <div className="page ext-dashboard-85">
                 <div className="page-loader">
                     <div className="page-loader-spinner"></div>
                     <div className="page-loader-text">Loading dashboard...</div>
@@ -277,7 +277,7 @@ const Dashboard = () => {
     return (
         <div className="page">
             {/* Page Header */}
-            <div className="page-header" style={{ marginBottom: '24px' }}>
+            <div className="page-header ext-dashboard-86">
                 <div>
                     <h1 className="page-title">Global Dashboard</h1>
                     <p className="page-subtitle">
@@ -292,38 +292,9 @@ const Dashboard = () => {
             </div>
 
             {/* Top Header: High-Level Health Counter Cards */}
-            <div
-                style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-                    gap: '20px',
-                    marginBottom: '32px',
-                }}
-            >
-                <div
-                    style={{
-                        background: '#fff',
-                        borderRadius: '16px',
-                        padding: '24px',
-                        border: '1px solid var(--border-color)',
-                        boxShadow: 'var(--shadow-sm)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '20px',
-                    }}
-                >
-                    <div
-                        style={{
-                            width: '56px',
-                            height: '56px',
-                            borderRadius: '14px',
-                            background: 'rgba(73,204,249,0.1)',
-                            color: '#49CCF9',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                        }}
-                    >
+            <div className="ext-dashboard-87">
+                <div className="ext-dashboard-88">
+                    <div className="ext-dashboard-89">
                         <svg
                             width="28"
                             height="28"
@@ -342,52 +313,17 @@ const Dashboard = () => {
                         </svg>
                     </div>
                     <div>
-                        <div
-                            style={{
-                                fontSize: '0.9rem',
-                                fontWeight: 600,
-                                color: 'var(--text-muted)',
-                            }}
-                        >
+                        <div className="ext-dashboard-90">
                             Total Active Tasks
                         </div>
-                        <div
-                            style={{
-                                fontSize: '2rem',
-                                fontWeight: 800,
-                                color: 'var(--text-primary)',
-                                lineHeight: 1.2,
-                            }}
-                        >
+                        <div className="ext-dashboard-91">
                             {headerMetrics.totalActive}
                         </div>
                     </div>
                 </div>
 
-                <div
-                    style={{
-                        background: '#fff',
-                        borderRadius: '16px',
-                        padding: '24px',
-                        border: '1px solid var(--border-color)',
-                        boxShadow: 'var(--shadow-sm)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '20px',
-                    }}
-                >
-                    <div
-                        style={{
-                            width: '56px',
-                            height: '56px',
-                            borderRadius: '14px',
-                            background: 'rgba(255,107,107,0.1)',
-                            color: '#ff6b6b',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                        }}
-                    >
+                <div className="ext-dashboard-88">
+                    <div className="ext-dashboard-92">
                         <svg
                             width="28"
                             height="28"
@@ -403,52 +339,17 @@ const Dashboard = () => {
                         </svg>
                     </div>
                     <div>
-                        <div
-                            style={{
-                                fontSize: '0.9rem',
-                                fontWeight: 600,
-                                color: 'var(--text-muted)',
-                            }}
-                        >
+                        <div className="ext-dashboard-90">
                             Overdue Tasks
                         </div>
-                        <div
-                            style={{
-                                fontSize: '2rem',
-                                fontWeight: 800,
-                                color: '#ff6b6b',
-                                lineHeight: 1.2,
-                            }}
-                        >
+                        <div className="ext-dashboard-93">
                             {headerMetrics.overdue}
                         </div>
                     </div>
                 </div>
 
-                <div
-                    style={{
-                        background: '#fff',
-                        borderRadius: '16px',
-                        padding: '24px',
-                        border: '1px solid var(--border-color)',
-                        boxShadow: 'var(--shadow-sm)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '20px',
-                    }}
-                >
-                    <div
-                        style={{
-                            width: '56px',
-                            height: '56px',
-                            borderRadius: '14px',
-                            background: 'rgba(75,207,130,0.1)',
-                            color: '#4bcf82',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                        }}
-                    >
+                <div className="ext-dashboard-88">
+                    <div className="ext-dashboard-94">
                         <svg
                             width="28"
                             height="28"
@@ -463,44 +364,16 @@ const Dashboard = () => {
                             <polyline points="22 4 12 14.01 9 11.01" />
                         </svg>
                     </div>
-                    <div style={{ flex: 1 }}>
-                        <div
-                            style={{
-                                fontSize: '0.9rem',
-                                fontWeight: 600,
-                                color: 'var(--text-muted)',
-                            }}
-                        >
+                    <div className="ext-dashboard-95">
+                        <div className="ext-dashboard-90">
                             Project Progress
                         </div>
-                        <div
-                            style={{
-                                display: 'flex',
-                                alignItems: 'baseline',
-                                gap: '8px',
-                            }}
-                        >
-                            <div
-                                style={{
-                                    fontSize: '2rem',
-                                    fontWeight: 800,
-                                    color: 'var(--text-primary)',
-                                    lineHeight: 1.2,
-                                }}
-                            >
+                        <div className="ext-dashboard-96">
+                            <div className="ext-dashboard-91">
                                 {headerMetrics.progress}%
                             </div>
                         </div>
-                        <div
-                            style={{
-                                width: '100%',
-                                height: '6px',
-                                background: 'var(--bg-body)',
-                                borderRadius: '3px',
-                                marginTop: '8px',
-                                overflow: 'hidden',
-                            }}
-                        >
+                        <div className="ext-dashboard-97">
                             <div
                                 style={{
                                     width: `${headerMetrics.progress}%`,
@@ -515,35 +388,13 @@ const Dashboard = () => {
             </div>
 
             {/* Middle Section: Visual Charts */}
-            <div
-                style={{
-                    display: 'grid',
-                    gridTemplateColumns: '3fr 2fr',
-                    gap: '24px',
-                    marginBottom: '32px',
-                }}
-            >
+            <div className="ext-dashboard-98">
                 {/* Workload per Person (Bar Chart) */}
-                <div
-                    style={{
-                        background: '#fff',
-                        borderRadius: '16px',
-                        padding: '24px',
-                        border: '1px solid var(--border-color)',
-                        boxShadow: 'var(--shadow-sm)',
-                    }}
-                >
-                    <h2
-                        style={{
-                            fontSize: '1.1rem',
-                            fontWeight: 700,
-                            margin: '0 0 24px',
-                            color: 'var(--text-primary)',
-                        }}
-                    >
+                <div className="ext-dashboard-99">
+                    <h2 className="ext-dashboard-100">
                         Workload Distribution (Global)
                     </h2>
-                    <div style={{ height: '300px', width: '100%' }}>
+                    <div className="ext-dashboard-101">
                         {workloadData.length > 0 ? (
                             <ResponsiveContainer width="100%" height="100%">
                                 <BarChart
@@ -596,15 +447,7 @@ const Dashboard = () => {
                                 </BarChart>
                             </ResponsiveContainer>
                         ) : (
-                            <div
-                                style={{
-                                    height: '100%',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    color: 'var(--text-muted)',
-                                }}
-                            >
+                            <div className="ext-dashboard-102">
                                 No workload data available
                             </div>
                         )}
@@ -612,33 +455,11 @@ const Dashboard = () => {
                 </div>
 
                 {/* Tasks by Current Status (Pie Chart) */}
-                <div
-                    style={{
-                        background: '#fff',
-                        borderRadius: '16px',
-                        padding: '24px',
-                        border: '1px solid var(--border-color)',
-                        boxShadow: 'var(--shadow-sm)',
-                    }}
-                >
-                    <h2
-                        style={{
-                            fontSize: '1.1rem',
-                            fontWeight: 700,
-                            margin: '0 0 24px',
-                            color: 'var(--text-primary)',
-                        }}
-                    >
+                <div className="ext-dashboard-99">
+                    <h2 className="ext-dashboard-100">
                         Tasks by Status
                     </h2>
-                    <div
-                        style={{
-                            height: '300px',
-                            width: '100%',
-                            display: 'flex',
-                            flexDirection: 'column',
-                        }}
-                    >
+                    <div className="ext-dashboard-103">
                         {statusData.length > 0 ? (
                             <ResponsiveContainer width="100%" height="100%">
                                 <PieChart>
@@ -677,15 +498,7 @@ const Dashboard = () => {
                                 </PieChart>
                             </ResponsiveContainer>
                         ) : (
-                            <div
-                                style={{
-                                    height: '100%',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    color: 'var(--text-muted)',
-                                }}
-                            >
+                            <div className="ext-dashboard-102">
                                 No status data available
                             </div>
                         )}
@@ -694,111 +507,33 @@ const Dashboard = () => {
             </div>
 
             {/* Bottom Section: Actionable Detail */}
-            <div
-                style={{
-                    display: 'grid',
-                    gridTemplateColumns: '2fr 1fr',
-                    gap: '24px',
-                }}
-            >
+            <div className="ext-dashboard-104">
                 {/* Top 5 Critical/Urgent Tasks */}
-                <div
-                    style={{
-                        background: '#fff',
-                        borderRadius: '16px',
-                        padding: '24px',
-                        border: '1px solid var(--border-color)',
-                        boxShadow: 'var(--shadow-sm)',
-                    }}
-                >
-                    <div
-                        style={{
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            alignItems: 'center',
-                            marginBottom: '20px',
-                        }}
-                    >
-                        <h2
-                            style={{
-                                fontSize: '1.1rem',
-                                fontWeight: 700,
-                                margin: 0,
-                                color: 'var(--text-primary)',
-                            }}
-                        >
+                <div className="ext-dashboard-99">
+                    <div className="ext-dashboard-105">
+                        <h2 className="ext-dashboard-106">
                             Top 5 Critical Tasks (Global)
                         </h2>
-                        <Link
-                            to="/tasks-progress"
-                            style={{
-                                fontSize: '0.85rem',
-                                fontWeight: 600,
-                                color: 'var(--primary)',
-                                textDecoration: 'none',
-                            }}
-                        >
+                        <Link to="/tasks-progress" className="ext-dashboard-107">
                             View All
                         </Link>
                     </div>
 
                     {topCriticalTasks.length > 0 ? (
-                        <div style={{ overflowX: 'auto' }}>
-                            <table
-                                style={{
-                                    width: '100%',
-                                    borderCollapse: 'collapse',
-                                    textAlign: 'left',
-                                }}
-                            >
+                        <div className="ext-dashboard-108">
+                            <table className="ext-dashboard-109">
                                 <thead>
                                     <tr>
-                                        <th
-                                            style={{
-                                                padding: '12px 16px',
-                                                borderBottom:
-                                                    '1px solid var(--border-light)',
-                                                color: 'var(--text-muted)',
-                                                fontWeight: 600,
-                                                fontSize: '0.85rem',
-                                            }}
-                                        >
+                                        <th className="ext-dashboard-110">
                                             Task Name
                                         </th>
-                                        <th
-                                            style={{
-                                                padding: '12px 16px',
-                                                borderBottom:
-                                                    '1px solid var(--border-light)',
-                                                color: 'var(--text-muted)',
-                                                fontWeight: 600,
-                                                fontSize: '0.85rem',
-                                            }}
-                                        >
+                                        <th className="ext-dashboard-110">
                                             Priority
                                         </th>
-                                        <th
-                                            style={{
-                                                padding: '12px 16px',
-                                                borderBottom:
-                                                    '1px solid var(--border-light)',
-                                                color: 'var(--text-muted)',
-                                                fontWeight: 600,
-                                                fontSize: '0.85rem',
-                                            }}
-                                        >
+                                        <th className="ext-dashboard-110">
                                             Due Date
                                         </th>
-                                        <th
-                                            style={{
-                                                padding: '12px 16px',
-                                                borderBottom:
-                                                    '1px solid var(--border-light)',
-                                                color: 'var(--text-muted)',
-                                                fontWeight: 600,
-                                                fontSize: '0.85rem',
-                                            }}
-                                        >
+                                        <th className="ext-dashboard-110">
                                             Assignee
                                         </th>
                                     </tr>
@@ -813,33 +548,14 @@ const Dashboard = () => {
                                                      new Date().toDateString(),
                                                  );
                                         return (
-                                            <tr
-                                                key={task.id || idx}
-                                                style={{
-                                                    borderBottom:
-                                                        '1px solid var(--border-light)',
-                                                }}
-                                            >
-                                                <td
-                                                    style={{
-                                                        padding: '16px',
-                                                        fontWeight: 600,
-                                                        color: 'var(--text-primary)',
-                                                    }}
-                                                >
+                                            <tr key={task.id || idx} className="ext-dashboard-111">
+                                                <td className="ext-dashboard-112">
                                                     {task.task_name}
-                                                    <div
-                                                        style={{
-                                                            fontSize: '0.75rem',
-                                                            color: 'var(--text-muted)',
-                                                            marginTop: '4px',
-                                                            fontWeight: 500,
-                                                        }}
-                                                    >
+                                                    <div className="ext-dashboard-113">
                                                         {task.project_name}
                                                     </div>
                                                 </td>
-                                                <td style={{ padding: '16px' }}>
+                                                <td className="ext-dashboard-114">
                                                     <span
                                                         style={{
                                                             padding: '4px 10px',
@@ -868,82 +584,35 @@ const Dashboard = () => {
                                                     }}
                                                 >
                                                     {task.revised_due_date ? (
-                                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                                                            <span style={{ textDecoration: 'line-through', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                                                        <div className="ext-dashboard-115">
+                                                            <span className="ext-dashboard-116">
                                                                 {new Date(task.due_date).toLocaleDateString()}
                                                             </span>
                                                             <span style={{ fontWeight: 600, color: isOverdue ? '#ff6b6b' : 'var(--text-primary)' }}>
                                                                 {new Date(task.revised_due_date).toLocaleDateString()}
-                                                                <span style={{ fontSize: '0.65rem', marginLeft: '6px', padding: '2px 4px', borderRadius: '4px', background: 'rgba(255,185,70,0.1)', color: '#ffb946', fontWeight: 700 }}>REVISED</span>
+                                                                <span className="ext-dashboard-117">REVISED</span>
                                                             </span>
                                                         </div>
                                                     ) : task.due_date ? (
                                                         <>
                                                             {new Date(task.due_date).toLocaleDateString()}
                                                             {isOverdue && (
-                                                                <span
-                                                                    style={{
-                                                                        display:
-                                                                            'inline-block',
-                                                                        marginLeft:
-                                                                            '6px',
-                                                                        padding:
-                                                                            '2px 6px',
-                                                                        borderRadius:
-                                                                            '4px',
-                                                                        background:
-                                                                            '#ff6b6b',
-                                                                        color: '#fff',
-                                                                        fontSize:
-                                                                            '0.65rem',
-                                                                    }}
-                                                                >
+                                                                <span className="ext-dashboard-118">
                                                                     OVERDUE
                                                                 </span>
                                                             )}
                                                         </>
                                                     ) : 'N/A'}
                                                 </td>
-                                                <td style={{ padding: '16px' }}>
-                                                    <div
-                                                        style={{
-                                                            display: 'flex',
-                                                            alignItems:
-                                                                'center',
-                                                            gap: '8px',
-                                                        }}
-                                                    >
-                                                        <div
-                                                            style={{
-                                                                width: '28px',
-                                                                height: '28px',
-                                                                borderRadius:
-                                                                    '50%',
-                                                                background:
-                                                                    'var(--primary-light)',
-                                                                color: 'var(--primary)',
-                                                                display: 'flex',
-                                                                alignItems:
-                                                                    'center',
-                                                                justifyContent:
-                                                                    'center',
-                                                                fontSize:
-                                                                    '0.8rem',
-                                                                fontWeight: 700,
-                                                            }}
-                                                        >
+                                                <td className="ext-dashboard-114">
+                                                    <div className="ext-announcements-14">
+                                                        <div className="ext-dashboard-119">
                                                             {task.assignees?.[0]?.username
                                                                 ?.charAt(0)
                                                                 .toUpperCase() ||
                                                                 '?'}
                                                         </div>
-                                                        <span
-                                                            style={{
-                                                                fontSize:
-                                                                    '0.85rem',
-                                                                fontWeight: 500,
-                                                            }}
-                                                        >
+                                                        <span className="ext-dashboard-120">
                                                             {task.assignees?.length > 0
                                                                 ? `${task.assignees[0].username}${task.assignees.length > 1 ? ` +${task.assignees.length - 1}` : ''}`
                                                                 : 'Unassigned'}
@@ -957,70 +626,24 @@ const Dashboard = () => {
                             </table>
                         </div>
                     ) : (
-                        <div
-                            style={{
-                                padding: '40px',
-                                textAlign: 'center',
-                                color: 'var(--text-muted)',
-                                background: 'var(--bg-body)',
-                                borderRadius: '12px',
-                            }}
-                        >
+                        <div className="ext-dashboard-121">
                             No active critical tasks.
                         </div>
                     )}
                 </div>
 
                 {/* Recent Activity Feed */}
-                <div
-                    style={{
-                        background: '#fff',
-                        borderRadius: '16px',
-                        padding: '24px',
-                        border: '1px solid var(--border-color)',
-                        boxShadow: 'var(--shadow-sm)',
-                    }}
-                >
-                    <h2
-                        style={{
-                            fontSize: '1.1rem',
-                            fontWeight: 700,
-                            margin: '0 0 24px',
-                            color: 'var(--text-primary)',
-                        }}
-                    >
+                <div className="ext-dashboard-99">
+                    <h2 className="ext-dashboard-100">
                         Global Activity Feed
                     </h2>
 
-                    <div
-                        style={{
-                            display: 'flex',
-                            flexDirection: 'column',
-                            gap: '20px',
-                        }}
-                    >
+                    <div className="ext-dashboard-122">
                         {recentActivity.length > 0 ? (
                             recentActivity.map((activity, idx) => (
-                                <div
-                                    key={activity.id || idx}
-                                    style={{
-                                        display: 'flex',
-                                        gap: '16px',
-                                        position: 'relative',
-                                    }}
-                                >
+                                <div key={activity.id || idx} className="ext-dashboard-123">
                                     {idx !== recentActivity.length - 1 && (
-                                        <div
-                                            style={{
-                                                position: 'absolute',
-                                                left: '19px',
-                                                top: '40px',
-                                                bottom: '-20px',
-                                                width: '2px',
-                                                background:
-                                                    'var(--border-light)',
-                                            }}
-                                        ></div>
+                                        <div className="ext-dashboard-124"></div>
                                     )}
                                     <div
                                         style={{
@@ -1089,37 +712,12 @@ const Dashboard = () => {
                                             </svg>
                                         )}
                                     </div>
-                                    <div
-                                        style={{
-                                            flex: 1,
-                                            paddingBottom: '4px',
-                                        }}
-                                    >
-                                        <div
-                                            style={{
-                                                display: 'flex',
-                                                justifyContent: 'space-between',
-                                                alignItems: 'flex-start',
-                                                marginBottom: '4px',
-                                            }}
-                                        >
-                                            <div
-                                                style={{
-                                                    fontSize: '0.9rem',
-                                                    fontWeight: 600,
-                                                    color: 'var(--text-primary)',
-                                                }}
-                                            >
+                                    <div className="ext-dashboard-125">
+                                        <div className="ext-dashboard-126">
+                                            <div className="ext-dashboard-127">
                                                 {activity.title}
                                             </div>
-                                            <div
-                                                style={{
-                                                    fontSize: '0.75rem',
-                                                    color: 'var(--text-muted)',
-                                                    whiteSpace: 'nowrap',
-                                                    marginLeft: '12px',
-                                                }}
-                                            >
+                                            <div className="ext-dashboard-128">
                                                 {activity.date.toLocaleDateString(
                                                     [],
                                                     {
@@ -1129,26 +727,14 @@ const Dashboard = () => {
                                                 )}
                                             </div>
                                         </div>
-                                        <div
-                                            style={{
-                                                fontSize: '0.85rem',
-                                                color: 'var(--text-secondary)',
-                                                lineHeight: 1.4,
-                                            }}
-                                        >
+                                        <div className="ext-dashboard-129">
                                             {activity.desc}
                                         </div>
                                     </div>
                                 </div>
                             ))
                         ) : (
-                            <div
-                                style={{
-                                    textAlign: 'center',
-                                    color: 'var(--text-muted)',
-                                    padding: '20px',
-                                }}
-                            >
+                            <div className="ext-dashboard-130">
                                 No recent activity found.
                             </div>
                         )}

@@ -1,9 +1,20 @@
+import { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 const Sidebar = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+
+  const [isCollapsed, setIsCollapsed] = useState(() => {
+    return localStorage.getItem('super_sidebar_collapsed') === 'true';
+  });
+
+  const toggleSidebar = () => {
+    const nextState = !isCollapsed;
+    setIsCollapsed(nextState);
+    localStorage.setItem('super_sidebar_collapsed', String(nextState));
+  };
 
   const handleLogout = () => {
     logout();
@@ -67,6 +78,17 @@ const Sidebar = () => {
       ),
     },
     {
+      path: '/announcements',
+      label: 'Announcements',
+      icon: (
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M11 5L6 9H2v6h4l5 4V5z" />
+          <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
+          <path d="M19.07 4.93a10 10 0 0 1 0 14.14" />
+        </svg>
+      ),
+    },
+    {
       path: '/calendar',
       label: 'Calendar',
       icon: (
@@ -91,26 +113,39 @@ const Sidebar = () => {
   ];
 
   return (
-    <aside className="sidebar">
+    <aside className={`sidebar ${isCollapsed ? 'collapsed' : ''}`}>
       <div className="sidebar-top">
         {/* Brand */}
         <div className="sidebar-brand">
           <div className="sidebar-logo">
-            <img
-              src="/logo.jpg"
-              alt="Logo"
-              style={{
-                width: '24px',
-                height: '24px',
-                borderRadius: '4px',
-                objectFit: 'cover',
-              }}
-            />
+            <img src="/logo.jpg" alt="Logo" className="ext-sidebar-1"/>
           </div>
           <div className="sidebar-brand-info">
             <span className="sidebar-brand-name">Tracker</span>
             <span className="sidebar-brand-role">Super Admin</span>
           </div>
+          <button
+            className="sidebar-toggle-btn"
+            onClick={toggleSidebar}
+            title={isCollapsed ? 'Expand Sidebar' : 'Collapse Sidebar'}
+          >
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              {isCollapsed ? (
+                <polyline points="9 18 15 12 9 6" />
+              ) : (
+                <polyline points="15 18 9 12 15 6" />
+              )}
+            </svg>
+          </button>
         </div>
 
         {/* Navigation */}

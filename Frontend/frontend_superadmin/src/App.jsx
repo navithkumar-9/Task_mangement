@@ -11,6 +11,7 @@ import ManageUsers from './pages/ManageUsers';
 import Settings from './pages/Settings';
 import TaskProgress from './pages/TaskProgress';
 import Timesheet from './pages/Timesheet';
+import Announcements from './pages/Announcements';
 
 function App() {
     return (
@@ -64,6 +65,16 @@ function App() {
                             <ProtectedRoute>
                                 <Layout>
                                     <Timesheet />
+                                </Layout>
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path="/announcements"
+                        element={
+                            <ProtectedRoute>
+                                <Layout>
+                                    <Announcements />
                                 </Layout>
                             </ProtectedRoute>
                         }

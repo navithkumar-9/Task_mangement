@@ -21,13 +21,16 @@ from .serializers import (
     SubTaskSerializer,
     TaskDetailSerializer,
     NotificationSerializer,
+    AnnouncementCreateSerializer,
+    AnnouncementUpdateSerializer,
+    AnnouncementListSerializer,
 )
-from .permissions import IsAdmin, IsSuperAdmin
+from .permissions import IsAdmin, IsSuperAdmin, CanCrudTasks
 from .roles import UserRole
 from .response import success_response, error_response
 from .pagination import CustomPagination
 from django.db.models import Q
-from .models import Task, Timesheet, TaskComment, SubTask, Notification
+from .models import Task, Timesheet, TaskComment, SubTask, Notification, Announcement, AnnouncementAudience, TaskStatus
 
 load_dotenv()
 
@@ -186,6 +189,7 @@ class ProfileView(APIView):
                 "name": getattr(request.user, "name", "") or "",
                 "employee_id": getattr(request.user, "employee_id", "") or "",
                 "profile_picture": getattr(request.user, "profile_picture", "") or "",
+                "can_crud_tasks": getattr(request.user, "can_crud_tasks", False),
             },
             status_code=status.HTTP_200_OK,
         )
@@ -219,6 +223,7 @@ class ProfileView(APIView):
                 "name": getattr(user, "name", "") or "",
                 "employee_id": getattr(user, "employee_id", "") or "",
                 "profile_picture": getattr(user, "profile_picture", "") or "",
+                "can_crud_tasks": getattr(user, "can_crud_tasks", False),
             },
             status_code=status.HTTP_200_OK,
         )
@@ -384,6 +389,7 @@ class TeamMemberListForSuperAdminView(APIView):
                 "phone_number": user.phone_number,
                 "role": user.role,
                 "created_by": (user.created_by.username if user.created_by else None),
+                "can_crud_tasks": getattr(user, "can_crud_tasks", False),
             }
             for user in paginated_queryset
         ]
@@ -400,15 +406,24 @@ class TeamMemberListForSuperAdminView(APIView):
 
 class TeamMemberListForAdminView(APIView):
 
-    permission_classes = [IsAuthenticated, IsAdmin]
+    permission_classes = [IsAuthenticated, CanCrudTasks]
 
     def get(self, request):
 
         search = request.GET.get("search")
 
-        queryset = User.objects.filter(
-            role=UserRole.TEAM_MEMBER.value, created_by=request.user
-        ).order_by("-id")
+        if request.user.role == UserRole.ADMIN.value:
+            queryset = User.objects.filter(
+                role=UserRole.TEAM_MEMBER.value, created_by=request.user
+            ).order_by("-id")
+        else:
+            leader = request.user.created_by
+            if leader:
+                queryset = User.objects.filter(
+                    role=UserRole.TEAM_MEMBER.value, created_by=leader
+                ).order_by("-id")
+            else:
+                queryset = User.objects.filter(id=request.user.id).order_by("-id")
 
         if search:
             queryset = queryset.filter(
@@ -536,7 +551,7 @@ class TeamMemberDetailView(APIView):
 
 class CreateTaskView(APIView):
 
-    permission_classes = [IsAuthenticated, IsAdmin]
+    permission_classes = [IsAuthenticated, CanCrudTasks]
 
     def post(self, request):
 
@@ -564,15 +579,47 @@ class CreateTaskView(APIView):
 
 class AdminTaskListView(APIView):
 
-    permission_classes = [IsAuthenticated, IsAdmin]
+    permission_classes = [IsAuthenticated, CanCrudTasks]
 
     def get(self, request):
 
         search = request.GET.get("search")
 
-        queryset = Task.objects.filter(assigned_by=request.user).prefetch_related(
-            "assignees"
-        ).select_related("assigned_by")
+        if request.user.role == UserRole.ADMIN.value:
+            queryset = Task.objects.filter(
+                Q(assigned_by=request.user) | Q(assigned_by__created_by=request.user)
+            )
+        else:
+            queryset = Task.objects.filter(
+                Q(assigned_by=request.user) | Q(assignees=request.user)
+            )
+
+        queryset = queryset.prefetch_related("assignees").select_related("assigned_by")
+
+        # Filters
+        completed_param = request.GET.get("completed")
+        if completed_param == "true":
+            queryset = queryset.filter(status=TaskStatus.COMPLETED)
+        else:
+            from django.utils import timezone
+            from datetime import timedelta
+            one_week_ago = timezone.now() - timedelta(days=7)
+            queryset = queryset.exclude(status=TaskStatus.COMPLETED, updated_at__lt=one_week_ago)
+
+        date_val = request.GET.get("date")
+        if date_val:
+            queryset = queryset.filter(Q(due_date=date_val) | Q(revised_due_date=date_val))
+
+        project_val = request.GET.get("project")
+        if project_val:
+            queryset = queryset.filter(project_name__icontains=project_val)
+
+        employee_val = request.GET.get("employee_name")
+        if employee_val:
+            queryset = queryset.filter(
+                Q(assignees__username__icontains=employee_val)
+                | Q(assignees__name__icontains=employee_val)
+            ).distinct()
 
         if search:
             queryset = queryset.filter(
@@ -599,12 +646,17 @@ class AdminTaskListView(APIView):
 
 class AdminTaskDetailView(APIView):
 
-    permission_classes = [IsAuthenticated, IsAdmin]
+    permission_classes = [IsAuthenticated, CanCrudTasks]
 
     def patch(self, request, task_id):
 
         try:
-            task = Task.objects.get(id=task_id, assigned_by=request.user)
+            if request.user.role == UserRole.ADMIN.value:
+                task = Task.objects.get(
+                    Q(id=task_id) & (Q(assigned_by=request.user) | Q(assigned_by__created_by=request.user))
+                )
+            else:
+                task = Task.objects.get(id=task_id, assigned_by=request.user)
         except Task.DoesNotExist:
 
             return error_response(
@@ -638,7 +690,12 @@ class AdminTaskDetailView(APIView):
     def delete(self, request, task_id):
 
         try:
-            task = Task.objects.get(id=task_id, assigned_by=request.user)
+            if request.user.role == UserRole.ADMIN.value:
+                task = Task.objects.get(
+                    Q(id=task_id) & (Q(assigned_by=request.user) | Q(assigned_by__created_by=request.user))
+                )
+            else:
+                task = Task.objects.get(id=task_id, assigned_by=request.user)
         except Task.DoesNotExist:
 
             return error_response(
@@ -847,13 +904,20 @@ class AdminTimesheetListView(APIView):
         elif date_filter:
             queryset = queryset.filter(start_time__date=date_filter)
 
-        # Filters: task name and project name
+        # Filters: task name, project name, employee name
         task_name = request.GET.get("task_name")
         project_name = request.GET.get("project_name")
+        employee_name = request.GET.get("employee_name")
+        
         if task_name:
             queryset = queryset.filter(task__task_name__icontains=task_name)
         if project_name:
             queryset = queryset.filter(task__project_name__icontains=project_name)
+        if employee_name:
+            queryset = queryset.filter(
+                Q(team_member__username__icontains=employee_name)
+                | Q(team_member__name__icontains=employee_name)
+            )
 
         paginator = CustomPagination()
         paginated_queryset = paginator.paginate_queryset(queryset, request)
@@ -893,13 +957,20 @@ class SuperAdminTimesheetListView(APIView):
         elif date_filter:
             queryset = queryset.filter(start_time__date=date_filter)
 
-        # New filters: task name and project name
+        # Filters: task name, project name, employee name
         task_name = request.GET.get("task_name")
         project_name = request.GET.get("project_name")
+        employee_name = request.GET.get("employee_name")
+        
         if task_name:
             queryset = queryset.filter(task__task_name__icontains=task_name)
         if project_name:
             queryset = queryset.filter(task__project_name__icontains=project_name)
+        if employee_name:
+            queryset = queryset.filter(
+                Q(team_member__username__icontains=employee_name)
+                | Q(team_member__name__icontains=employee_name)
+            )
 
         paginator = CustomPagination()
         paginated_queryset = paginator.paginate_queryset(queryset, request)
@@ -926,7 +997,14 @@ class TeamMemberTimesheetListView(APIView):
     def get(self, request):
         date_filter = request.GET.get("date")
 
-        queryset = Timesheet.objects.filter(team_member=request.user).select_related(
+        if getattr(request.user, "can_crud_tasks", False):
+            queryset = Timesheet.objects.filter(
+                Q(team_member=request.user) | Q(task__assigned_by=request.user)
+            )
+        else:
+            queryset = Timesheet.objects.filter(team_member=request.user)
+
+        queryset = queryset.select_related(
             "task",
             "team_member",
             "task__assigned_by",
@@ -939,13 +1017,19 @@ class TeamMemberTimesheetListView(APIView):
         elif date_filter:
             queryset = queryset.filter(start_time__date=date_filter)
 
-        # New filters: task name and project name
+        # New filters: task name, project name, employee name
         task_name = request.GET.get("task_name")
         project_name = request.GET.get("project_name")
+        employee_name = request.GET.get("employee_name")
         if task_name:
             queryset = queryset.filter(task__task_name__icontains=task_name)
         if project_name:
             queryset = queryset.filter(task__project_name__icontains=project_name)
+        if employee_name:
+            queryset = queryset.filter(
+                Q(team_member__username__icontains=employee_name)
+                | Q(team_member__name__icontains=employee_name)
+            )
 
         paginator = CustomPagination()
         paginated_queryset = paginator.paginate_queryset(queryset, request)
@@ -1091,7 +1175,7 @@ class TaskCommentListCreateView(APIView):
 # ─── SubTasks ───
 
 class SubTaskListCreateView(APIView):
-    """GET list subtasks, POST create subtask (admin only)."""
+    """GET list subtasks, POST create subtask (admin or permitted member)."""
     permission_classes = [IsAuthenticated]
 
     def get(self, request, task_id):
@@ -1112,14 +1196,21 @@ class SubTaskListCreateView(APIView):
         )
 
     def post(self, request, task_id):
-        if request.user.role != UserRole.ADMIN.value:
+        is_admin = request.user.role == UserRole.ADMIN.value
+        is_permitted_member = (request.user.role == UserRole.TEAM_MEMBER.value and request.user.can_crud_tasks)
+        if not (is_admin or is_permitted_member):
             return error_response(
-                message="Only admins can create subtasks",
+                message="Only admins or permitted team members can create subtasks",
                 status_code=status.HTTP_403_FORBIDDEN,
             )
 
         try:
-            task = Task.objects.get(id=task_id, assigned_by=request.user)
+            if request.user.role == UserRole.ADMIN.value:
+                task = Task.objects.get(
+                    Q(id=task_id) & (Q(assigned_by=request.user) | Q(assigned_by__created_by=request.user))
+                )
+            else:
+                task = Task.objects.get(id=task_id, assigned_by=request.user)
         except Task.DoesNotExist:
             return error_response(
                 message="Task not found",
@@ -1169,14 +1260,23 @@ class SubTaskUpdateDeleteView(APIView):
         )
 
     def delete(self, request, task_id, subtask_id):
-        if request.user.role != UserRole.ADMIN.value:
+        is_admin = request.user.role == UserRole.ADMIN.value
+        is_permitted_member = (request.user.role == UserRole.TEAM_MEMBER.value and request.user.can_crud_tasks)
+        if not (is_admin or is_permitted_member):
             return error_response(
-                message="Only admins can delete subtasks",
+                message="Only admins or permitted team members can delete subtasks",
                 status_code=status.HTTP_403_FORBIDDEN,
             )
 
         try:
             subtask = SubTask.objects.get(id=subtask_id, task_id=task_id)
+            task = subtask.task
+            if request.user.role == UserRole.ADMIN.value:
+                if task.assigned_by != request.user and task.assigned_by.created_by != request.user:
+                    raise SubTask.DoesNotExist
+            else:
+                if task.assigned_by != request.user:
+                    raise SubTask.DoesNotExist
         except SubTask.DoesNotExist:
             return error_response(
                 message="Subtask not found",
@@ -1198,6 +1298,12 @@ class NotificationListView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
+        from django.utils import timezone
+        from datetime import timedelta
+        # Delete notifications older than 24 hours (1 day)
+        one_day_ago = timezone.now() - timedelta(days=1)
+        Notification.objects.filter(recipient=request.user, created_at__lt=one_day_ago).delete()
+
         queryset = Notification.objects.filter(
             recipient=request.user
         ).select_related("sender", "task")
@@ -1275,3 +1381,281 @@ class NotificationMarkAllReadView(APIView):
             data={"updated": updated},
             status_code=status.HTTP_200_OK,
         )
+
+
+# ─── Announcements ───
+
+class CreateAnnouncementView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        if request.user.role not in [UserRole.SUPER_ADMIN.value, UserRole.ADMIN.value]:
+            return error_response(
+                message="Only Super Admins and Admins can create announcements",
+                status_code=status.HTTP_403_FORBIDDEN,
+            )
+
+        serializer = AnnouncementCreateSerializer(data=request.data, context={"request": request})
+        if not serializer.is_valid():
+            return error_response(
+                message="Validation failed",
+                errors=serializer.errors,
+                status_code=status.HTTP_400_BAD_REQUEST,
+            )
+
+        announcement = serializer.save()
+
+        # Send notifications to recipients in the target audience
+        sender = request.user
+        recipients = []
+        if announcement.audience == "ADMINS_ONLY":
+            recipients = User.objects.filter(role=UserRole.ADMIN.value).exclude(id=sender.id)
+        elif announcement.audience == "ALL":
+            recipients = User.objects.filter(
+                role__in=[UserRole.ADMIN.value, UserRole.TEAM_MEMBER.value]
+            ).exclude(id=sender.id)
+        elif announcement.audience == "MY_TEAM":
+            recipients = User.objects.filter(
+                role=UserRole.TEAM_MEMBER.value, created_by=sender
+            )
+
+        notifications = [
+            Notification(
+                recipient=recipient,
+                sender=sender,
+                message=f"New Announcement: {announcement.title}",
+                task=None,
+                announcement=announcement,
+            )
+            for recipient in recipients
+        ]
+        if notifications:
+            Notification.objects.bulk_create(notifications)
+
+        return success_response(
+            message="Announcement created successfully",
+            data=AnnouncementListSerializer(announcement).data,
+            status_code=status.HTTP_201_CREATED,
+        )
+
+
+class AnnouncementListView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+
+        # Redirect super admins to super admin list endpoint logic
+        if user.role == UserRole.SUPER_ADMIN.value:
+            queryset = Announcement.objects.all().select_related("sender")
+        elif user.role == UserRole.ADMIN.value:
+            # Admins see Super Admin announcements sent to ADMINS_ONLY or ALL, and their own announcements
+            queryset = Announcement.objects.filter(
+                Q(sender__role=UserRole.SUPER_ADMIN.value, audience__in=[AnnouncementAudience.ADMINS_ONLY.value, AnnouncementAudience.ALL.value]) |
+                Q(sender=user)
+            ).select_related("sender")
+        else:
+            # Team Members see Super Admin announcements sent to ALL, and their own admin's announcements (sender=created_by, audience=MY_TEAM)
+            admin_user = user.created_by
+            if admin_user:
+                queryset = Announcement.objects.filter(
+                    Q(sender__role=UserRole.SUPER_ADMIN.value, audience=AnnouncementAudience.ALL.value) |
+                    Q(sender=admin_user, audience=AnnouncementAudience.MY_TEAM.value)
+                ).select_related("sender")
+            else:
+                queryset = Announcement.objects.filter(
+                    sender__role=UserRole.SUPER_ADMIN.value, audience=AnnouncementAudience.ALL.value
+                ).select_related("sender")
+
+        # Optional search by title
+        title_query = request.GET.get("title")
+        if title_query:
+            queryset = queryset.filter(title__icontains=title_query)
+
+        paginator = CustomPagination()
+        paginated_queryset = paginator.paginate_queryset(queryset, request)
+        serializer = AnnouncementListSerializer(paginated_queryset, many=True)
+
+        return paginator.get_paginated_response(
+            {
+                "isV1": True,
+                "success": True,
+                "message": "Announcements fetched successfully",
+                "data": serializer.data,
+            }
+        )
+
+
+class AnnouncementDetailView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def put(self, request, announcement_id):
+        try:
+            announcement = Announcement.objects.get(id=announcement_id)
+        except Announcement.DoesNotExist:
+            return error_response(
+                message="Announcement not found",
+                status_code=status.HTTP_404_NOT_FOUND,
+            )
+
+        # Check if the user is the sender
+        if announcement.sender != request.user:
+            return error_response(
+                message="Only the member who sent the message can edit/delete it",
+                status_code=status.HTTP_403_FORBIDDEN,
+            )
+
+        serializer = AnnouncementUpdateSerializer(announcement, data=request.data)
+        if not serializer.is_valid():
+            return error_response(
+                message="Validation failed",
+                errors=serializer.errors,
+                status_code=status.HTTP_400_BAD_REQUEST,
+            )
+
+        serializer.save()
+        return success_response(
+            message="Announcement updated successfully",
+            data=AnnouncementListSerializer(announcement).data,
+            status_code=status.HTTP_200_OK,
+        )
+
+    def delete(self, request, announcement_id):
+        try:
+            announcement = Announcement.objects.get(id=announcement_id)
+        except Announcement.DoesNotExist:
+            return error_response(
+                message="Announcement not found",
+                status_code=status.HTTP_404_NOT_FOUND,
+            )
+
+        # Check if the user is the sender
+        if announcement.sender != request.user:
+            return error_response(
+                message="Only the member who sent the message can edit/delete it",
+                status_code=status.HTTP_403_FORBIDDEN,
+            )
+
+        announcement.delete()
+        return success_response(
+            message="Announcement deleted successfully",
+            data=None,
+            status_code=status.HTTP_200_OK,
+        )
+
+
+class SuperAdminAnnouncementListView(APIView):
+    permission_classes = [IsSuperAdmin]
+
+    def get(self, request):
+        queryset = Announcement.objects.all().select_related("sender")
+
+        # Optional search by title
+        title_query = request.GET.get("title")
+        if title_query:
+            queryset = queryset.filter(title__icontains=title_query)
+
+        paginator = CustomPagination()
+        paginated_queryset = paginator.paginate_queryset(queryset, request)
+        serializer = AnnouncementListSerializer(paginated_queryset, many=True)
+
+        return paginator.get_paginated_response(
+            {
+                "isV1": True,
+                "success": True,
+                "message": "All announcements fetched successfully",
+                "data": serializer.data,
+            }
+        )
+
+
+class SuperAdminTeamMemberDetailView(APIView):
+    permission_classes = [IsAuthenticated, IsSuperAdmin]
+
+    def get_member(self, member_id):
+        try:
+            return User.objects.get(id=member_id, role=UserRole.TEAM_MEMBER.value)
+        except User.DoesNotExist:
+            return None
+
+    def get(self, request, member_id):
+        member = self.get_member(member_id)
+        if not member:
+            return error_response(
+                message="Team member not found",
+                status_code=status.HTTP_404_NOT_FOUND,
+            )
+        return success_response(
+            message="Team member fetched successfully",
+            data={
+                "id": member.id,
+                "username": member.username,
+                "email": member.email,
+                "phone_number": member.phone_number,
+                "role": member.role,
+                "can_crud_tasks": member.can_crud_tasks,
+            },
+            status_code=status.HTTP_200_OK,
+        )
+
+    def put(self, request, member_id):
+        member = self.get_member(member_id)
+        if not member:
+            return error_response(
+                message="Team member not found",
+                status_code=status.HTTP_404_NOT_FOUND,
+            )
+
+        username = request.data.get("user_name")
+        email = request.data.get("email")
+        phone_number = request.data.get("phone_number")
+        can_crud_tasks = request.data.get("can_crud_tasks")
+
+        if username is not None:
+            member.username = username
+        if email is not None:
+            member.email = email
+        if phone_number is not None:
+            phone_str = str(phone_number)
+            if len(phone_str) != 10:
+                return error_response(
+                    message="Phone number must be exactly 10 digits.",
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                )
+            if phone_str[0] not in "6789":
+                return error_response(
+                    message="Indian phone number must start with 6, 7, 8, or 9.",
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                )
+            member.phone_number = phone_number
+        if can_crud_tasks is not None:
+            member.can_crud_tasks = bool(can_crud_tasks)
+
+        member.save()
+
+        return success_response(
+            message="Team member updated successfully",
+            data={
+                "id": member.id,
+                "username": member.username,
+                "email": member.email,
+                "phone_number": member.phone_number,
+                "role": member.role,
+                "can_crud_tasks": member.can_crud_tasks,
+            },
+            status_code=status.HTTP_200_OK,
+        )
+
+    def delete(self, request, member_id):
+        member = self.get_member(member_id)
+        if not member:
+            return error_response(
+                message="Team member not found",
+                status_code=status.HTTP_404_NOT_FOUND,
+            )
+        member.delete()
+        return success_response(
+            message="Team member deleted successfully",
+            status_code=status.HTTP_200_OK,
+        )
+

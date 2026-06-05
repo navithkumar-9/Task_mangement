@@ -6,6 +6,18 @@ const getTodayString = () => {
     return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
 };
 
+// Helper: format working_hours (decimal string like "1.50") to rounded display like "1 hr 30 min"
+const formatWorkingHours = (workingHours) => {
+    if (!workingHours && workingHours !== 0) return '-';
+    const totalMinutes = Math.round(parseFloat(workingHours) * 60);
+    if (totalMinutes <= 0) return '0 min';
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
+    if (hours === 0) return `${minutes} min`;
+    if (minutes === 0) return `${hours} hr`;
+    return `${hours} hr ${minutes} min`;
+};
+
 const Timesheet = () => {
     const [timesheets, setTimesheets] = useState([]);
     const [loading, setLoading] = useState(false);
@@ -152,82 +164,27 @@ const Timesheet = () => {
             </div>
 
             <div className="content-card">
-                <div
-                    className="content-card-header"
-                    style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '12px',
-                    }}
-                >
-                    <label
-                        style={{
-                            fontSize: '0.9rem',
-                            fontWeight: 600,
-                            color: 'var(--text-muted)',
-                        }}
-                    >
+                <div className="content-card-header ext-announcements-12">
+                    <label className="ext-dashboard-90">
                         Filter by Date:
                     </label>
-                    <input
-                        type="date"
-                        className="search-input"
-                        style={{ width: 'auto' }}
-                        value={dateFilter}
-                        onChange={(e) => setDateFilter(e.target.value)}
-                    />
+                    <input type="date" className="search-input ext-timesheet-176" value={dateFilter} onChange={(e) => setDateFilter(e.target.value)} />
                     {dateFilter && (
-                        <button
-                            className="btn-danger"
-                            style={{
-                                background: 'transparent',
-                                border: 'none',
-                                color: 'var(--primary)',
-                            }}
-                            onClick={() => setDateFilter('')}
-                        >
+                        <button className="btn-danger ext-timesheet-177" onClick={() => setDateFilter('')} >
                             Clear
                         </button>
                     )}
-                    <label
-                        style={{
-                            fontSize: '0.9rem',
-                            fontWeight: 600,
-                            color: 'var(--text-muted)',
-                            marginLeft: '12px',
-                        }}
-                    >
+                    <label className="ext-timesheet-178">
                         Task Name:
                     </label>
-                    <input
-                        type="text"
-                        className="search-input"
-                        placeholder="Task name"
-                        style={{ width: 'auto' }}
-                        value={taskNameFilter}
-                        onChange={(e) => setTaskNameFilter(e.target.value)}
-                    />
-                    <label
-                        style={{
-                            fontSize: '0.9rem',
-                            fontWeight: 600,
-                            color: 'var(--text-muted)',
-                            marginLeft: '12px',
-                        }}
-                    >
+                    <input type="text" className="search-input ext-timesheet-176" placeholder="Task name" value={taskNameFilter} onChange={(e) => setTaskNameFilter(e.target.value)} />
+                    <label className="ext-timesheet-178">
                         Project Name:
                     </label>
-                    <input
-                        type="text"
-                        className="search-input"
-                        placeholder="Project name"
-                        style={{ width: 'auto' }}
-                        value={projectNameFilter}
-                        onChange={(e) => setProjectNameFilter(e.target.value)}
-                    />
+                    <input type="text" className="search-input ext-timesheet-176" placeholder="Project name" value={projectNameFilter} onChange={(e) => setProjectNameFilter(e.target.value)} />
                 </div>
                 {loading ? (
-                        <div className="page-loader" style={{ padding: '60px 0' }}>
+                        <div className="page-loader ext-calendar-69">
                             <div className="page-loader-spinner"></div>
                             <div className="page-loader-text">Loading timesheets...</div>
                         </div>
@@ -261,12 +218,7 @@ const Timesheet = () => {
                                     <tr key={ts.id || i}>
                                         <td>
                                             {ts.team_member ? (
-                                                <span
-                                                    className="text-bold"
-                                                    style={{
-                                                        color: 'var(--primary)',
-                                                    }}
-                                                >
+                                                <span className="text-bold ext-task-progress-175">
                                                     @{ts.team_member.username}
                                                 </span>
                                             ) : (
@@ -275,10 +227,7 @@ const Timesheet = () => {
                                         </td>
                                         <td>
                                             {ts.task?.assigned_by ? (
-                                                <span
-                                                    className="text-bold"
-                                                    style={{ color: '#49CCF9' }}
-                                                >
+                                                <span className="text-bold ext-timesheet-179">
                                                     @
                                                     {
                                                         ts.task.assigned_by
@@ -290,34 +239,17 @@ const Timesheet = () => {
                                             )}
                                         </td>
                                         <td>
-                                            <div
-                                                style={{
-                                                    display: 'flex',
-                                                    flexDirection: 'column',
-                                                }}
-                                            >
+                                            <div className="ext-timesheet-180">
                                                 <span className="text-bold">
                                                     {ts.task?.task_name}
                                                 </span>
-                                                <span
-                                                    className="text-muted"
-                                                    style={{
-                                                        fontSize: '0.8rem',
-                                                    }}
-                                                >
+                                                <span className="text-muted ext-timesheet-181">
                                                     {ts.task?.project_name}
                                                 </span>
                                             </div>
                                         </td>
                                         <td>
-                                            <div
-                                                style={{
-                                                    maxWidth: '250px',
-                                                    whiteSpace: 'nowrap',
-                                                    overflow: 'hidden',
-                                                    textOverflow: 'ellipsis',
-                                                }}
-                                            >
+                                            <div className="ext-timesheet-182">
                                                 {ts.description}
                                             </div>
                                         </td>
@@ -333,10 +265,10 @@ const Timesheet = () => {
                                         <td className="text-muted">
                                             {formatDateTime(ts.end_time)}
                                         </td>
-                                        <td style={{ padding: '16px 20px' }}>
+                                        <td className="ext-timesheet-183">
                                             {formatDateTime(ts.created_at)}
                                         </td>
-                                        <td style={{ padding: '16px 20px' }}>
+                                        <td className="ext-timesheet-183">
                                             <button
                                                 onClick={() => setViewingTimesheet(ts)}
                                                 className="btn-icon"
@@ -366,7 +298,7 @@ const Timesheet = () => {
                     </div>
                 )}
                 {!loading && timesheets.length > 0 && (
-                    <div className="pagination" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '16px', padding: '16px 20px', borderTop: '1px solid var(--border-color)' }}>
+                    <div className="pagination ext-timesheet-185">
                         <button
                             className="pagination-btn"
                             disabled={page <= 1}
@@ -384,7 +316,7 @@ const Timesheet = () => {
                         >
                             â† Previous
                         </button>
-                        <span className="pagination-info" style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: 500 }}>
+                        <span className="pagination-info ext-timesheet-186">
                             Page {page} of {totalPages}
                         </span>
                         <button
@@ -441,12 +373,7 @@ const Timesheet = () => {
                         }}
                     >
                         {/* Header */}
-                        <div style={{
-                            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                            padding: '24px 28px',
-                            borderRadius: '16px 16px 0 0',
-                            position: 'relative',
-                        }}>
+                        <div className="ext-manage-users-134">
                             <button
                                 onClick={() => setViewingTimesheet(null)}
                                 style={{
@@ -473,23 +400,16 @@ const Timesheet = () => {
                                     <line x1="6" y1="6" x2="18" y2="18" />
                                 </svg>
                             </button>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                <div style={{
-                                    background: 'rgba(255,255,255,0.2)',
-                                    borderRadius: '12px',
-                                    padding: '10px',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                }}>
+                            <div className="ext-announcements-12">
+                                <div className="ext-manage-users-136">
                                     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                         <circle cx="12" cy="12" r="10"/>
                                         <polyline points="12 6 12 12 16 14"/>
                                     </svg>
                                 </div>
                                 <div>
-                                    <h2 style={{ margin: 0, color: '#fff', fontSize: '1.2rem', fontWeight: 700 }}>Timesheet Details</h2>
-                                    <p style={{ margin: '2px 0 0', color: 'rgba(255,255,255,0.8)', fontSize: '0.82rem' }}>
+                                    <h2 className="ext-announcements-29">Timesheet Details</h2>
+                                    <p className="ext-manage-users-137">
                                         {viewingTimesheet.task?.project_name} - {viewingTimesheet.task?.task_name}
                                     </p>
                                 </div>
@@ -497,72 +417,61 @@ const Timesheet = () => {
                         </div>
 
                         {/* Body */}
-                        <div style={{ padding: '24px 28px' }}>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px' }}>
-                                <div style={{ background: '#f8fafc', borderRadius: '12px', padding: '14px 16px' }}>
-                                    <div style={{ fontSize: '0.7rem', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 700, marginBottom: '6px' }}>Team Member</div>
-                                    <div style={{ fontWeight: 600, color: '#1e293b', fontSize: '0.95rem' }}>@{viewingTimesheet.team_member?.username || '-'}</div>
+                        <div className="ext-manage-users-138">
+                            <div className="ext-timesheet-188">
+                                <div className="ext-manage-users-144">
+                                    <div className="ext-manage-users-145">Team Member</div>
+                                    <div className="ext-timesheet-189">@{viewingTimesheet.team_member?.username || '-'}</div>
                                 </div>
-                                <div style={{ background: '#f8fafc', borderRadius: '12px', padding: '14px 16px' }}>
-                                    <div style={{ fontSize: '0.7rem', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 700, marginBottom: '6px' }}>Assigned By</div>
-                                    <div style={{ fontWeight: 600, color: '#1e293b', fontSize: '0.95rem' }}>@{viewingTimesheet.task?.assigned_by?.username || '-'}</div>
+                                <div className="ext-manage-users-144">
+                                    <div className="ext-manage-users-145">Assigned By</div>
+                                    <div className="ext-timesheet-189">@{viewingTimesheet.task?.assigned_by?.username || '-'}</div>
                                 </div>
                             </div>
 
-                            <div style={{ display: 'flex', gap: '12px', marginBottom: '20px', flexWrap: 'wrap' }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                    <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>Priority:</span>
+                            <div className="ext-timesheet-190">
+                                <div className="ext-calendar-67">
+                                    <span className="ext-timesheet-191">Priority:</span>
                                     {getPriorityBadge(viewingTimesheet.task?.priority)}
                                 </div>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                    <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>Status:</span>
+                                <div className="ext-calendar-67">
+                                    <span className="ext-timesheet-191">Status:</span>
                                     {getStatusBadge(viewingTimesheet.status)}
                                 </div>
                             </div>
 
-                            <div style={{ height: '1px', background: 'linear-gradient(90deg, transparent, #e2e8f0, transparent)', margin: '4px 0 20px' }} />
+                            <div className="ext-timesheet-192"/>
 
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px', marginBottom: '20px' }}>
-                                <div style={{ textAlign: 'center', background: '#f0fdf4', borderRadius: '12px', padding: '14px' }}>
-                                    <div style={{ fontSize: '0.7rem', color: '#16a34a', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 700, marginBottom: '4px' }}>Start</div>
-                                    <div style={{ fontWeight: 600, color: '#15803d', fontSize: '0.85rem' }}>{formatDateTime(viewingTimesheet.start_time)}</div>
+                            <div className="ext-timesheet-193">
+                                <div className="ext-timesheet-194">
+                                    <div className="ext-timesheet-195">Start</div>
+                                    <div className="ext-timesheet-196">{formatDateTime(viewingTimesheet.start_time)}</div>
                                 </div>
-                                <div style={{ textAlign: 'center', background: '#fef2f2', borderRadius: '12px', padding: '14px' }}>
-                                    <div style={{ fontSize: '0.7rem', color: '#dc2626', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 700, marginBottom: '4px' }}>End</div>
-                                    <div style={{ fontWeight: 600, color: '#b91c1c', fontSize: '0.85rem' }}>{formatDateTime(viewingTimesheet.end_time)}</div>
+                                <div className="ext-timesheet-197">
+                                    <div className="ext-timesheet-198">End</div>
+                                    <div className="ext-timesheet-199">{formatDateTime(viewingTimesheet.end_time)}</div>
                                 </div>
-                                <div style={{ textAlign: 'center', background: '#eff6ff', borderRadius: '12px', padding: '14px' }}>
-                                    <div style={{ fontSize: '0.7rem', color: '#2563eb', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 700, marginBottom: '4px' }}>Total</div>
-                                    <div style={{ fontWeight: 700, color: '#1d4ed8', fontSize: '1.05rem' }}>{viewingTimesheet.working_hours || '-'} hrs</div>
+                                <div className="ext-timesheet-200">
+                                    <div className="ext-timesheet-201">Total</div>
+                                    <div className="ext-timesheet-202">{formatWorkingHours(viewingTimesheet.working_hours)}</div>
                                 </div>
                             </div>
 
-                            <div style={{ marginBottom: '20px' }}>
-                                <div style={{ fontSize: '0.7rem', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 700, marginBottom: '8px' }}>Description</div>
-                                <div style={{
-                                    background: '#f8fafc',
-                                    border: '1px solid #e2e8f0',
-                                    borderRadius: '12px',
-                                    padding: '14px 16px',
-                                    fontSize: '0.9rem',
-                                    lineHeight: '1.6',
-                                    whiteSpace: 'pre-wrap',
-                                    color: '#334155',
-                                    maxHeight: '150px',
-                                    overflowY: 'auto',
-                                }}>
+                            <div className="ext-manage-users-161">
+                                <div className="ext-timesheet-203">Description</div>
+                                <div className="ext-timesheet-204">
                                     {viewingTimesheet.description || 'No description provided.'}
                                 </div>
                             </div>
 
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#94a3b8', fontSize: '0.8rem' }}>
+                            <div className="ext-timesheet-205">
                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
                                 Logged at {formatDateTime(viewingTimesheet.created_at)}
                             </div>
                         </div>
 
                         {/* Footer */}
-                        <div style={{ padding: '16px 28px', borderTop: '1px solid #f1f5f9', display: 'flex', justifyContent: 'flex-end' }}>
+                        <div className="ext-manage-users-149">
                             <button
                                 onClick={() => setViewingTimesheet(null)}
                                 style={{

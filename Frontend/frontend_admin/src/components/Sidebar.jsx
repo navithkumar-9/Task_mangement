@@ -25,7 +25,19 @@ const getAvatarStyle = (username) => {
 const Sidebar = () => {
     const { user, logout } = useAuth();
     const navigate = useNavigate();
+
+    const [isCollapsed, setIsCollapsed] = useState(() => {
+        return localStorage.getItem('sidebar_collapsed') === 'true';
+    });
+
+    const toggleSidebar = () => {
+        const nextState = !isCollapsed;
+        setIsCollapsed(nextState);
+        localStorage.setItem('sidebar_collapsed', String(nextState));
+    };
+
     const isAdmin = user?.role === 'ADMIN';
+    const canCrud = isAdmin || user?.can_crud_tasks;
 
     const displayName = user?.name || user?.username || 'User';
     const profilePic = user?.profile_picture || null;
@@ -96,6 +108,26 @@ const Sidebar = () => {
             ),
         },
         {
+            path: '/announcements',
+            label: 'Announcements',
+            icon: (
+                <svg
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                >
+                    <path d="M11 5L6 9H2v6h4l5 4V5z" />
+                    <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
+                    <path d="M19.07 4.93a10 10 0 0 1 0 14.14" />
+                </svg>
+            ),
+        },
+        {
             path: '/calendar',
             label: 'Calendar',
             icon: (
@@ -117,6 +149,28 @@ const Sidebar = () => {
             ),
         },
     ];
+
+    if (canCrud) {
+        navItems.push({
+            path: '/completed-tasks',
+            label: 'Completed Tasks',
+            icon: (
+                <svg
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                >
+                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                    <polyline points="22 4 12 14.01 9 11.01" />
+                </svg>
+            ),
+        });
+    }
 
     if (isAdmin) {
         navItems.push(
@@ -186,20 +240,11 @@ const Sidebar = () => {
     });
 
     return (
-        <aside className="sidebar">
+        <aside className={`sidebar ${isCollapsed ? 'collapsed' : ''}`}>
             <div className="sidebar-top">
                 <div className="sidebar-brand">
                     <div className="sidebar-logo">
-                        <img
-                            src="/logo.jpg"
-                            alt="Logo"
-                            style={{
-                                width: '24px',
-                                height: '24px',
-                                borderRadius: '4px',
-                                objectFit: 'cover',
-                            }}
-                        />
+                        <img src="/logo.jpg" alt="Logo" className="ext-sidebar-1"/>
                     </div>
                     <div className="sidebar-brand-info">
                         <span className="sidebar-brand-name">Tracker</span>
@@ -207,6 +252,28 @@ const Sidebar = () => {
                             {user?.role || 'Admin'}
                         </span>
                     </div>
+                    <button
+                        className="sidebar-toggle-btn"
+                        onClick={toggleSidebar}
+                        title={isCollapsed ? 'Expand Sidebar' : 'Collapse Sidebar'}
+                    >
+                        <svg
+                            width="16"
+                            height="16"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                        >
+                            {isCollapsed ? (
+                                <polyline points="9 18 15 12 9 6" />
+                            ) : (
+                                <polyline points="15 18 9 12 15 6" />
+                            )}
+                        </svg>
+                    </button>
                 </div>
                 <nav className="sidebar-nav">
                     <div className="nav-section-label">MENU</div>
@@ -227,18 +294,7 @@ const Sidebar = () => {
             <div className="sidebar-bottom">
                 <div className="sidebar-user">
                     {profilePic ? (
-                        <img
-                            src={profilePic}
-                            alt="Avatar"
-                            className="profile-edit-avatar-img"
-                            style={{
-                                width: '32px',
-                                height: '32px',
-                                borderRadius: '50%',
-                                objectFit: 'cover',
-                                flexShrink: 0,
-                            }}
-                        />
+                        <img src={profilePic} alt="Avatar" className="profile-edit-avatar-img ext-sidebar-2"/>
                     ) : (
                         <div
                             className="sidebar-user-avatar"

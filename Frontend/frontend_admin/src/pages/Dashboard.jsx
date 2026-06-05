@@ -484,7 +484,7 @@ const Dashboard = () => {
 
     if (loading) {
         return (
-            <div className="page" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '60vh' }}>
+            <div className="page ext-dashboard-131">
                 <div className="page-loader">
                     <div className="page-loader-spinner"></div>
                     <div className="page-loader-text">Loading dashboard...</div>
@@ -501,7 +501,7 @@ const Dashboard = () => {
 
             {/* Page Header */}
 
-            <div className="page-header" style={{ marginBottom: '24px' }}>
+            <div className="page-header ext-completed-tasks-84">
 
                 <div>
 
@@ -521,11 +521,11 @@ const Dashboard = () => {
 
             {/* Top Header: High-Level Health Counter Cards */}
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px', marginBottom: '32px' }}>
+            <div className="ext-dashboard-132">
 
                 <div className="stat-card stat-blue">
 
-                    <div style={{ width: '56px', height: '56px', borderRadius: '14px', background: 'rgba(73,204,249,0.1)', color: '#49CCF9', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <div className="ext-dashboard-133">
 
                         <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
 
@@ -545,7 +545,7 @@ const Dashboard = () => {
 
                 <div className="stat-card stat-amber">
 
-                    <div style={{ width: '56px', height: '56px', borderRadius: '14px', background: 'rgba(255,107,107,0.1)', color: '#ff6b6b', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <div className="ext-dashboard-134">
 
                         <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
 
@@ -555,7 +555,7 @@ const Dashboard = () => {
 
                         <div className="stat-label">Overdue Tasks</div>
 
-                        <div className="stat-value" style={{ color: '#ff6b6b' }}>{headerMetrics.overdue}</div>
+                        <div className="stat-value ext-dashboard-135">{headerMetrics.overdue}</div>
 
                     </div>
 
@@ -565,19 +565,19 @@ const Dashboard = () => {
 
                 <div className="stat-card stat-green">
 
-                    <div style={{ width: '56px', height: '56px', borderRadius: '14px', background: 'rgba(75,207,130,0.1)', color: '#4bcf82', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <div className="ext-dashboard-136">
 
                         <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
 
                     </div>
 
-                    <div className="stat-info" style={{ flex: 1 }}>
+                    <div className="stat-info ext-dashboard-137">
 
                         <div className="stat-label">Project Progress</div>
 
                         <div className="stat-value">{headerMetrics.progress}%</div>
 
-                        <div style={{ width: '100%', height: '6px', background: 'var(--bg-body)', borderRadius: '3px', marginTop: '8px', overflow: 'hidden' }}>
+                        <div className="ext-dashboard-138">
 
                             <div style={{ width: `${headerMetrics.progress}%`, height: '100%', background: '#4bcf82', borderRadius: '3px' }}></div>
 
@@ -593,15 +593,15 @@ const Dashboard = () => {
 
             {/* Middle Section: Visual Charts */}
 
-            <div style={{ display: 'grid', gridTemplateColumns: '3fr 2fr', gap: '24px', marginBottom: '32px' }}>
+            <div className="ext-dashboard-139">
 
                 {/* Workload per Person (Bar Chart) */}
 
                 <div className="content-card">
 
-                    <h2 className="content-card-title" style={{ marginBottom: '24px' }}>Workload Distribution</h2>
+                    <h2 className="content-card-title ext-completed-tasks-84">Workload Distribution</h2>
 
-                    <div style={{ height: '300px', width: '100%' }}>
+                    <div className="ext-dashboard-140">
 
                         {workloadData.length > 0 ? (
 
@@ -625,7 +625,7 @@ const Dashboard = () => {
 
                         ) : (
 
-                            <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)' }}>No workload data available</div>
+                            <div className="ext-dashboard-141">No workload data available</div>
 
                         )}
 
@@ -639,9 +639,9 @@ const Dashboard = () => {
 
                 <div className="content-card">
 
-                    <h2 className="content-card-title" style={{ marginBottom: '24px' }}>Tasks by Status</h2>
+                    <h2 className="content-card-title ext-completed-tasks-84">Tasks by Status</h2>
 
-                    <div style={{ height: '300px', width: '100%', display: 'flex', flexDirection: 'column' }}>
+                    <div className="ext-dashboard-142">
 
                         {statusData.length > 0 ? (
 
@@ -685,7 +685,7 @@ const Dashboard = () => {
 
                         ) : (
 
-                            <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)' }}>No status data available</div>
+                            <div className="ext-dashboard-141">No status data available</div>
 
                         )}
 
@@ -699,17 +699,17 @@ const Dashboard = () => {
 
             {/* Bottom Section: Actionable Detail */}
 
-            <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '24px' }}>
+            <div className="ext-dashboard-143">
 
                 {/* Top 5 Critical/Urgent Tasks */}
 
                 <div className="content-card">
 
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                    <div className="ext-dashboard-144">
 
-                        <h2 className="content-card-title" style={{ margin: 0 }}>Top 5 Critical Tasks</h2>
+                        <h2 className="content-card-title ext-dashboard-145">Top 5 Critical Tasks</h2>
 
-                        <Link to="/tasks" style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--primary)', textDecoration: 'none' }}>View All</Link>
+                        <Link to="/tasks" className="ext-dashboard-146">View All</Link>
 
                     </div>
 
@@ -717,7 +717,7 @@ const Dashboard = () => {
 
                     {topCriticalTasks.length > 0 ? (
 
-                        <div style={{ overflowX: 'auto' }}>
+                        <div className="ext-dashboard-147">
 
                             <table className="data-table">
 
@@ -753,11 +753,11 @@ const Dashboard = () => {
 
                                             <tr key={task.id || idx}>
 
-                                                <td style={{ fontWeight: 600 }}>
+                                                <td className="ext-dashboard-148">
 
                                                     {task.task_name}
 
-                                                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '4px', fontWeight: 500 }}>{task.project_name}</div>
+                                                    <div className="ext-dashboard-149">{task.project_name}</div>
 
                                                 </td>
 
@@ -775,9 +775,9 @@ const Dashboard = () => {
 
                                                     {task.revised_due_date ? (
 
-                                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                                                        <div className="ext-dashboard-150">
 
-                                                            <span style={{ textDecoration: 'line-through', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                                                            <span className="ext-dashboard-151">
 
                                                                 {new Date(task.due_date).toLocaleDateString()}
 
@@ -787,7 +787,7 @@ const Dashboard = () => {
 
                                                                 {new Date(task.revised_due_date).toLocaleDateString()}
 
-                                                                <span style={{ fontSize: '0.65rem', marginLeft: '6px', padding: '2px 4px', borderRadius: '4px', background: 'rgba(255,185,70,0.1)', color: '#ffb946', fontWeight: 700 }}>REVISED</span>
+                                                                <span className="ext-dashboard-152">REVISED</span>
 
                                                             </span>
 
@@ -799,7 +799,7 @@ const Dashboard = () => {
 
                                                             {new Date(task.due_date).toLocaleDateString()}
 
-                                                            {isOverdue && <span style={{ display: 'inline-block', marginLeft: '6px', padding: '2px 6px', borderRadius: '4px', background: '#ff6b6b', color: '#fff', fontSize: '0.65rem' }}>OVERDUE</span>}
+                                                            {isOverdue && <span className="ext-dashboard-153">OVERDUE</span>}
 
                                                         </>
 
@@ -809,29 +809,13 @@ const Dashboard = () => {
 
                                                 <td>
 
-                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                    <div className="ext-announcements-16">
 
                                                         {assigneeName ? (
 
                                                             task.assignees?.[0]?.profile_picture ? (
 
-                                                                <img
-
-                                                                    src={task.assignees[0].profile_picture}
-
-                                                                    alt="Avatar"
-
-                                                                    style={{
-
-                                                                        width: '28px', height: '28px', borderRadius: '50%',
-
-                                                                        objectFit: 'cover',
-
-                                                                        boxShadow: '0 2px 4px rgba(15, 23, 42, 0.08)'
-
-                                                                    }}
-
-                                                                />
+                                                                <img src={task.assignees[0].profile_picture} alt="Avatar" className="ext-dashboard-154"/>
 
                                                             ) : (
 
@@ -861,7 +845,7 @@ const Dashboard = () => {
 
                                                         ) : (
 
-                                                            <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: 'var(--border-color)', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.8rem', fontWeight: 700 }}>
+                                                            <div className="ext-dashboard-155">
 
                                                                 ?
 
@@ -869,7 +853,7 @@ const Dashboard = () => {
 
                                                         )}
 
-                                                        <span style={{ fontSize: '0.85rem', fontWeight: 500 }}>{assigneeName || 'Unassigned'}{task.assignees?.length > 1 ? ` +${task.assignees.length - 1}` : ''}</span>
+                                                        <span className="ext-dashboard-156">{assigneeName || 'Unassigned'}{task.assignees?.length > 1 ? ` +${task.assignees.length - 1}` : ''}</span>
 
                                                     </div>
 
@@ -889,7 +873,7 @@ const Dashboard = () => {
 
                     ) : (
 
-                        <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)', background: 'var(--bg-body)', borderRadius: '12px' }}>
+                        <div className="ext-dashboard-157">
 
                             No active critical tasks.
 
@@ -905,19 +889,19 @@ const Dashboard = () => {
 
                 <div className="content-card">
 
-                    <h2 className="content-card-title" style={{ marginBottom: '24px' }}>Recent Activity</h2>
+                    <h2 className="content-card-title ext-completed-tasks-84">Recent Activity</h2>
 
                     
 
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                    <div className="ext-dashboard-158">
 
                         {recentActivity.length > 0 ? recentActivity.map((activity, idx) => (
 
-                            <div key={activity.id || idx} style={{ display: 'flex', gap: '16px', position: 'relative' }}>
+                            <div key={activity.id || idx} className="ext-dashboard-159">
 
                                 {idx !== recentActivity.length - 1 && (
 
-                                    <div style={{ position: 'absolute', left: '19px', top: '40px', bottom: '-20px', width: '2px', background: 'var(--border-light)' }}></div>
+                                    <div className="ext-dashboard-160"></div>
 
                                 )}
 
@@ -935,13 +919,13 @@ const Dashboard = () => {
 
                                 </div>
 
-                                <div style={{ flex: 1, paddingBottom: '4px' }}>
+                                <div className="ext-dashboard-161">
 
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '4px' }}>
+                                    <div className="ext-dashboard-162">
 
-                                        <div style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-primary)' }}>{activity.title}</div>
+                                        <div className="ext-dashboard-163">{activity.title}</div>
 
-                                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', whiteSpace: 'nowrap', marginLeft: '12px' }}>
+                                        <div className="ext-dashboard-164">
 
                                             {activity.date.toLocaleDateString([], { month: 'short', day: 'numeric' })}
 
@@ -949,7 +933,7 @@ const Dashboard = () => {
 
                                     </div>
 
-                                    <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: 1.4 }}>
+                                    <div className="ext-dashboard-165">
 
                                         {activity.desc}
 
@@ -961,7 +945,7 @@ const Dashboard = () => {
 
                         )) : (
 
-                            <div style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '20px' }}>No recent activity found.</div>
+                            <div className="ext-dashboard-166">No recent activity found.</div>
 
                         )}
 

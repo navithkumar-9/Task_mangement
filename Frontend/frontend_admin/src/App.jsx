@@ -10,6 +10,8 @@ import TeamList from './pages/TeamList';
 import Settings from './pages/Settings';
 import Timesheet from './pages/Timesheet';
 import Calendar from './pages/Calendar';
+import Announcements from './pages/Announcements';
+import CompletedTasks from './pages/CompletedTasks';
 import './App.css';
 
 function App() {
@@ -20,7 +22,9 @@ function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/dashboard" element={<ProtectedRoute><Layout><Dashboard /></Layout></ProtectedRoute>} />
           <Route path="/tasks" element={<ProtectedRoute><Layout><Tasks /></Layout></ProtectedRoute>} />
+          <Route path="/completed-tasks" element={<ProtectedRoute><Layout><CompletedTasks /></Layout></ProtectedRoute>} />
           <Route path="/timesheets" element={<ProtectedRoute><Layout><Timesheet /></Layout></ProtectedRoute>} />
+          <Route path="/announcements" element={<ProtectedRoute><Layout><Announcements /></Layout></ProtectedRoute>} />
           <Route path="/create-member" element={<ProtectedRoute><Layout><CreateMember /></Layout></ProtectedRoute>} />
           <Route path="/team" element={<ProtectedRoute><Layout><TeamList /></Layout></ProtectedRoute>} />
           <Route path="/settings" element={<ProtectedRoute><Layout><Settings /></Layout></ProtectedRoute>} />

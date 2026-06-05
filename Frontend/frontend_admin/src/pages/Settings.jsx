@@ -150,10 +150,10 @@ const Settings = () => {
 
     if (!profile) {
         return (
-            <div className="page" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '60vh' }}>
-                <div className="empty-state" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                    <div className="spinner" style={{ borderTopColor: 'var(--primary)', width: '40px', height: '40px' }}></div>
-                    <p style={{ marginTop: '16px', color: 'var(--text-muted)', fontWeight: 600 }}>Loading Settings...</p>
+            <div className="page ext-settings-168">
+                <div className="empty-state ext-settings-169">
+                    <div className="spinner ext-settings-170"></div>
+                    <p className="ext-settings-171">Loading Settings...</p>
                 </div>
             </div>
         );
@@ -176,10 +176,10 @@ const Settings = () => {
                 </div>
             </div>
 
-            <div className="settings-grid" style={{ maxWidth: '1000px', display: 'grid', gridTemplateColumns: '320px 1fr', gap: '24px' }}>
+            <div className="settings-grid ext-settings-172">
                 {/* Left Card: Profile Preview */}
-                <div className="content-card" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', height: 'fit-content' }}>
-                    <div className="profile-edit-avatar-wrapper" style={{ position: 'relative' }}>
+                <div className="content-card ext-settings-173">
+                    <div className="profile-edit-avatar-wrapper ext-settings-174">
                         {profilePic ? (
                             <img src={profilePic} alt="Profile" className="profile-edit-avatar-img" />
                         ) : (
@@ -200,17 +200,8 @@ const Settings = () => {
                             </div>
                         )}
                         {uploadingPic && (
-                            <div style={{
-                                position: 'absolute',
-                                inset: 0,
-                                background: 'rgba(15, 23, 42, 0.65)',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                borderRadius: '50%',
-                                zIndex: 5
-                            }}>
-                                <div className="spinner" style={{ width: '28px', height: '28px', borderWidth: '3px', borderTopColor: '#ffffff' }}></div>
+                            <div className="ext-settings-175">
+                                <div className="spinner ext-settings-176"></div>
                             </div>
                         )}
                         <label className="profile-edit-avatar-overlay" htmlFor="profile-upload-file">
@@ -219,19 +210,13 @@ const Settings = () => {
                                 <circle cx="12" cy="13" r="3" />
                             </svg>
                         </label>
-                        <input
-                            type="file"
-                            id="profile-upload-file"
-                            accept="image/*"
-                            style={{ display: 'none' }}
-                            onChange={handleFileChange}
-                        />
+                        <input type="file" id="profile-upload-file" accept="image/*" className="ext-settings-177" onChange={handleFileChange}/>
                     </div>
 
-                    <h2 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-primary)', margin: '0 0 4px' }}>
+                    <h2 className="ext-settings-178">
                         {name || 'User'}
                     </h2>
-                    <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', margin: '0 0 12px' }}>
+                    <p className="ext-settings-179">
                         @{profile?.username}
                     </p>
                     <span className={`role-badge ${profile?.role === 'ADMIN' ? 'role-admin' : 'role-member'}`}>
@@ -246,7 +231,7 @@ const Settings = () => {
                 </div>
 
                 {/* Right Card: Account Details & Forms */}
-                <div className="content-card" style={{ padding: '28px' }}>
+                <div className="content-card ext-settings-180">
                     <div className="settings-menu-tabs">
                         <button
                             className={`settings-tab-btn ${activeTab === 'general' ? 'settings-tab-btn-active' : ''}`}
@@ -291,29 +276,17 @@ const Settings = () => {
                             <div className="form-row">
                                 <div className="form-group">
                                     <label className="form-label">Username</label>
-                                    <input
-                                        type="text"
-                                        className="form-input"
-                                        value={profile?.username || ''}
-                                        disabled
-                                        style={{ opacity: 0.6, cursor: 'not-allowed' }}
-                                    />
+                                    <input type="text" className="form-input ext-settings-181" value={profile?.username || ''} disabled/>
                                 </div>
                                 <div className="form-group">
                                     <label className="form-label">Role</label>
-                                    <input
-                                        type="text"
-                                        className="form-input"
-                                        value={profile?.role || ''}
-                                        disabled
-                                        style={{ opacity: 0.6, cursor: 'not-allowed' }}
-                                    />
+                                    <input type="text" className="form-input ext-settings-181" value={profile?.role || ''} disabled/>
                                 </div>
                             </div>
 
-                             <div style={{ marginTop: '16px' }}>
-                                <button type="submit" className="btn-primary" disabled={saving} style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
-                                    {saving && <span className="spinner" style={{ width: '16px', height: '16px', borderWidth: '2px', borderTopColor: '#ffffff' }}></span>}
+                             <div className="ext-settings-182">
+                                <button type="submit" className="btn-primary ext-settings-183" disabled={saving}>
+                                    {saving && <span className="spinner ext-settings-184"></span>}
                                     {saving ? 'Saving...' : 'Save Details'}
                                 </button>
                             </div>
@@ -345,7 +318,7 @@ const Settings = () => {
                                 </div>
                             </div>
 
-                            <div className="form-row" style={{ marginTop: '16px' }}>
+                            <div className="form-row ext-settings-182">
                                 <div className="form-group">
                                     <label className="form-label">New Password</label>
                                     <div className="password-input-container">
@@ -396,9 +369,9 @@ const Settings = () => {
                                 </div>
                             </div>
 
-                             <div style={{ marginTop: '24px' }}>
-                                <button type="submit" className="btn-primary" disabled={saving} style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
-                                    {saving && <span className="spinner" style={{ width: '16px', height: '16px', borderWidth: '2px', borderTopColor: '#ffffff' }}></span>}
+                             <div className="ext-calendar-74">
+                                <button type="submit" className="btn-primary ext-settings-183" disabled={saving}>
+                                    {saving && <span className="spinner ext-settings-184"></span>}
                                     {saving ? 'Updating...' : 'Change Password'}
                                 </button>
                             </div>

@@ -111,7 +111,7 @@ const NotificationPopup = () => {
         if (taskId) {
             navigate(`/tasks?taskId=${taskId}`);
         } else {
-            navigate('/tasks');
+            navigate('/announcements');
         }
     };
 
@@ -278,12 +278,26 @@ const NotificationPopup = () => {
                                             </div>
                                             <div className="notif-float-card-body">
                                                 <p className="notif-float-card-message">
-                                                    <strong>
-                                                        {sender.name ||
-                                                            sender.username}
-                                                    </strong>{' '}
-                                                    commented on{' '}
-                                                    <strong>{taskName}</strong>
+                                                    {notif.task_info ? (
+                                                        <>
+                                                            <strong>
+                                                                {sender.name ||
+                                                                    sender.username}
+                                                            </strong>{' '}
+                                                            commented on{' '}
+                                                            <strong>{taskName}</strong>
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <strong>
+                                                                {sender.name ||
+                                                                    sender.username}
+                                                            </strong>{' '}
+                                                            posted a{' '}
+                                                            <strong>New Announcement</strong>:{' '}
+                                                            {notif.message.replace(/^New Announcement:\s*/, '')}
+                                                        </>
+                                                    )}
                                                 </p>
                                                 <div className="notif-float-card-footer">
                                                     {projectName && (

@@ -15,98 +15,25 @@ const getAvatarStyle = (username) => {
   let hash = 0;
   const name = username || '';
   for (let i = 0; i < name.length; i++) {
-    hash = name.charCodeAt(i) + ((hash << 5) - hash);
-  }
-  const index = Math.abs(hash) % colors.length;
-  return colors[index];
-};
-
-/* ─── View Profile Modal ─── */
-const UserProfileModal = ({ user, onClose }) => {
-  if (!user) return null;
-  const avatarStyle = getAvatarStyle(user.username);
-  return (
-    <div
-      onClick={onClose}
-      style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        width: '100%',
-        height: '100%',
-        background: 'rgba(15, 23, 42, 0.6)',
-        backdropFilter: 'blur(8px)',
-        WebkitBackdropFilter: 'blur(8px)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        zIndex: 1000,
-        animation: 'fadeIn 0.2s ease',
-      }}
-    >
-      <div
-        onClick={(e) => e.stopPropagation()}
-        style={{
-          background: '#ffffff',
-          width: '500px',
-          maxWidth: '95vw',
-          maxHeight: '90vh',
-          overflowY: 'auto',
-          borderRadius: '16px',
-          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
-          animation: 'modalSlideIn 0.3s ease',
-        }}
-      >
+    hash = name.charCodeAt(i) + ((hash << 5) - hash); } const index = Math.abs(hash) % colors.length; return colors[index]; }; /* ─── View Profile Modal ─── */ const UserProfileModal = ({ user, onClose }) => { if (!user) return null; const avatarStyle = getAvatarStyle(user.username); return ( <div onClick={onClose} className="ext-team-list-212 ext-team-list-213"> <div onClick={(e) => e.stopPropagation()} >
         {/* Header */}
-        <div style={{
-          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-          padding: '24px 28px',
-          borderRadius: '16px 16px 0 0',
-          position: 'relative',
-        }}>
-          <button
-            onClick={onClose}
-            style={{
-              position: 'absolute',
-              top: '16px',
-              right: '16px',
-              background: 'rgba(255,255,255,0.2)',
-              border: 'none',
-              borderRadius: '50%',
-              width: '32px',
-              height: '32px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              cursor: 'pointer',
-              color: '#fff',
-              transition: 'background 0.2s',
-            }}
-            onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.35)'}
-            onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.2)'}
-          >
+        <div className="ext-team-list-214">
+          <button onClick={onClose} className="ext-team-list-215" onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.35)'} onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.2)'} >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <line x1="18" y1="6" x2="6" y2="18" />
               <line x1="6" y1="6" x2="18" y2="18" />
             </svg>
           </button>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <div style={{
-              background: 'rgba(255,255,255,0.2)',
-              borderRadius: '12px',
-              padding: '10px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}>
+          <div className="ext-announcements-14">
+            <div className="ext-team-list-216">
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
                 <circle cx="12" cy="7" r="4" />
               </svg>
             </div>
             <div>
-              <h2 style={{ margin: 0, color: '#fff', fontSize: '1.2rem', fontWeight: 700 }}>Team Member Profile</h2>
-              <p style={{ margin: '2px 0 0', color: 'rgba(255,255,255,0.8)', fontSize: '0.82rem' }}>
+              <h2 className="ext-announcements-31">Team Member Profile</h2>
+              <p className="ext-team-list-217">
                 @{user.username}
               </p>
             </div>
@@ -114,21 +41,10 @@ const UserProfileModal = ({ user, onClose }) => {
         </div>
 
         {/* Body */}
-        <div style={{ padding: '24px 28px' }}>
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', margin: '10px 0 24px 0' }}>
+        <div className="ext-team-list-218">
+          <div className="ext-team-list-219">
             {user.profile_picture ? (
-              <img
-                src={user.profile_picture}
-                alt="Avatar"
-                style={{
-                  width: '90px',
-                  height: '90px',
-                  borderRadius: '50%',
-                  objectFit: 'cover',
-                  border: '3px solid #e2e8f0',
-                  boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-                }}
-              />
+              <img src={user.profile_picture} alt="Avatar" className="ext-team-list-220"/>
             ) : (
               <div
                 style={{
@@ -149,46 +65,46 @@ const UserProfileModal = ({ user, onClose }) => {
                 {user.name?.charAt(0)?.toUpperCase() || user.username?.charAt(0)?.toUpperCase() || 'U'}
               </div>
             )}
-            <h3 style={{ margin: '14px 0 2px 0', fontSize: '1.25rem', fontWeight: 800, color: '#1e293b' }}>
+            <h3 className="ext-team-list-221">
               {user.name || user.username}
             </h3>
-            <span style={{ fontSize: '0.85rem', color: '#64748b', fontWeight: 500 }}>@{user.username}</span>
+            <span className="ext-team-list-222">@{user.username}</span>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
-            <div style={{ background: '#f8fafc', borderRadius: '12px', padding: '14px 16px' }}>
-              <div style={{ fontSize: '0.7rem', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 700, marginBottom: '6px' }}>User ID</div>
-              <div style={{ fontWeight: 600, color: '#1e293b', fontSize: '0.9rem' }}>#{user.id}</div>
+          <div className="ext-team-list-223">
+            <div className="ext-team-list-224">
+              <div className="ext-team-list-225">User ID</div>
+              <div className="ext-team-list-226">#{user.id}</div>
             </div>
-            <div style={{ background: '#f8fafc', borderRadius: '12px', padding: '14px 16px' }}>
-              <div style={{ fontSize: '0.7rem', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 700, marginBottom: '6px' }}>Employee ID</div>
-              <div style={{ fontWeight: 600, color: '#1e293b', fontSize: '0.9rem' }}>{user.employee_id || '-'}</div>
-            </div>
-          </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
-            <div style={{ background: '#f8fafc', borderRadius: '12px', padding: '14px 16px' }}>
-              <div style={{ fontSize: '0.7rem', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 700, marginBottom: '6px' }}>Email Address</div>
-              <div style={{ fontWeight: 600, color: '#1e293b', fontSize: '0.9rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={user.email}>{user.email || '-'}</div>
-            </div>
-            <div style={{ background: '#f8fafc', borderRadius: '12px', padding: '14px 16px' }}>
-              <div style={{ fontSize: '0.7rem', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 700, marginBottom: '6px' }}>Phone Number</div>
-              <div style={{ fontWeight: 600, color: '#1e293b', fontSize: '0.9rem' }}>{user.phone_number || '-'}</div>
+            <div className="ext-team-list-224">
+              <div className="ext-team-list-225">Employee ID</div>
+              <div className="ext-team-list-226">{user.employee_id || '-'}</div>
             </div>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-            <div style={{ background: '#f8fafc', borderRadius: '12px', padding: '14px 16px' }}>
-              <div style={{ fontSize: '0.7rem', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 700, marginBottom: '6px' }}>Role</div>
-              <div style={{ fontWeight: 600, color: '#1e293b', fontSize: '0.9rem' }}>
+          <div className="ext-team-list-223">
+            <div className="ext-team-list-224">
+              <div className="ext-team-list-225">Email Address</div>
+              <div className="ext-team-list-227" title={user.email}>{user.email || '-'}</div>
+            </div>
+            <div className="ext-team-list-224">
+              <div className="ext-team-list-225">Phone Number</div>
+              <div className="ext-team-list-226">{user.phone_number || '-'}</div>
+            </div>
+          </div>
+
+          <div className="ext-team-list-228">
+            <div className="ext-team-list-224">
+              <div className="ext-team-list-225">Role</div>
+              <div className="ext-team-list-226">
                 <span className={`role-badge role-${user.role?.toLowerCase().replace('_', '') || 'member'}`}>
                   {user.role}
                 </span>
               </div>
             </div>
-            <div style={{ background: '#f8fafc', borderRadius: '12px', padding: '14px 16px' }}>
-              <div style={{ fontSize: '0.7rem', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 700, marginBottom: '6px' }}>Status</div>
-              <div style={{ fontWeight: 600, color: '#1e293b', fontSize: '0.9rem' }}>
+            <div className="ext-team-list-224">
+              <div className="ext-team-list-225">Status</div>
+              <div className="ext-team-list-226">
                 <span className="status-badge status-active">Active</span>
               </div>
             </div>
@@ -196,23 +112,8 @@ const UserProfileModal = ({ user, onClose }) => {
         </div>
 
         {/* Footer */}
-        <div style={{ padding: '16px 28px', borderTop: '1px solid #f1f5f9', display: 'flex', justifyContent: 'flex-end' }}>
-          <button
-            onClick={onClose}
-            style={{
-              padding: '10px 24px',
-              borderRadius: '8px',
-              border: 'none',
-              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-              color: '#fff',
-              cursor: 'pointer',
-              fontSize: '0.9rem',
-              fontWeight: 600,
-              transition: 'opacity 0.2s',
-            }}
-            onMouseEnter={(e) => e.target.style.opacity = '0.9'}
-            onMouseLeave={(e) => e.target.style.opacity = '1'}
-          >
+        <div className="ext-team-list-229">
+          <button onClick={onClose} className="ext-team-list-230" onMouseEnter={(e) => e.target.style.opacity = '0.9'} onMouseLeave={(e) => e.target.style.opacity = '1'} >
             Close
           </button>
         </div>
@@ -295,24 +196,7 @@ const EditMemberModal = ({ member, onClose, onSave }) => {
   };
 
   return (
-    <div
-      onClick={onClose}
-      style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        width: '100%',
-        height: '100%',
-        background: 'rgba(15, 23, 42, 0.6)',
-        backdropFilter: 'blur(8px)',
-        WebkitBackdropFilter: 'blur(8px)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        zIndex: 1000,
-        animation: 'fadeIn 0.2s ease',
-      }}
-    >
+    <div onClick={onClose} className="ext-team-list-212">
       <div
         onClick={(e) => e.stopPropagation()}
         style={{
@@ -324,33 +208,21 @@ const EditMemberModal = ({ member, onClose, onSave }) => {
           animation: 'modalSlideIn 0.3s ease',
         }}
       >
-        <div style={{
-          background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
-          padding: '20px 24px',
-          borderRadius: '16px 16px 0 0',
-        }}>
-          <h2 style={{ margin: 0, color: '#fff', fontSize: '1.15rem', fontWeight: 700 }}>Edit Team Member</h2>
-          <p style={{ margin: '2px 0 0', color: 'rgba(255,255,255,0.8)', fontSize: '0.82rem' }}>
+        <div className="ext-team-list-232">
+          <h2 className="ext-tasks-196">Edit Team Member</h2>
+          <p className="ext-team-list-217">
             @{member.username}
           </p>
         </div>
 
-        <form onSubmit={handleSubmit} style={{ padding: '24px' }}>
+        <form onSubmit={handleSubmit} className="ext-announcements-32">
           {error && (
-            <div style={{
-              padding: '10px 14px',
-              background: '#fef2f2',
-              color: '#dc2626',
-              borderRadius: '8px',
-              fontSize: '0.85rem',
-              fontWeight: 500,
-              marginBottom: '16px',
-            }}>
+            <div className="ext-team-list-233">
               {error}
             </div>
           )}
 
-          <div style={{ marginBottom: '16px' }}>
+          <div className="ext-tasks-200">
             <label style={labelStyle}>Username</label>
             <input
               type="text"
@@ -361,7 +233,7 @@ const EditMemberModal = ({ member, onClose, onSave }) => {
             />
           </div>
 
-          <div style={{ marginBottom: '16px' }}>
+          <div className="ext-tasks-200">
             <label style={labelStyle}>Email</label>
             <input
               type="email"
@@ -372,7 +244,7 @@ const EditMemberModal = ({ member, onClose, onSave }) => {
             />
           </div>
 
-          <div style={{ marginBottom: '24px' }}>
+          <div className="ext-completed-tasks-84">
             <label style={labelStyle}>Phone Number</label>
             <input
               type="tel"
@@ -385,26 +257,13 @@ const EditMemberModal = ({ member, onClose, onSave }) => {
                 setForm({ ...form, phone_number: val });
               }}
             />
-            <span style={{ fontSize: '0.75rem', color: '#9ca3af', marginTop: '4px', display: 'block' }}>
+            <span className="ext-team-list-234">
               Must be 10 digits starting with 6, 7, 8, or 9
             </span>
           </div>
 
-          <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
-            <button
-              type="button"
-              onClick={onClose}
-              style={{
-                padding: '10px 20px',
-                borderRadius: '8px',
-                border: '1px solid #d1d5db',
-                background: '#fff',
-                cursor: 'pointer',
-                fontSize: '0.9rem',
-                fontWeight: 500,
-                color: '#374151',
-              }}
-            >
+          <div className="ext-team-list-235">
+            <button type="button" onClick={onClose} className="ext-team-list-236">
               Cancel
             </button>
             <button
@@ -463,16 +322,7 @@ const DeleteConfirmModal = ({ member, onClose, onConfirm }) => {
         }}
       >
         {/* Warning Icon */}
-        <div style={{
-          width: '56px',
-          height: '56px',
-          borderRadius: '50%',
-          background: 'rgba(255,107,107,0.1)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          margin: '0 auto 16px',
-        }}>
+        <div className="ext-team-list-238">
           <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#ff6b6b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <polyline points="3 6 5 6 21 6" />
             <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
@@ -481,27 +331,14 @@ const DeleteConfirmModal = ({ member, onClose, onConfirm }) => {
           </svg>
         </div>
 
-        <h2 style={{ margin: '0 0 8px', fontSize: '1.2rem' }}>Delete Team Member</h2>
-        <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', margin: '0 0 24px' }}>
-          Are you sure you want to delete <strong style={{ color: 'var(--primary)' }}>@{member.username}</strong>?
+        <h2 className="ext-team-list-239">Delete Team Member</h2>
+        <p className="ext-team-list-240">
+          Are you sure you want to delete <strong className="ext-team-list-241">@{member.username}</strong>?
           This action cannot be undone and will remove all associated data.
         </p>
 
-        <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
-          <button
-            type="button"
-            onClick={onClose}
-            style={{
-              padding: '10px 24px',
-              borderRadius: '8px',
-              border: '1px solid var(--border-color)',
-              background: 'transparent',
-              cursor: 'pointer',
-              fontWeight: 600,
-              color: 'var(--text-muted)',
-              fontSize: '0.9rem',
-            }}
-          >
+        <div className="ext-team-list-242">
+          <button type="button" onClick={onClose} className="ext-team-list-243">
             Cancel
           </button>
           <button
@@ -600,7 +437,7 @@ const TeamList = () => {
 
   return (
     <div className="page">
-      <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+      <div className="page-header ext-calendar-57">
         <div>
           <h1 className="page-title">Team Members</h1>
           <p className="page-subtitle">Manage your team members and their profiles</p>
@@ -636,7 +473,7 @@ const TeamList = () => {
           />
         </div>
         {loading ? (
-                        <div className="page-loader" style={{ padding: '60px 0' }}>
+                        <div className="page-loader ext-calendar-68">
                             <div className="page-loader-spinner"></div>
                             <div className="page-loader-text">Loading members...</div>
                         </div>
@@ -666,18 +503,9 @@ const TeamList = () => {
                        <tr key={m.id || i}>
                          <td className="text-muted">#{m.id}</td>
                          <td className="text-bold">
-                           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                           <div className="ext-completed-tasks-127">
                              {m.profile_picture ? (
-                               <img
-                                 src={m.profile_picture}
-                                 alt="Avatar"
-                                 style={{
-                                   width: '30px',
-                                   height: '30px',
-                                   borderRadius: '50%',
-                                   objectFit: 'cover',
-                                 }}
-                               />
+                               <img src={m.profile_picture} alt="Avatar" className="ext-team-list-245"/>
                              ) : (
                                <div
                                  className="sidebar-user-avatar"
@@ -709,7 +537,7 @@ const TeamList = () => {
                          </td>
                          <td><span className="status-badge status-active">Active</span></td>
                          <td>
-                           <div style={{ display: 'flex', gap: '8px' }}>
+                           <div className="ext-team-list-246">
                              {/* View */}
                              <button
                                className="btn-icon"

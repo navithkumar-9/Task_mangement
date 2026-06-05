@@ -2,11 +2,33 @@ from rest_framework import serializers
 from django.contrib.auth import authenticate
 from .models import User_model
 from .roles import UserRole
-from .models import Task, Timesheet, TaskComment, SubTask, Notification
+from .models import Task, Timesheet, TaskComment, SubTask, Notification, Announcement, AnnouncementAudience
 from django.contrib.auth import get_user_model
 from .emails import send_task_notification_email_async
 
 User = get_user_model()
+
+
+def serialize_team_leader(assigned_by):
+    if not assigned_by:
+        return None
+    if assigned_by.role == "ADMIN":
+        leader = assigned_by
+    elif assigned_by.role == "TEAM_MEMBER" and assigned_by.created_by:
+        leader = assigned_by.created_by
+    else:
+        leader = None
+
+    if leader:
+        return {
+            "id": leader.id,
+            "username": leader.username,
+            "name": getattr(leader, "name", "") or "",
+            "profile_picture": getattr(leader, "profile_picture", "") or "",
+            "role": leader.role,
+        }
+    return None
+
 
 
 class LoginSerializer(serializers.Serializer):
@@ -159,10 +181,14 @@ class TaskCreateSerializer(serializers.ModelSerializer):
         if not value:
             raise serializers.ValidationError("At least one team member must be selected")
 
+        leader = request.user
+        if request.user.role == UserRole.TEAM_MEMBER.value:
+            leader = request.user.created_by
+
         for uid in value:
             try:
                 User.objects.get(
-                    id=uid, role=UserRole.TEAM_MEMBER.value, created_by=request.user
+                    id=uid, role=UserRole.TEAM_MEMBER.value, created_by=leader
                 )
             except User.DoesNotExist:
                 raise serializers.ValidationError(
@@ -207,6 +233,8 @@ class TaskListSerializer(serializers.ModelSerializer):
 
     assigned_by = serializers.SerializerMethodField()
 
+    team_leader = serializers.SerializerMethodField()
+
     class Meta:
         model = Task
         fields = "__all__"
@@ -233,6 +261,9 @@ class TaskListSerializer(serializers.ModelSerializer):
             "name": getattr(obj.assigned_by, "name", "") or "",
             "profile_picture": getattr(obj.assigned_by, "profile_picture", "") or "",
         }
+
+    def get_team_leader(self, obj):
+        return serialize_team_leader(obj.assigned_by)
 
 
 class TaskStatusUpdateSerializer(serializers.ModelSerializer):
@@ -301,6 +332,8 @@ class TimesheetListSerializer(serializers.ModelSerializer):
 
     team_member = serializers.SerializerMethodField()
 
+    team_leader = serializers.SerializerMethodField()
+
     class Meta:
         model = Timesheet
         fields = "__all__"
@@ -317,7 +350,18 @@ class TimesheetListSerializer(serializers.ModelSerializer):
                 "username": obj.task.assigned_by.username,
                 "name": getattr(obj.task.assigned_by, "name", "") or "",
                 "profile_picture": getattr(obj.task.assigned_by, "profile_picture", "") or "",
-            }
+            },
+            "assignees": [
+                {
+                    "id": user.id,
+                    "username": user.username,
+                    "email": user.email,
+                    "name": getattr(user, "name", "") or "",
+                    "profile_picture": getattr(user, "profile_picture", "") or "",
+                }
+                for user in obj.task.assignees.all()
+            ],
+            "team_leader": serialize_team_leader(obj.task.assigned_by),
         }
 
     def get_team_member(self, obj):
@@ -329,6 +373,9 @@ class TimesheetListSerializer(serializers.ModelSerializer):
             "name": getattr(obj.team_member, "name", "") or "",
             "profile_picture": getattr(obj.team_member, "profile_picture", "") or "",
         }
+
+    def get_team_leader(self, obj):
+        return serialize_team_leader(obj.task.assigned_by)
 
 
 # ─── Comment / Activity Serializer ───
@@ -366,6 +413,7 @@ class TaskDetailSerializer(serializers.ModelSerializer):
     assigned_by = serializers.SerializerMethodField()
     comments = TaskCommentSerializer(many=True, read_only=True)
     subtasks = SubTaskSerializer(many=True, read_only=True)
+    team_leader = serializers.SerializerMethodField()
 
     class Meta:
         model = Task
@@ -392,6 +440,9 @@ class TaskDetailSerializer(serializers.ModelSerializer):
             "profile_picture": getattr(obj.assigned_by, "profile_picture", "") or "",
         }
 
+    def get_team_leader(self, obj):
+        return serialize_team_leader(obj.assigned_by)
+
 
 # ─── Notification Serializer ───
 
@@ -413,9 +464,62 @@ class NotificationSerializer(serializers.ModelSerializer):
         }
 
     def get_task_info(self, obj):
+        if not obj.task:
+            return None
         return {
             "id": obj.task.id,
             "task_name": obj.task.task_name,
             "project_name": obj.task.project_name,
         }
+
+
+# ─── Announcement Serializers ───
+
+class AnnouncementCreateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Announcement
+        fields = ["id", "title", "message", "audience", "created_at"]
+        read_only_fields = ["id", "created_at"]
+
+    def validate_audience(self, value):
+        request = self.context["request"]
+        user = request.user
+        if user.role == "SUPER_ADMIN":
+            if value not in ["ADMINS_ONLY", "ALL"]:
+                raise serializers.ValidationError("Super Admin can only target ADMINS_ONLY or ALL.")
+        elif user.role == "ADMIN":
+            if value != "MY_TEAM":
+                raise serializers.ValidationError("Admins can only target MY_TEAM.")
+        else:
+            raise serializers.ValidationError("Team Members cannot send announcements.")
+        return value
+
+    def create(self, validated_data):
+        request = self.context["request"]
+        validated_data["sender"] = request.user
+        return super().create(validated_data)
+
+
+class AnnouncementUpdateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Announcement
+        fields = ["title", "message"]
+
+
+class AnnouncementListSerializer(serializers.ModelSerializer):
+    sender = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Announcement
+        fields = ["id", "sender", "title", "message", "audience", "created_at", "updated_at"]
+
+    def get_sender(self, obj):
+        return {
+            "id": obj.sender.id,
+            "username": obj.sender.username,
+            "name": getattr(obj.sender, "name", "") or "",
+            "profile_picture": getattr(obj.sender, "profile_picture", "") or "",
+            "role": obj.sender.role,
+        }
+
 

@@ -6,6 +6,22 @@ const getTodayString = () => {
     const today = new Date();
     return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
 };
+
+// Helper: format working_hours (decimal string like "1.50") to rounded display like "1 hr 30 min"
+const formatWorkingHours = (workingHours) => {
+    if (!workingHours && workingHours !== 0) return '-';
+    const totalMinutes = Math.round(parseFloat(workingHours) * 60);
+    if (totalMinutes <= 0) return '0 min';
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
+    if (hours === 0) return `${minutes} min`;
+    if (minutes === 0) return `${hours} hr`;
+    return `${hours} hr ${minutes} min`;
+};
+
+// Helper: get today's date boundaries for datetime-local min/max
+const getTodayMin = () => getTodayString() + 'T00:00';
+const getTodayMax = () => getTodayString() + 'T23:59';
 const getAvatarStyle = (username) => {
     const colors = [
         { bg: 'linear-gradient(135deg, #3B82F6, #1D4ED8)', text: '#ffffff' }, // Blue
@@ -35,6 +51,7 @@ const Timesheet = () => {
     const [dateFilter, setDateFilter] = useState(getTodayString());
     const [taskNameFilter, setTaskNameFilter] = useState('');
     const [projectNameFilter, setProjectNameFilter] = useState('');
+    const [employeeFilter, setEmployeeFilter] = useState('');
     // For Team Member Create
     const [showModal, setShowModal] = useState(false);
     const [myTasks, setMyTasks] = useState([]);
@@ -58,11 +75,11 @@ const Timesheet = () => {
         if (!isAdmin) {
             fetchMyTasks();
         }
-    }, [isAdmin, dateFilter, taskNameFilter, projectNameFilter, page]);
+    }, [isAdmin, dateFilter, taskNameFilter, projectNameFilter, employeeFilter, page]);
 
     useEffect(() => {
         setPage(1);
-    }, [dateFilter, taskNameFilter, projectNameFilter]);
+    }, [dateFilter, taskNameFilter, projectNameFilter, employeeFilter]);
 
     const fetchTimesheets = async () => {
         setLoading(true);
@@ -82,6 +99,8 @@ const Timesheet = () => {
                 query += `&task_name=${encodeURIComponent(taskNameFilter)}`;
             if (projectNameFilter)
                 query += `&project_name=${encodeURIComponent(projectNameFilter)}`;
+            if (employeeFilter)
+                query += `&employee_name=${encodeURIComponent(employeeFilter)}`;
             const endpoint = `${endpointBase}?${query}`;
             const res = await API.get(endpoint);
             let items = [];
@@ -238,15 +257,8 @@ const Timesheet = () => {
     };
 
     return (
-        <div className="page" style={{ maxWidth: '100%' }}>
-            <div
-                className="page-header"
-                style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'flex-start',
-                }}
-            >
+        <div className="page ext-calendar-56">
+            <div className="page-header ext-calendar-57">
                 <div>
                     <h1 className="page-title">
                         {isAdmin ? 'Team Timesheets' : 'My Timesheets'}
@@ -286,84 +298,48 @@ const Timesheet = () => {
                 )}
             </div>
 
-            <div className="content-card" style={{ marginTop: '24px' }}>
-                <div
-                    className="content-card-header"
-                    style={{
-                        padding: '16px 20px',
-                        borderBottom: '1px solid var(--border-color)',
-                        display: 'flex',
-                        flexWrap: 'wrap',
-                        alignItems: 'center',
-                        gap: '16px',
-                    }}
-                >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <label className="form-label" style={{ margin: 0, whiteSpace: 'nowrap' }}>
+            <div className="content-card ext-calendar-74">
+                <div className="content-card-header ext-timesheet-250">
+                    <div className="ext-announcements-16">
+                        <label className="form-label ext-completed-tasks-86">
                             Filter by Date:
                         </label>
-                        <input
-                            type="date"
-                            className="search-input"
-                            style={{ width: '150px', padding: '8px 12px' }}
-                            value={dateFilter}
-                            onChange={(e) => setDateFilter(e.target.value)}
-                        />
+                        <input type="date" className="search-input ext-completed-tasks-87" value={dateFilter} onChange={(e) => setDateFilter(e.target.value)} />
                         {dateFilter && (
-                            <button
-                                className="btn-danger"
-                                style={{
-                                    background: 'transparent',
-                                    border: 'none',
-                                    color: 'var(--danger)',
-                                    cursor: 'pointer',
-                                    padding: '4px 8px',
-                                }}
-                                onClick={() => setDateFilter('')}
-                            >
+                            <button className="btn-danger ext-timesheet-251" onClick={() => setDateFilter('')} >
                                 Clear
                             </button>
                         )}
                     </div>
 
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <label className="form-label" style={{ margin: 0, whiteSpace: 'nowrap' }}>
+                    <div className="ext-announcements-16">
+                        <label className="form-label ext-completed-tasks-86">
                             Task Name:
                         </label>
-                        <input
-                            type="text"
-                            className="search-input"
-                            placeholder="Search task..."
-                            style={{ width: '160px', padding: '8px 12px' }}
-                            value={taskNameFilter}
-                            onChange={(e) => setTaskNameFilter(e.target.value)}
-                        />
+                        <input type="text" className="search-input ext-timesheet-252" placeholder="Search task..." value={taskNameFilter} onChange={(e) => setTaskNameFilter(e.target.value)} />
                     </div>
 
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <label className="form-label" style={{ margin: 0, whiteSpace: 'nowrap' }}>
+                    <div className="ext-announcements-16">
+                        <label className="form-label ext-completed-tasks-86">
                             Project Name:
                         </label>
-                        <input
-                            type="text"
-                            className="search-input"
-                            placeholder="Search project..."
-                            style={{ width: '160px', padding: '8px 12px' }}
-                            value={projectNameFilter}
-                            onChange={(e) => setProjectNameFilter(e.target.value)}
-                        />
+                        <input type="text" className="search-input ext-timesheet-252" placeholder="Search project..." value={projectNameFilter} onChange={(e) => setProjectNameFilter(e.target.value)} />
+                    </div>
+
+                    <div className="ext-announcements-16">
+                        <label className="form-label ext-completed-tasks-86">
+                            Employee Name:
+                        </label>
+                        <input type="text" className="search-input ext-timesheet-252" placeholder="Search employee..." value={employeeFilter} onChange={(e) => setEmployeeFilter(e.target.value)} />
                     </div>
                 </div>
                 {loading ? (
-                        <div className="page-loader" style={{ padding: '60px 0' }}>
+                        <div className="page-loader ext-calendar-68">
                             <div className="page-loader-spinner"></div>
                             <div className="page-loader-text">Loading timesheets...</div>
                         </div>
                     ) : timesheets.length === 0 ? (
-                    <div
-                        className="empty-state"
-                        style={{ padding: '40px', textAlign: 'center' }}
-                    >
+                    <div className="empty-state ext-timesheet-253">
                         <p>
                             {dateFilter
                                 ? 'No timesheets match your date filter'
@@ -371,127 +347,46 @@ const Timesheet = () => {
                         </p>
                     </div>
                 ) : (
-                    <div
-                        className="table-wrapper"
-                        style={{ overflowX: 'auto' }}
-                    >
-                        <table
-                            className="data-table"
-                            style={{
-                                width: '100%',
-                                borderCollapse: 'collapse',
-                                textAlign: 'left',
-                            }}
-                        >
+                    <div className="table-wrapper ext-dashboard-147">
+                        <table className="data-table ext-timesheet-254">
                             <thead>
                                 <tr>
-                                    <th
-                                        style={{
-                                            padding: '16px 20px',
-                                            borderBottom:
-                                                '1px solid var(--border-color)',
-                                            color: 'var(--text-muted)',
-                                        }}
-                                    >
+                                    <th className="ext-timesheet-255">
                                         Team Member
                                     </th>
-                                    <th
-                                        style={{
-                                            padding: '16px 20px',
-                                            borderBottom:
-                                                '1px solid var(--border-color)',
-                                            color: 'var(--text-muted)',
-                                        }}
-                                    >
+                                    <th className="ext-timesheet-255">
                                         Project / Task
                                     </th>
-                                    <th
-                                        style={{
-                                            padding: '16px 20px',
-                                            borderBottom:
-                                                '1px solid var(--border-color)',
-                                            color: 'var(--text-muted)',
-                                        }}
-                                    >
+                                    <th className="ext-timesheet-255">
                                         Description
                                     </th>
-                                    <th
-                                        style={{
-                                            padding: '16px 20px',
-                                            borderBottom:
-                                                '1px solid var(--border-color)',
-                                            color: 'var(--text-muted)',
-                                        }}
-                                    >
+                                    <th className="ext-timesheet-255">
                                         Priority
                                     </th>
-                                    <th
-                                        style={{
-                                            padding: '16px 20px',
-                                            borderBottom:
-                                                '1px solid var(--border-color)',
-                                            color: 'var(--text-muted)',
-                                        }}
-                                    >
+                                    <th className="ext-timesheet-255">
                                         Status
                                     </th>
-                                    <th
-                                        style={{
-                                            padding: '16px 20px',
-                                            borderBottom:
-                                                '1px solid var(--border-color)',
-                                            color: 'var(--text-muted)',
-                                        }}
-                                    >
+                                    <th className="ext-timesheet-255">
                                         Duration
                                     </th>
-                                    <th
-                                        style={{
-                                            padding: '16px 20px',
-                                            borderBottom:
-                                                '1px solid var(--border-color)',
-                                            color: 'var(--text-muted)',
-                                        }}
-                                    >
+                                    <th className="ext-timesheet-255">
                                         Created At
                                     </th>
-                                    <th
-                                        style={{
-                                            padding: '16px 20px',
-                                            borderBottom:
-                                                '1px solid var(--border-color)',
-                                            color: 'var(--text-muted)',
-                                        }}
-                                    >
+                                    <th className="ext-timesheet-255">
                                         Actions
                                     </th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {timesheets.map((ts, i) => (
-                                    <tr
-                                        key={ts.id || i}
-                                        style={{
-                                            borderBottom:
-                                                '1px solid var(--border-color)',
-                                        }}
-                                    >
-                                        <td style={{ padding: '16px 20px' }}>
+                                    <tr key={ts.id || i} className="ext-timesheet-256">
+                                        <td className="ext-completed-tasks-91">
                                             {ts.team_member ? (
-                                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                <div className="ext-announcements-16">
                                                     {(() => {
                                                         const avStyle = getAvatarStyle(ts.team_member.username);
                                                         return ts.team_member.profile_picture ? (
-                                                            <img
-                                                                src={ts.team_member.profile_picture}
-                                                                alt="Avatar"
-                                                                style={{
-                                                                    width: '28px',
-                                                                    height: '28px',
-                                                                    borderRadius: '50%',
-                                                                    objectFit: 'cover'
-                                                                }}
-                                                            />
+                                                            <img src={ts.team_member.profile_picture} alt="Avatar" className="ext-timesheet-257"/>
                                                         ) : (
                                                             <div
                                                                 className="sidebar-user-avatar"
@@ -512,104 +407,74 @@ const Timesheet = () => {
                                                             </div>
                                                         );
                                                     })()}
-                                                    <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
-                                                        @{ts.team_member.username}
-                                                    </span>
+                                                    <div className="ext-completed-tasks-92">
+                                                        <span className="ext-announcements-17">
+                                                            @{ts.team_member.username}
+                                                        </span>
+                                                        {ts.team_leader && (
+                                                            <span className="ext-timesheet-258">
+                                                                Leader: @{ts.team_leader.username}
+                                                            </span>
+                                                        )}
+                                                    </div>
                                                 </div>
                                             ) : (
                                                 '-'
                                             )}
                                         </td>
-                                        <td style={{ padding: '16px 20px' }}>
-                                            <div
-                                                style={{
-                                                    display: 'flex',
-                                                    flexDirection: 'column',
-                                                }}
-                                            >
-                                                <span
-                                                    style={{ fontWeight: 600 }}
-                                                >
+                                        <td className="ext-completed-tasks-91">
+                                            <div className="ext-completed-tasks-92">
+                                                <span className="ext-dashboard-148">
                                                     {ts.task?.task_name}
                                                 </span>
-                                                <span
-                                                    style={{
-                                                        fontSize: '0.8rem',
-                                                        color: 'var(--text-muted)',
-                                                    }}
-                                                >
+                                                <span className="ext-completed-tasks-93">
                                                     {ts.task?.project_name}
                                                 </span>
+                                                {ts.task?.team_leader && (
+                                                    <span className="ext-timesheet-258">
+                                                        Leader: @{ts.task.team_leader.username}
+                                                    </span>
+                                                )}
                                             </div>
                                         </td>
-                                        <td style={{ padding: '16px 20px' }}>
-                                            <div
-                                                style={{
-                                                    maxWidth: '250px',
-                                                    whiteSpace: 'nowrap',
-                                                    overflow: 'hidden',
-                                                    textOverflow: 'ellipsis',
-                                                }}
-                                            >
+                                        <td className="ext-completed-tasks-91">
+                                            <div className="ext-timesheet-259">
                                                 {ts.description}
                                             </div>
                                         </td>
-                                        <td style={{ padding: '16px 20px' }}>
+                                        <td className="ext-completed-tasks-91">
                                             {getPriorityBadge(
                                                 ts.task?.priority,
                                             )}
                                         </td>
-                                        <td style={{ padding: '16px 20px' }}>
+                                        <td className="ext-completed-tasks-91">
                                             {getStatusBadge(ts.status)}
                                         </td>
-                                        <td style={{ padding: '16px 20px' }}>
-                                            <div
-                                                style={{
-                                                    display: 'flex',
-                                                    flexDirection: 'column',
-                                                }}
-                                            >
-                                                <span
-                                                    style={{
-                                                        fontSize: '0.85rem',
-                                                    }}
-                                                >
+                                        <td className="ext-completed-tasks-91">
+                                            <div className="ext-completed-tasks-92">
+                                                <span className="ext-tasks-211">
                                                     {formatDateTime(
                                                         ts.start_time,
                                                     )}{' '}
                                                     to
                                                 </span>
-                                                <span
-                                                    style={{
-                                                        fontSize: '0.85rem',
-                                                    }}
-                                                >
+                                                <span className="ext-tasks-211">
                                                     {formatDateTime(
                                                         ts.end_time,
                                                     )}
                                                 </span>
                                                 {ts.working_hours && (
-                                                    <span
-                                                        style={{
-                                                            fontSize: '0.75rem',
-                                                            color: 'var(--primary)',
-                                                            fontWeight: 600,
-                                                        }}
-                                                    >
-                                                        {ts.working_hours} hrs
+                                                    <span className="ext-timesheet-260">
+                                                        {formatWorkingHours(ts.working_hours)}
                                                     </span>
                                                 )}
                                             </div>
                                         </td>
-                                        <td
-                                            style={{
-                                                padding: '16px 20px',
-                                            }}
-                                        >
+                                        <td className="ext-completed-tasks-91">
                                             {formatDateTime(ts.created_at)}
                                         </td>
-                                        <td style={{ padding: '16px 20px' }}>
-                                            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                                        <td className="ext-completed-tasks-91">
+                                            <div className="ext-timesheet-261">
                                                 <button
                                                     onClick={() => setViewingTimesheet(ts)}
                                                     className="btn-icon"
@@ -631,35 +496,7 @@ const Timesheet = () => {
                                                         <circle cx="12" cy="12" r="3" />
                                                     </svg>
                                                 </button>
-                                                {!isAdmin && ts.created_at && (new Date() - new Date(ts.created_at) <= 86400000) && (
-                                                    <button
-                                                        onClick={() => {
-                                                            setFormError('');
-                                                            setForm({
-                                                                timesheet_id: ts.id,
-                                                                task_id: ts.task?.id || '',
-                                                                description: ts.description || '',
-                                                                status: ts.status || 'PENDING',
-                                                                start_time: ts.start_time ? new Date(new Date(ts.start_time) - new Date(ts.start_time).getTimezoneOffset() * 60000).toISOString().slice(0, 16) : '',
-                                                                end_time: ts.end_time ? new Date(new Date(ts.end_time) - new Date(ts.end_time).getTimezoneOffset() * 60000).toISOString().slice(0, 16) : '',
-                                                                priority: ts.task?.priority || 'MEDIUM',
-                                                            });
-                                                            setShowModal(true);
-                                                        }}
-                                                        className="btn-icon"
-                                                        title="Edit Timesheet"
-                                                        style={{
-                                                            padding: '6px',
-                                                            borderRadius: '6px',
-                                                            border: '1px solid var(--border-color)',
-                                                            background: 'transparent',
-                                                            cursor: 'pointer',
-                                                            color: 'var(--primary)',
-                                                            display: 'flex',
-                                                            alignItems: 'center',
-                                                            justifyContent: 'center',
-                                                        }}
-                                                    >
+                                                {!isAdmin && ts.team_member?.id === user?.id && ts.created_at && (new Date() - new Date(ts.created_at) <= 86400000) && ( <button onClick={() => { setFormError(''); setForm({ timesheet_id: ts.id, task_id: ts.task?.id || '', description: ts.description || '', status: ts.status || 'PENDING', start_time: ts.start_time ? new Date(new Date(ts.start_time) - new Date(ts.start_time).getTimezoneOffset() * 60000).toISOString().slice(0, 16) : '', end_time: ts.end_time ? new Date(new Date(ts.end_time) - new Date(ts.end_time).getTimezoneOffset() * 60000).toISOString().slice(0, 16) : '', priority: ts.task?.priority || 'MEDIUM', }); setShowModal(true); }} className="btn-icon ext-timesheet-262" title="Edit Timesheet" >
                                                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                                             <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
                                                             <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
@@ -675,7 +512,7 @@ const Timesheet = () => {
                     </div>
                 )}
                 {!loading && timesheets.length > 0 && (
-                    <div className="pagination" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '16px', padding: '16px 20px', borderTop: '1px solid var(--border-color)' }}>
+                    <div className="pagination ext-timesheet-263">
                         <button
                             className="pagination-btn"
                             disabled={page <= 1}
@@ -693,7 +530,7 @@ const Timesheet = () => {
                         >
                             â† Previous
                         </button>
-                        <span className="pagination-info" style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: 500 }}>
+                        <span className="pagination-info ext-completed-tasks-101">
                             Page {page} of {totalPages}
                         </span>
                         <button
@@ -745,12 +582,7 @@ const Timesheet = () => {
                             animation: 'modalSlideIn 0.3s ease',
                         }}
                     >
-                        <div style={{
-                            background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
-                            padding: '20px 24px',
-                            borderRadius: '16px 16px 0 0',
-                            position: 'relative',
-                        }}>
+                        <div className="ext-timesheet-265">
                             <button
                                 onClick={() => setShowModal(false)}
                                 style={{
@@ -777,57 +609,28 @@ const Timesheet = () => {
                                     <line x1="6" y1="6" x2="18" y2="18" />
                                 </svg>
                             </button>
-                            <h2 style={{ margin: 0, color: '#fff', fontSize: '1.15rem', fontWeight: 700 }}>
+                            <h2 className="ext-tasks-196">
                                 {form.timesheet_id ? 'Edit Logged Time' : 'Log Time'}
                             </h2>
                         </div>
-                        <form onSubmit={handleSubmit} style={{ padding: '24px' }}>
+                        <form onSubmit={handleSubmit} className="ext-announcements-32">
                             {formError && (
-                                <div
-                                    className="alert-error"
-                                    style={{
-                                        padding: '12px',
-                                        background: 'rgba(255,107,107,0.1)',
-                                        color: '#ff6b6b',
-                                        borderRadius: '6px',
-                                        marginBottom: '16px',
-                                    }}
-                                >
+                                <div className="alert-error ext-timesheet-266">
                                     {formError}
                                 </div>
                             )}
 
-                            <div
-                                className="form-group"
-                                style={{ marginBottom: '16px' }}
-                            >
-                                <label
-                                    className="form-label"
-                                    style={{
-                                        display: 'block',
-                                        marginBottom: '8px',
-                                        fontSize: '0.9rem',
-                                        fontWeight: 600,
-                                    }}
-                                >
+                            <div className="form-group ext-tasks-200">
+                                <label className="form-label ext-timesheet-267">
                                     Select Task
                                 </label>
-                                <select
-                                    className="form-input"
-                                    style={{
-                                        width: '100%',
-                                        padding: '10px',
-                                        borderRadius: '6px',
-                                        border: '1px solid var(--border-color)',
-                                    }}
-                                    value={form.task_id}
-                                    onChange={handleTaskChange}
-                                    required
-                                >
+                                <select className="form-input ext-timesheet-268" value={form.task_id} onChange={handleTaskChange} required>
                                     <option value="" disabled>
                                         Select a Task
                                     </option>
-                                    {myTasks.map((t) => (
+                                    {myTasks
+                                        .filter((t) => t.status !== 'COMPLETED')
+                                        .map((t) => (
                                         <option key={t.id} value={t.id}>
                                             {t.task_name} ({t.project_name})
                                         </option>
@@ -835,176 +638,40 @@ const Timesheet = () => {
                                 </select>
                             </div>
 
-                            <div
-                                className="form-group"
-                                style={{ marginBottom: '16px' }}
-                            >
-                                <label
-                                    className="form-label"
-                                    style={{
-                                        display: 'block',
-                                        marginBottom: '8px',
-                                        fontSize: '0.9rem',
-                                        fontWeight: 600,
-                                    }}
-                                >
+                            <div className="form-group ext-tasks-200">
+                                <label className="form-label ext-timesheet-267">
                                     Description
                                 </label>
-                                <textarea
-                                    className="form-input form-textarea"
-                                    style={{
-                                        width: '100%',
-                                        padding: '10px',
-                                        borderRadius: '6px',
-                                        border: '1px solid var(--border-color)',
-                                        minHeight: '80px',
-                                        resize: 'vertical',
-                                    }}
-                                    placeholder="What did you work on?"
-                                    value={form.description}
-                                    onChange={(e) =>
-                                        setForm({
-                                            ...form,
-                                            description: e.target.value,
-                                        })
-                                    }
-                                    required
-                                />
+                                <textarea className="form-input form-textarea ext-timesheet-269" placeholder="What did you work on?" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value, }) } required />
                             </div>
 
-                            <div
-                                style={{
-                                    display: 'flex',
-                                    gap: '16px',
-                                    marginBottom: '16px',
-                                }}
-                            >
-                                <div className="form-group" style={{ flex: 1 }}>
-                                    <label
-                                        className="form-label"
-                                        style={{
-                                            display: 'block',
-                                            marginBottom: '8px',
-                                            fontSize: '0.9rem',
-                                            fontWeight: 600,
-                                        }}
-                                    >
+                            <div className="ext-timesheet-270">
+                                <div className="form-group ext-dashboard-137">
+                                    <label className="form-label ext-timesheet-267">
                                         Start Time
                                     </label>
-                                    <input
-                                        type="datetime-local"
-                                        className="form-input"
-                                        style={{
-                                            width: '100%',
-                                            padding: '10px',
-                                            borderRadius: '6px',
-                                            border: '1px solid var(--border-color)',
-                                        }}
-                                        value={form.start_time}
-                                        onChange={(e) =>
-                                            setForm({
-                                                ...form,
-                                                start_time: e.target.value,
-                                            })
-                                        }
-                                        required
-                                    />
+                                    <input type="datetime-local" className="form-input ext-timesheet-268" value={form.start_time} min={getTodayMin()} max={getTodayMax()} onChange={(e) => setForm({ ...form, start_time: e.target.value, }) } required />
                                 </div>
-                                <div className="form-group" style={{ flex: 1 }}>
-                                    <label
-                                        className="form-label"
-                                        style={{
-                                            display: 'block',
-                                            marginBottom: '8px',
-                                            fontSize: '0.9rem',
-                                            fontWeight: 600,
-                                        }}
-                                    >
+                                <div className="form-group ext-dashboard-137">
+                                    <label className="form-label ext-timesheet-267">
                                         End Time
                                     </label>
-                                    <input
-                                        type="datetime-local"
-                                        className="form-input"
-                                        style={{
-                                            width: '100%',
-                                            padding: '10px',
-                                            borderRadius: '6px',
-                                            border: '1px solid var(--border-color)',
-                                        }}
-                                        value={form.end_time}
-                                        onChange={(e) =>
-                                            setForm({
-                                                ...form,
-                                                end_time: e.target.value,
-                                            })
-                                        }
-                                        required
-                                    />
+                                    <input type="datetime-local" className="form-input ext-timesheet-268" value={form.end_time} min={getTodayMin()} max={getTodayMax()} onChange={(e) => setForm({ ...form, end_time: e.target.value, }) } required />
                                 </div>
                             </div>
 
-                            <div
-                                style={{
-                                    display: 'flex',
-                                    gap: '16px',
-                                    marginBottom: '24px',
-                                }}
-                            >
-                                <div className="form-group" style={{ flex: 1 }}>
-                                    <label
-                                        className="form-label"
-                                        style={{
-                                            display: 'block',
-                                            marginBottom: '8px',
-                                            fontSize: '0.9rem',
-                                            fontWeight: 600,
-                                        }}
-                                    >
+                            <div className="ext-timesheet-271">
+                                <div className="form-group ext-dashboard-137">
+                                    <label className="form-label ext-timesheet-267">
                                         Task Priority
                                     </label>
-                                    <input
-                                        type="text"
-                                        className="form-input"
-                                        style={{
-                                            width: '100%',
-                                            padding: '10px',
-                                            borderRadius: '6px',
-                                            border: '1px solid var(--border-color)',
-                                            background: 'var(--bg-color)',
-                                            color: 'var(--text-muted)',
-                                        }}
-                                        value={form.priority}
-                                        disabled
-                                    />
+                                    <input type="text" className="form-input ext-timesheet-272" value={form.priority} disabled/>
                                 </div>
-                                <div className="form-group" style={{ flex: 1 }}>
-                                    <label
-                                        className="form-label"
-                                        style={{
-                                            display: 'block',
-                                            marginBottom: '8px',
-                                            fontSize: '0.9rem',
-                                            fontWeight: 600,
-                                        }}
-                                    >
+                                <div className="form-group ext-dashboard-137">
+                                    <label className="form-label ext-timesheet-267">
                                         Status Updates
                                     </label>
-                                    <select
-                                        className="form-input"
-                                        style={{
-                                            width: '100%',
-                                            padding: '10px',
-                                            borderRadius: '6px',
-                                            border: '1px solid var(--border-color)',
-                                        }}
-                                        value={form.status}
-                                        onChange={(e) =>
-                                            setForm({
-                                                ...form,
-                                                status: e.target.value,
-                                            })
-                                        }
-                                    >
+                                    <select className="form-input ext-timesheet-268" value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value, }) } >
                                         <option value="PENDING">Pending</option>
                                         <option value="IN_PROGRESS">
                                             In Progress
@@ -1017,44 +684,11 @@ const Timesheet = () => {
                                 </div>
                             </div>
 
-                            <div
-                                className="modal-actions"
-                                style={{
-                                    display: 'flex',
-                                    justifyContent: 'flex-end',
-                                    gap: '12px',
-                                    marginTop: '24px',
-                                }}
-                            >
-                                <button
-                                    type="button"
-                                    style={{
-                                        padding: '10px 20px',
-                                        borderRadius: '8px',
-                                        border: '1px solid #d1d5db',
-                                        background: '#fff',
-                                        cursor: 'pointer',
-                                        fontSize: '0.9rem',
-                                        fontWeight: 500,
-                                        color: '#374151',
-                                    }}
-                                    onClick={() => setShowModal(false)}
-                                >
+                            <div className="modal-actions ext-timesheet-273">
+                                <button type="button" className="ext-team-list-236" onClick={() => setShowModal(false)} >
                                     Cancel
                                 </button>
-                                <button
-                                    type="submit"
-                                    style={{
-                                        padding: '10px 20px',
-                                        borderRadius: '8px',
-                                        border: 'none',
-                                        background: 'linear-gradient(135deg, #f59e0b, #d97706)',
-                                        color: '#fff',
-                                        cursor: 'pointer',
-                                        fontSize: '0.9rem',
-                                        fontWeight: 600,
-                                    }}
-                                >
+                                <button type="submit" className="ext-timesheet-274">
                                     {form.timesheet_id ? 'Update Timesheet' : 'Submit Timesheet'}
                                 </button>
                             </div>
@@ -1096,12 +730,7 @@ const Timesheet = () => {
                         }}
                     >
                         {/* Header */}
-                        <div style={{
-                            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                            padding: '24px 28px',
-                            borderRadius: '16px 16px 0 0',
-                            position: 'relative',
-                        }}>
+                        <div className="ext-team-list-214">
                             <button
                                 onClick={() => setViewingTimesheet(null)}
                                 style={{
@@ -1128,23 +757,16 @@ const Timesheet = () => {
                                     <line x1="6" y1="6" x2="18" y2="18" />
                                 </svg>
                             </button>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                <div style={{
-                                    background: 'rgba(255,255,255,0.2)',
-                                    borderRadius: '12px',
-                                    padding: '10px',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                }}>
+                            <div className="ext-announcements-14">
+                                <div className="ext-team-list-216">
                                     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                         <circle cx="12" cy="12" r="10"/>
                                         <polyline points="12 6 12 12 16 14"/>
                                     </svg>
                                 </div>
                                 <div>
-                                    <h2 style={{ margin: 0, color: '#fff', fontSize: '1.2rem', fontWeight: 700 }}>Timesheet Details</h2>
-                                    <p style={{ margin: '2px 0 0', color: 'rgba(255,255,255,0.8)', fontSize: '0.82rem' }}>
+                                    <h2 className="ext-announcements-31">Timesheet Details</h2>
+                                    <p className="ext-team-list-217">
                                         {viewingTimesheet.task?.project_name} - {viewingTimesheet.task?.task_name}
                                     </p>
                                 </div>
@@ -1152,78 +774,67 @@ const Timesheet = () => {
                         </div>
 
                         {/* Body */}
-                        <div style={{ padding: '24px 28px' }}>
+                        <div className="ext-team-list-218">
                             {/* Team Member & Assigned By */}
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px' }}>
-                                <div style={{ background: '#f8fafc', borderRadius: '12px', padding: '14px 16px' }}>
-                                    <div style={{ fontSize: '0.7rem', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 700, marginBottom: '6px' }}>Team Member</div>
-                                    <div style={{ fontWeight: 600, color: '#1e293b', fontSize: '0.95rem' }}>@{viewingTimesheet.team_member?.username || '-'}</div>
+                            <div className="ext-completed-tasks-113">
+                                <div className="ext-team-list-224">
+                                    <div className="ext-team-list-225">Team Member</div>
+                                    <div className="ext-timesheet-276">@{viewingTimesheet.team_member?.username || '-'}</div>
                                 </div>
-                                <div style={{ background: '#f8fafc', borderRadius: '12px', padding: '14px 16px' }}>
-                                    <div style={{ fontSize: '0.7rem', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 700, marginBottom: '6px' }}>Assigned By</div>
-                                    <div style={{ fontWeight: 600, color: '#1e293b', fontSize: '0.95rem' }}>@{viewingTimesheet.task?.assigned_by?.username || '-'}</div>
+                                <div className="ext-team-list-224">
+                                    <div className="ext-team-list-225">Assigned By</div>
+                                    <div className="ext-timesheet-276">@{viewingTimesheet.task?.assigned_by?.username || '-'}</div>
                                 </div>
                             </div>
 
                             {/* Priority & Status */}
-                            <div style={{ display: 'flex', gap: '12px', marginBottom: '20px', flexWrap: 'wrap' }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                    <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>Priority:</span>
+                            <div className="ext-timesheet-277">
+                                <div className="ext-calendar-66">
+                                    <span className="ext-timesheet-278">Priority:</span>
                                     {getPriorityBadge(viewingTimesheet.task?.priority)}
                                 </div>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                    <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>Status:</span>
+                                <div className="ext-calendar-66">
+                                    <span className="ext-timesheet-278">Status:</span>
                                     {getStatusBadge(viewingTimesheet.status)}
                                 </div>
                             </div>
 
                             {/* Divider */}
-                            <div style={{ height: '1px', background: 'linear-gradient(90deg, transparent, #e2e8f0, transparent)', margin: '4px 0 20px' }} />
+                            <div className="ext-timesheet-279"/>
 
                             {/* Duration */}
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px', marginBottom: '20px' }}>
-                                <div style={{ textAlign: 'center', background: '#f0fdf4', borderRadius: '12px', padding: '14px' }}>
-                                    <div style={{ fontSize: '0.7rem', color: '#16a34a', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 700, marginBottom: '4px' }}>Start</div>
-                                    <div style={{ fontWeight: 600, color: '#15803d', fontSize: '0.85rem' }}>{formatDateTime(viewingTimesheet.start_time)}</div>
+                            <div className="ext-timesheet-280">
+                                <div className="ext-timesheet-281">
+                                    <div className="ext-timesheet-282">Start</div>
+                                    <div className="ext-timesheet-283">{formatDateTime(viewingTimesheet.start_time)}</div>
                                 </div>
-                                <div style={{ textAlign: 'center', background: '#fef2f2', borderRadius: '12px', padding: '14px' }}>
-                                    <div style={{ fontSize: '0.7rem', color: '#dc2626', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 700, marginBottom: '4px' }}>End</div>
-                                    <div style={{ fontWeight: 600, color: '#b91c1c', fontSize: '0.85rem' }}>{formatDateTime(viewingTimesheet.end_time)}</div>
+                                <div className="ext-timesheet-284">
+                                    <div className="ext-timesheet-285">End</div>
+                                    <div className="ext-timesheet-286">{formatDateTime(viewingTimesheet.end_time)}</div>
                                 </div>
-                                <div style={{ textAlign: 'center', background: '#eff6ff', borderRadius: '12px', padding: '14px' }}>
-                                    <div style={{ fontSize: '0.7rem', color: '#2563eb', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 700, marginBottom: '4px' }}>Total</div>
-                                    <div style={{ fontWeight: 700, color: '#1d4ed8', fontSize: '1.05rem' }}>{viewingTimesheet.working_hours || '-'} hrs</div>
+                                <div className="ext-timesheet-287">
+                                    <div className="ext-timesheet-288">Total</div>
+                                    <div className="ext-timesheet-289">{formatWorkingHours(viewingTimesheet.working_hours)}</div>
                                 </div>
                             </div>
 
                             {/* Description */}
-                            <div style={{ marginBottom: '20px' }}>
-                                <div style={{ fontSize: '0.7rem', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 700, marginBottom: '8px' }}>Description</div>
-                                <div style={{
-                                    background: '#f8fafc',
-                                    border: '1px solid #e2e8f0',
-                                    borderRadius: '12px',
-                                    padding: '14px 16px',
-                                    fontSize: '0.9rem',
-                                    lineHeight: '1.6',
-                                    whiteSpace: 'pre-wrap',
-                                    color: '#334155',
-                                    maxHeight: '150px',
-                                    overflowY: 'auto',
-                                }}>
+                            <div className="ext-completed-tasks-110">
+                                <div className="ext-timesheet-290">Description</div>
+                                <div className="ext-timesheet-291">
                                     {viewingTimesheet.description || 'No description provided.'}
                                 </div>
                             </div>
 
                             {/* Logged At */}
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#94a3b8', fontSize: '0.8rem' }}>
+                            <div className="ext-timesheet-292">
                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
                                 Logged at {formatDateTime(viewingTimesheet.created_at)}
                             </div>
                         </div>
 
                         {/* Footer */}
-                        <div style={{ padding: '16px 28px', borderTop: '1px solid #f1f5f9', display: 'flex', justifyContent: 'flex-end' }}>
+                        <div className="ext-team-list-229">
                             <button
                                 onClick={() => setViewingTimesheet(null)}
                                 style={{

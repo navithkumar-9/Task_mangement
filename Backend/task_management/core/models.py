@@ -22,6 +22,7 @@ class User_model(AbstractUser):
     name = models.CharField(max_length=150, blank=True, null=True)
     employee_id = models.CharField(max_length=50, blank=True, null=True)
     profile_picture = models.TextField(blank=True, null=True)
+    can_crud_tasks = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateField(auto_now=True)
 
@@ -181,6 +182,8 @@ class SubTask(models.Model):
         return self.title
 
 
+
+
 class Notification(models.Model):
     """In-app notification triggered by task activity (comments)."""
     recipient = models.ForeignKey(
@@ -196,6 +199,15 @@ class Notification(models.Model):
     task = models.ForeignKey(
         Task,
         on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="notifications",
+    )
+    announcement = models.ForeignKey(
+        "Announcement",
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
         related_name="notifications",
     )
     comment = models.ForeignKey(
@@ -214,3 +226,32 @@ class Notification(models.Model):
 
     def __str__(self):
         return f"Notification for {self.recipient.username}: {self.message[:50]}"
+
+
+class AnnouncementAudience(models.TextChoices):
+    ADMINS_ONLY = "ADMINS_ONLY", "Admins Only"
+    ALL = "ALL", "All Users"
+    MY_TEAM = "MY_TEAM", "My Team"
+
+
+class Announcement(models.Model):
+    sender = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="sent_announcements",
+    )
+    title = models.CharField(max_length=255)
+    message = models.TextField()
+    audience = models.CharField(
+        max_length=20,
+        choices=AnnouncementAudience.choices,
+        default=AnnouncementAudience.ALL,
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.title} by {self.sender.username}"
