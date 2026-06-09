@@ -1,30 +1,22 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import API from '../api/axios';
 
 const TaskProgress = () => {
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [search, setSearch] = useState('');
-  
-  // Debounce search
-  const [debouncedSearch, setDebouncedSearch] = useState('');
-  useEffect(() => {
-    const handler = setTimeout(() => {
-      setDebouncedSearch(search);
-    }, 500);
-    return () => clearTimeout(handler);
-  }, [search]);
+  const [taskFilter, setTaskFilter] = useState('');
+  const [projectFilter, setProjectFilter] = useState('');
+  const [assigneeFilter, setAssigneeFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
 
   useEffect(() => {
     fetchTasks();
-  }, [debouncedSearch]);
+  }, []);
 
   const fetchTasks = async () => {
     setLoading(true);
     try {
-      const endpoint = debouncedSearch 
-        ? `/tasks/progress/?page_size=1000&search=${encodeURIComponent(debouncedSearch)}`
-        : `/tasks/progress/?page_size=1000`;
+      const endpoint = `/tasks/progress/?page_size=1000`;
       const res = await API.get(endpoint);
       let items = [];
       if (res.data.results && res.data.results.data) items = res.data.results.data;
@@ -40,6 +32,47 @@ const TaskProgress = () => {
       setLoading(false);
     }
   };
+
+  const uniqueTasks = useMemo(() => {
+    const names = new Set();
+    tasks.forEach(t => { if (t.task_name) names.add(t.task_name); });
+    return Array.from(names).sort();
+  }, [tasks]);
+
+  const uniqueProjects = useMemo(() => {
+    const names = new Set();
+    tasks.forEach(t => { if (t.project_name) names.add(t.project_name); });
+    return Array.from(names).sort();
+  }, [tasks]);
+
+  const uniqueAssignees = useMemo(() => {
+    const names = new Set();
+    tasks.forEach(t => {
+      if (t.assignees) {
+        t.assignees.forEach(a => { if (a.username) names.add(a.username); });
+      }
+    });
+    return Array.from(names).sort();
+  }, [tasks]);
+
+  const uniqueStatuses = useMemo(() => {
+    const statuses = new Set();
+    tasks.forEach(t => { if (t.status) statuses.add(t.status); });
+    return Array.from(statuses).sort();
+  }, [tasks]);
+
+  const filteredTasks = useMemo(() => {
+    return tasks.filter(t => {
+      if (taskFilter && t.task_name !== taskFilter) return false;
+      if (projectFilter && t.project_name !== projectFilter) return false;
+      if (statusFilter && t.status !== statusFilter) return false;
+      if (assigneeFilter) {
+        const hasAssignee = t.assignees?.some(a => a.username === assigneeFilter);
+        if (!hasAssignee) return false;
+      }
+      return true;
+    });
+  }, [tasks, taskFilter, projectFilter, assigneeFilter, statusFilter]);
 
   const getStatusBadge = (status) => {
     const colorMap = {
@@ -73,23 +106,102 @@ const TaskProgress = () => {
       </div>
 
       <div className="content-card">
-        <div className="content-card-header">
-          <input 
-            type="text" 
-            className="search-input" 
-            placeholder="Search by task, project, assignee..." 
-            value={search} 
-            onChange={e => setSearch(e.target.value)} 
-          />
+        <div className="filter-bar">
+          <div className="filter-group">
+            <label className="form-label">Task Name</label>
+            <select
+              value={taskFilter}
+              onChange={e => setTaskFilter(e.target.value)}
+              className="filter-select"
+            >
+              <option value="">All Tasks</option>
+              {uniqueTasks.map(name => (
+                <option key={name} value={name} title={name}>
+                  {name.length > 25 ? name.substring(0, 25) + '...' : name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="filter-group">
+            <label className="form-label">Project Name</label>
+            <select
+              value={projectFilter}
+              onChange={e => setProjectFilter(e.target.value)}
+              className="filter-select"
+            >
+              <option value="">All Projects</option>
+              {uniqueProjects.map(name => (
+                <option key={name} value={name}>
+                  {name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="filter-group">
+            <label className="form-label">Assignee</label>
+            <select
+              value={assigneeFilter}
+              onChange={e => setAssigneeFilter(e.target.value)}
+              className="filter-select"
+            >
+              <option value="">All Assignees</option>
+              {uniqueAssignees.map(name => (
+                <option key={name} value={name}>
+                  @{name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="filter-group">
+            <label className="form-label">Status</label>
+            <select
+              value={statusFilter}
+              onChange={e => setStatusFilter(e.target.value)}
+              className="filter-select"
+            >
+              <option value="">All Statuses</option>
+              {uniqueStatuses.map(status => (
+                <option key={status} value={status}>
+                  {status}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {(taskFilter || projectFilter || assigneeFilter || statusFilter) && (
+            <button
+              className="btn-clear-filter"
+              onClick={() => {
+                setTaskFilter('');
+                setProjectFilter('');
+                setAssigneeFilter('');
+                setStatusFilter('');
+              }}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+              Clear All
+            </button>
+          )}
         </div>
+
         {loading ? (
-                        <div className="page-loader ext-calendar-69">
-                            <div className="page-loader-spinner"></div>
-                            <div className="page-loader-text">Loading tasks...</div>
-                        </div>
-                    ) : tasks.length === 0 ? (
+          <div className="page-loader ext-calendar-69">
+            <div className="page-loader-spinner"></div>
+            <div className="page-loader-text">Loading tasks...</div>
+          </div>
+        ) : filteredTasks.length === 0 ? (
           <div className="empty-state">
-            <p>{debouncedSearch ? 'No tasks match your search' : 'No tasks found'}</p>
+            <p>
+              {taskFilter || projectFilter || assigneeFilter || statusFilter
+                ? 'No tasks match your filters'
+                : 'No tasks found'}
+            </p>
           </div>
         ) : (
           <div className="table-wrapper">
@@ -107,7 +219,7 @@ const TaskProgress = () => {
                 </tr>
               </thead>
               <tbody>
-                {tasks.map((task, i) => (
+                {filteredTasks.map((task, i) => (
                   <tr key={task.id || i}>
                     <td className="text-bold">{task.task_name}</td>
                     <td className="text-muted">{task.project_name}</td>

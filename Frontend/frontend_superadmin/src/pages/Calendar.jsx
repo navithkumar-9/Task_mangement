@@ -399,33 +399,23 @@ const Calendar = () => {
     return (
         <div className="page">
             {/* Header */}
-            <div className="page-header ext-calendar-54">
+            <div className="page-header">
                 <div>
                     <h1 className="page-title">Calendar</h1>
                     <p className="page-subtitle">
                         Track all task deadlines across the organization
                     </p>
                 </div>
-                {teamMembers.length > 0 && (
-                    <div className="ext-announcements-12">
-                        <label className="ext-announcements-24">
-                            Team Member:
-                        </label>
+            </div>
+
+            {teamMembers.length > 0 && (
+                <div className="filter-bar" style={{ marginBottom: '24px', background: 'var(--bg-white)', borderRadius: 'var(--radius)', border: '1px solid var(--border-color)' }}>
+                    <div className="filter-group">
+                        <label className="form-label">Team Member</label>
                         <select
                             value={memberFilter}
                             onChange={(e) => setMemberFilter(e.target.value)}
-                            style={{
-                                padding: '8px 14px',
-                                borderRadius: '8px',
-                                border: '1px solid var(--border-color)',
-                                fontSize: '0.88rem',
-                                fontWeight: 500,
-                                color: 'var(--text-primary)',
-                                background: '#fff',
-                                cursor: 'pointer',
-                                outline: 'none',
-                                minWidth: '180px',
-                            }}
+                            className="filter-select"
                         >
                             <option value="">All Members</option>
                             {teamMembers.map((name) => (
@@ -434,24 +424,21 @@ const Calendar = () => {
                                 </option>
                             ))}
                         </select>
-                        {memberFilter && (
-                            <button
-                                onClick={() => setMemberFilter('')}
-                                style={{
-                                    background: 'transparent',
-                                    border: 'none',
-                                    color: 'var(--primary)',
-                                    fontWeight: 600,
-                                    cursor: 'pointer',
-                                    fontSize: '0.85rem',
-                                }}
-                            >
-                                Clear
-                            </button>
-                        )}
                     </div>
-                )}
-            </div>
+                    {memberFilter && (
+                        <button
+                            onClick={() => setMemberFilter('')}
+                            className="btn-clear-filter"
+                        >
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                <line x1="18" y1="6" x2="6" y2="18"></line>
+                                <line x1="6" y1="6" x2="18" y2="18"></line>
+                            </svg>
+                            Clear
+                        </button>
+                    )}
+                </div>
+            )}
 
             {/* Stats Cards */}
             <div className="ext-calendar-57">
@@ -581,7 +568,7 @@ const Calendar = () => {
                             </svg>
                         </button>
                     </div>
-                    <button onClick={goToToday} className="ext-calendar-64">
+                    <button onClick={goToToday} className="btn-primary">
                         Today
                     </button>
                 </div>

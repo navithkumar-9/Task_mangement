@@ -5,13 +5,13 @@ import API from '../api/axios';
 
 const getAvatarStyle = (username) => {
     const colors = [
-        { bg: 'linear-gradient(135deg, #3B82F6, #1D4ED8)', text: '#ffffff' }, // Blue
-        { bg: 'linear-gradient(135deg, #10B981, #047857)', text: '#ffffff' }, // Emerald
-        { bg: 'linear-gradient(135deg, #EC4899, #BE185D)', text: '#ffffff' }, // Pink
-        { bg: 'linear-gradient(135deg, #8B5CF6, #6D28D9)', text: '#ffffff' }, // Violet
-        { bg: 'linear-gradient(135deg, #F59E0B, #B45309)', text: '#ffffff' }, // Amber
-        { bg: 'linear-gradient(135deg, #06B6D4, #0891B2)', text: '#ffffff' }, // Cyan
-        { bg: 'linear-gradient(135deg, #EF4444, #B91C1C)', text: '#ffffff' }, // Rose
+        { background: 'linear-gradient(135deg, #3B82F6, #1D4ED8)', color: '#ffffff' }, // Blue
+        { background: 'linear-gradient(135deg, #10B981, #047857)', color: '#ffffff' }, // Emerald
+        { background: 'linear-gradient(135deg, #EC4899, #BE185D)', color: '#ffffff' }, // Pink
+        { background: 'linear-gradient(135deg, #8B5CF6, #6D28D9)', color: '#ffffff' }, // Violet
+        { background: 'linear-gradient(135deg, #F59E0B, #B45309)', color: '#ffffff' }, // Amber
+        { background: 'linear-gradient(135deg, #06B6D4, #0891B2)', color: '#ffffff' }, // Cyan
+        { background: 'linear-gradient(135deg, #EF4444, #B91C1C)', color: '#ffffff' }, // Rose
     ];
     let hash = 0;
     const name = username || '';
@@ -258,20 +258,18 @@ const Sidebar = () => {
                         title={isCollapsed ? 'Expand Sidebar' : 'Collapse Sidebar'}
                     >
                         <svg
-                            width="16"
-                            height="16"
+                            width="18"
+                            height="18"
                             viewBox="0 0 24 24"
                             fill="none"
                             stroke="currentColor"
-                            strokeWidth="2"
+                            strokeWidth="2.5"
                             strokeLinecap="round"
                             strokeLinejoin="round"
                         >
-                            {isCollapsed ? (
-                                <polyline points="9 18 15 12 9 6" />
-                            ) : (
-                                <polyline points="15 18 9 12 15 6" />
-                            )}
+                            <line x1="3" y1="12" x2="21" y2="12" />
+                            <line x1="3" y1="6" x2="21" y2="6" />
+                            <line x1="3" y1="18" x2="21" y2="18" />
                         </svg>
                     </button>
                 </div>
@@ -291,32 +289,32 @@ const Sidebar = () => {
                     ))}
                 </nav>
             </div>
-            <div className="sidebar-bottom">
-                <div className="sidebar-user">
-                    {profilePic ? (
-                        <img src={profilePic} alt="Avatar" className="profile-edit-avatar-img ext-sidebar-2"/>
-                    ) : (
-                        <div
-                            className="sidebar-user-avatar"
-                            style={{
-                                ...getAvatarStyle(user?.username),
-                                borderRadius: '50%',
-                            }}
-                        >
-                            {displayName?.charAt(0)?.toUpperCase()}
-                        </div>
-                    )}
-                    <div className="sidebar-user-info">
-                        <span className="sidebar-user-name">
+            <div className="sidebar-bottom-row">
+                <div className="sidebar-profile-new">
+                    <div className="sidebar-profile-avatar-wrapper">
+                        {profilePic ? (
+                            <img src={profilePic} alt="Avatar" className="sidebar-profile-avatar"/>
+                        ) : (
+                            <div
+                                className="sidebar-profile-avatar-fallback"
+                                style={getAvatarStyle(user?.username)}
+                            >
+                                {displayName?.charAt(0)?.toUpperCase()}
+                            </div>
+                        )}
+                        <span className="sidebar-profile-status online"></span>
+                    </div>
+                    <div className="sidebar-profile-info">
+                        <span className="sidebar-profile-name">
                             {displayName}
                         </span>
-                        <span className="sidebar-user-role">
+                        <span className="sidebar-profile-role">
                             {user?.role || 'MEMBER'}
                         </span>
                     </div>
                 </div>
                 <button
-                    className="sidebar-logout"
+                    className="sidebar-logout-new"
                     onClick={handleLogout}
                     title="Logout"
                 >

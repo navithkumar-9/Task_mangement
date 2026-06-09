@@ -15,7 +15,19 @@ const getAvatarStyle = (username) => {
   let hash = 0;
   const name = username || '';
   for (let i = 0; i < name.length; i++) {
-    hash = name.charCodeAt(i) + ((hash << 5) - hash); } const index = Math.abs(hash) % colors.length; return colors[index]; }; /* ─── View Profile Modal ─── */ const UserProfileModal = ({ user, onClose }) => { if (!user) return null; const avatarStyle = getAvatarStyle(user.username); return ( <div onClick={onClose} className="ext-team-list-212 ext-team-list-213"> <div onClick={(e) => e.stopPropagation()} >
+    hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const index = Math.abs(hash) % colors.length;
+  return colors[index];
+};
+
+/* ─── View Profile Modal ─── */
+const UserProfileModal = ({ user, onClose }) => {
+  if (!user) return null;
+  const avatarStyle = getAvatarStyle(user.username);
+  return (
+    <div onClick={onClose} className="ext-team-list-212">
+      <div onClick={(e) => e.stopPropagation()} className="ext-team-list-213">
         {/* Header */}
         <div className="ext-team-list-214">
           <button onClick={onClose} className="ext-team-list-215" onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.35)'} onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.2)'} >

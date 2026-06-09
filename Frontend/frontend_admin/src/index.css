@@ -1,32 +1,33 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
 :root {
-  --bg-body: #f8fafc; /* Slate 50 background */
+  --bg-body: #f7f8fa;
   --bg-white: #ffffff;
-  --bg-hover: #f1f5f9; /* Slate 100 hover */
-  --bg-input: #f8fafc;
-  --border-color: #e2e8f0; /* Slate 200 crisp borders */
-  --border-light: #f1f5f9; /* Slate 100 thin borders */
-  --text-primary: #0f172a; /* Slate 900 text */
-  --text-secondary: #475569; /* Slate 600 text */
-  --text-muted: #64748b; /* Slate 500 text */
-  --primary: #49CCF9;
-  --primary-hover: #2cb5e8;
-  --primary-light: rgba(73, 204, 249, 0.08);
-  --primary-lighter: rgba(73, 204, 249, 0.04);
-  --primary-gradient-start: #49CCF9;
-  --primary-gradient-end: #7B68EE;
-  --success: #10b981; /* Emerald 500 */
-  --success-light: rgba(16, 185, 129, 0.08);
-  --danger: #ef4444; /* Red 500 */
-  --danger-light: rgba(239, 68, 68, 0.08);
-  --warning: #f59e0b; /* Amber 500 */
+  --bg-sidebar: #ffffff;
+  --bg-hover: #f9fafb;
+  --bg-input: #ffffff;
+  --border-color: #e5e7eb;
+  --border-light: #f3f4f6;
+  --text-primary: #111827;
+  --text-secondary: #4b5563;
+  --text-muted: #9ca3af;
+  --primary: #9a55ff;
+  --primary-hover: #8a46ff;
+  --primary-light: rgba(154, 85, 255, 0.08);
+  --primary-lighter: rgba(154, 85, 255, 0.04);
+  --primary-gradient-start: #da8cff;
+  --primary-gradient-end: #9a55ff;
+  --success: #099252;
+  --success-light: rgba(9, 146, 82, 0.08);
+  --danger: #e02424;
+  --danger-light: rgba(224, 36, 36, 0.08);
+  --warning: #d97706;
   --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
-  --shadow-lg: 0 10px 15px -3px rgba(15, 23, 42, 0.05), 0 4px 6px -4px rgba(15, 23, 42, 0.05);
-  --radius: 16px;
-  --radius-sm: 12px;
-  --radius-xs: 8px;
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.08), 0 2px 4px -1px rgba(0, 0, 0, 0.04);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.04);
+  --radius: 6px;
+  --radius-sm: 4px;
+  --radius-xs: 2px;
 }
 
 * { margin: 0; padding: 0; box-sizing: border-box; }

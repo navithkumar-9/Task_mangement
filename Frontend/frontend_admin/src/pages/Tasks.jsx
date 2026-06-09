@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 
 import API from '../api/axios';
@@ -101,7 +101,13 @@ const Tasks = () => {
     const [showModal, setShowModal] = useState(false);
 
     const [editTask, setEditTask] = useState(null);
-    const canEditOrDelete = isAdmin || (!editTask ? user?.can_crud_tasks : (user?.can_crud_tasks && (editTask.assigned_by?.id === user.id || editTask.assigned_by?.username === user.username)));
+    const canEditOrDelete =
+        isAdmin ||
+        (!editTask
+            ? user?.can_crud_tasks
+            : user?.can_crud_tasks &&
+              (editTask.assigned_by?.id === user.id ||
+                  editTask.assigned_by?.username === user.username));
 
     const [loading, setLoading] = useState(false);
 
@@ -145,15 +151,38 @@ const Tasks = () => {
         revised_due_date: '',
     });
 
-    const [search, setSearch] = useState('');
-
-    const [debouncedSearch, setDebouncedSearch] = useState('');
+    const [allTasksForFilters, setAllTasksForFilters] = useState([]);
+    const [selectedTaskFilter, setSelectedTaskFilter] = useState('');
 
     useEffect(() => {
-        const handler = setTimeout(() => setDebouncedSearch(search), 500);
+        fetchAllTasksForFilters();
+    }, [canCrud]);
 
-        return () => clearTimeout(handler);
-    }, [search]);
+    const fetchAllTasksForFilters = async () => {
+        try {
+            const endpoint = canCrud
+                ? `/tasks/admin/?page_size=1000`
+                : `/tasks/my-tasks/?page_size=1000`;
+            const res = await API.get(endpoint);
+            let items = [];
+            if (res.data.results && res.data.results.data)
+                items = res.data.results.data;
+            else if (res.data.data) items = res.data.data;
+            else if (res.data.results) items = res.data.results;
+            else items = res.data;
+            setAllTasksForFilters(Array.isArray(items) ? items : []);
+        } catch (err) {
+            console.error('Failed to fetch tasks for filter', err);
+        }
+    };
+
+    const uniqueTasks = useMemo(() => {
+        const names = new Set();
+        allTasksForFilters.forEach((t) => {
+            if (t.task_name) names.add(t.task_name);
+        });
+        return Array.from(names).sort();
+    }, [allTasksForFilters]);
 
     useEffect(() => {
         fetchTasks();
@@ -161,7 +190,7 @@ const Tasks = () => {
         if (canCrud) {
             fetchTeamMembers();
         }
-    }, [canCrud, debouncedSearch]);
+    }, [canCrud, selectedTaskFilter]);
 
     /* ── Auto-open task from notification (URL ?taskId=X) ── */
     useEffect(() => {
@@ -183,8 +212,8 @@ const Tasks = () => {
 
         try {
             const endpoint = canCrud
-                ? `/tasks/admin/?page_size=100${debouncedSearch ? `&search=${encodeURIComponent(debouncedSearch)}` : ''}`
-                : `/tasks/my-tasks/?page_size=100${debouncedSearch ? `&search=${encodeURIComponent(debouncedSearch)}` : ''}`;
+                ? `/tasks/admin/?page_size=100${selectedTaskFilter ? `&search=${encodeURIComponent(selectedTaskFilter)}` : ''}`
+                : `/tasks/my-tasks/?page_size=100${selectedTaskFilter ? `&search=${encodeURIComponent(selectedTaskFilter)}` : ''}`;
 
             const res = await API.get(endpoint);
 
@@ -474,7 +503,9 @@ const Tasks = () => {
 
         try {
             const taskObj = tasks.find((t) => t.id === id);
-            const isCreator = taskObj?.assigned_by?.id === user.id || taskObj?.assigned_by?.username === user.username;
+            const isCreator =
+                taskObj?.assigned_by?.id === user.id ||
+                taskObj?.assigned_by?.username === user.username;
             if (isAdmin || (user?.can_crud_tasks && isCreator)) {
                 await API.patch(`/tasks/${id}/`, { status: newStatus });
             } else {
@@ -510,7 +541,6 @@ const Tasks = () => {
     };
 
     const todayStr = getTodayStr();
-
     const completedSubtasks = subtasks.filter((s) => s.is_completed).length;
 
     const totalSubtasks = subtasks.length;
@@ -528,23 +558,6 @@ const Tasks = () => {
                 </div>
 
                 <div className="ext-announcements-6">
-                    <input
-                        type="text"
-                        className="search-input"
-                        placeholder="Search tasks..."
-                        value={search}
-                        onChange={(e) => setSearch(e.target.value)}
-                        style={{
-                            padding: '8px 12px',
-
-                            borderRadius: '6px',
-
-                            border: '1px solid var(--border-color)',
-
-                            fontSize: '0.9rem',
-                        }}
-                    />
-
                     {canCrud && (
                         <button
                             className="btn-primary"
@@ -566,6 +579,54 @@ const Tasks = () => {
                         </button>
                     )}
                 </div>
+            </div>
+
+            <div
+                className="filter-bar"
+                style={{
+                    marginBottom: '24px',
+                    background: 'var(--bg-white)',
+                    borderRadius: 'var(--radius)',
+                    border: '1px solid var(--border-color)',
+                }}
+            >
+                <div className="filter-group">
+                    <label className="form-label">Task Filter</label>
+                    <select
+                        value={selectedTaskFilter}
+                        onChange={(e) => setSelectedTaskFilter(e.target.value)}
+                        className="filter-select"
+                        style={{ minWidth: '200px' }}
+                    >
+                        <option value="">All Tasks</option>
+                        {uniqueTasks.map((name) => (
+                            <option key={name} value={name} title={name}>
+                                {name.length > 25
+                                    ? name.substring(0, 25) + '...'
+                                    : name}
+                            </option>
+                        ))}
+                    </select>
+                </div>
+                {selectedTaskFilter && (
+                    <button
+                        className="btn-clear-filter"
+                        onClick={() => setSelectedTaskFilter('')}
+                    >
+                        <svg
+                            width="14"
+                            height="14"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2.5"
+                        >
+                            <line x1="18" y1="6" x2="6" y2="18"></line>
+                            <line x1="6" y1="6" x2="18" y2="18"></line>
+                        </svg>
+                        Clear
+                    </button>
+                )}
             </div>
 
             {loading ? (
@@ -606,7 +667,9 @@ const Tasks = () => {
                                             style={{ cursor: 'pointer' }}
                                         >
                                             <div className="kanban-card-top">
-                                                <span className={`${`priority-badge priority-${task.priority?.toLowerCase()} ext-tasks-187`}`}>
+                                                <span
+                                                    className={`${`priority-badge priority-${task.priority?.toLowerCase()} ext-tasks-187`}`}
+                                                >
                                                     {task.priority}
                                                 </span>
                                             </div>
@@ -686,7 +749,13 @@ const Tasks = () => {
                                                                             }}
                                                                         >
                                                                             {a.profile_picture ? (
-                                                                                <img src={ a.profile_picture } alt="Avatar" className="ext-tasks-190"/>
+                                                                                <img
+                                                                                    src={
+                                                                                        a.profile_picture
+                                                                                    }
+                                                                                    alt="Avatar"
+                                                                                    className="ext-tasks-190"
+                                                                                />
                                                                             ) : (
                                                                                 a.username
                                                                                     ?.charAt(
@@ -857,7 +926,18 @@ const Tasks = () => {
                             </div>
                             <div className="ext-completed-tasks-127">
                                 {editTask && canEditOrDelete && (
-                                    <button onClick={deleteTask} className="ext-tasks-198" onMouseEnter={(e) => (e.currentTarget.style.background = '#dc2626') } onMouseLeave={(e) => (e.currentTarget.style.background = '#ef4444') } >
+                                    <button
+                                        onClick={deleteTask}
+                                        className="ext-tasks-198"
+                                        onMouseEnter={(e) =>
+                                            (e.currentTarget.style.background =
+                                                '#dc2626')
+                                        }
+                                        onMouseLeave={(e) =>
+                                            (e.currentTarget.style.background =
+                                                '#ef4444')
+                                        }
+                                    >
                                         Delete
                                     </button>
                                 )}
@@ -1063,7 +1143,18 @@ const Tasks = () => {
                                                 <label className="modern-form-label">
                                                     Created At
                                                 </label>
-                                                <input type="text" className="modern-form-input ext-tasks-204" value={ editTask.created_at ? new Date( editTask.created_at, ).toLocaleString() : '—' } disabled/>
+                                                <input
+                                                    type="text"
+                                                    className="modern-form-input ext-tasks-204"
+                                                    value={
+                                                        editTask.created_at
+                                                            ? new Date(
+                                                                  editTask.created_at,
+                                                              ).toLocaleString()
+                                                            : '—'
+                                                    }
+                                                    disabled
+                                                />
                                             </div>
                                         )}
                                     </div>
@@ -1345,62 +1436,78 @@ const Tasks = () => {
                                                     </div>
                                                 ) : (
                                                     teamMembers
-                                                        .filter((m) => m.id !== user?.id)
+                                                        .filter(
+                                                            (m) =>
+                                                                m.id !==
+                                                                user?.id,
+                                                        )
                                                         .map((m) => {
-                                                        const isSelected =
-                                                            form.assignee_ids.includes(
-                                                                m.id,
+                                                            const isSelected =
+                                                                form.assignee_ids.includes(
+                                                                    m.id,
+                                                                );
+
+                                                            const avStyle =
+                                                                getAvatarStyle(
+                                                                    m.username,
+                                                                );
+
+                                                            return (
+                                                                <div
+                                                                    key={m.id}
+                                                                    className={`modern-assignee-item ${isSelected ? 'selected' : ''} ${!canEditOrDelete ? 'disabled' : ''}`}
+                                                                    onClick={() => {
+                                                                        if (
+                                                                            canEditOrDelete
+                                                                        ) {
+                                                                            toggleAssignee(
+                                                                                m.id,
+                                                                            );
+                                                                        }
+                                                                    }}
+                                                                >
+                                                                    <input
+                                                                        type="checkbox"
+                                                                        checked={
+                                                                            isSelected
+                                                                        }
+                                                                        readOnly
+                                                                        className="modern-assignee-checkbox"
+                                                                    />
+
+                                                                    {m.profile_picture ? (
+                                                                        <img
+                                                                            src={
+                                                                                m.profile_picture
+                                                                            }
+                                                                            alt="Avatar"
+                                                                            className="modern-assignee-avatar ext-tasks-209"
+                                                                        />
+                                                                    ) : (
+                                                                        <div
+                                                                            className="modern-assignee-avatar"
+                                                                            style={{
+                                                                                background:
+                                                                                    avStyle.bg,
+                                                                                color: avStyle.text,
+                                                                            }}
+                                                                        >
+                                                                            {m.username
+                                                                                ?.charAt(
+                                                                                    0,
+                                                                                )
+                                                                                .toUpperCase()}
+                                                                        </div>
+                                                                    )}
+
+                                                                    <span className="modern-assignee-name">
+                                                                        {
+                                                                            m.username
+                                                                        }
+                                                                    </span>
+                                                                </div>
                                                             );
-
-                                                        const avStyle =
-                                                            getAvatarStyle(
-                                                                m.username,
-                                                            );
-
-                                                        return (
-                                                            <div
-                                                                key={m.id}
-                                                                className={`modern-assignee-item ${isSelected ? 'selected' : ''} ${!canEditOrDelete ? 'disabled' : ''}`}
-                                                                onClick={() => {
-                                                                    if (canEditOrDelete) {
-                                                                        toggleAssignee(m.id);
-                                                                    }
-                                                                }}
-                                                            >
-                                                                <input
-                                                                    type="checkbox"
-                                                                    checked={
-                                                                        isSelected
-                                                                    }
-                                                                    readOnly
-                                                                    className="modern-assignee-checkbox"
-                                                                />
-
-                                                                {m.profile_picture ? (
-                                                                    <img src={ m.profile_picture } alt="Avatar" className="modern-assignee-avatar ext-tasks-209"/>
-                                                                ) : (
-                                                                    <div
-                                                                        className="modern-assignee-avatar"
-                                                                        style={{
-                                                                            background:
-                                                                                avStyle.bg,
-                                                                            color: avStyle.text,
-                                                                        }}
-                                                                    >
-                                                                        {m.username
-                                                                            ?.charAt(
-                                                                                0,
-                                                                            )
-                                                                            .toUpperCase()}
-                                                                    </div>
-                                                                )}
-
-                                                                <span className="modern-assignee-name">
-                                                                    {m.username}
-                                                                </span>
-                                                            </div>
-                                                        );
-                                                    })
+                                                        })
                                                 )}
                                             </div>
                                         </div>
@@ -1522,7 +1629,14 @@ const Tasks = () => {
                                                     >
                                                         {comment.user
                                                             ?.profile_picture ? (
-                                                            <img src={ comment.user .profile_picture } alt="Avatar" className="modern-comment-avatar ext-tasks-209"/>
+                                                            <img
+                                                                src={
+                                                                    comment.user
+                                                                        .profile_picture
+                                                                }
+                                                                alt="Avatar"
+                                                                className="modern-comment-avatar ext-tasks-209"
+                                                            />
                                                         ) : (
                                                             <div
                                                                 className="modern-comment-avatar"
@@ -1579,7 +1693,13 @@ const Tasks = () => {
                                                 );
 
                                                 return user?.profile_picture ? (
-                                                    <img src={ user.profile_picture } alt="Avatar" className="modern-comment-input-avatar ext-tasks-209"/>
+                                                    <img
+                                                        src={
+                                                            user.profile_picture
+                                                        }
+                                                        alt="Avatar"
+                                                        className="modern-comment-input-avatar ext-tasks-209"
+                                                    />
                                                 ) : (
                                                     <div
                                                         className="modern-comment-input-avatar"

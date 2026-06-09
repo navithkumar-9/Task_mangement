@@ -2,6 +2,25 @@ import { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
+const getAvatarStyle = (username) => {
+  const colors = [
+    { background: 'linear-gradient(135deg, #3B82F6, #1D4ED8)', color: '#ffffff' }, // Blue
+    { background: 'linear-gradient(135deg, #10B981, #047857)', color: '#ffffff' }, // Emerald
+    { background: 'linear-gradient(135deg, #EC4899, #BE185D)', color: '#ffffff' }, // Pink
+    { background: 'linear-gradient(135deg, #8B5CF6, #6D28D9)', color: '#ffffff' }, // Violet
+    { background: 'linear-gradient(135deg, #F59E0B, #B45309)', color: '#ffffff' }, // Amber
+    { background: 'linear-gradient(135deg, #06B6D4, #0891B2)', color: '#ffffff' }, // Cyan
+    { background: 'linear-gradient(135deg, #EF4444, #B91C1C)', color: '#ffffff' }, // Rose
+  ];
+  let hash = 0;
+  const name = username || '';
+  for (let i = 0; i < name.length; i++) {
+    hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const index = Math.abs(hash) % colors.length;
+  return colors[index];
+};
+
 const Sidebar = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
@@ -130,20 +149,18 @@ const Sidebar = () => {
             title={isCollapsed ? 'Expand Sidebar' : 'Collapse Sidebar'}
           >
             <svg
-              width="16"
-              height="16"
+              width="18"
+              height="18"
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
-              strokeWidth="2"
+              strokeWidth="2.5"
               strokeLinecap="round"
               strokeLinejoin="round"
             >
-              {isCollapsed ? (
-                <polyline points="9 18 15 12 9 6" />
-              ) : (
-                <polyline points="15 18 9 12 15 6" />
-              )}
+              <line x1="3" y1="12" x2="21" y2="12" />
+              <line x1="3" y1="6" x2="21" y2="6" />
+              <line x1="3" y1="18" x2="21" y2="18" />
             </svg>
           </button>
         </div>
@@ -165,17 +182,23 @@ const Sidebar = () => {
       </div>
 
       {/* User Section */}
-      <div className="sidebar-bottom">
-        <div className="sidebar-user">
-          <div className="sidebar-user-avatar">
-            {user?.username?.charAt(0)?.toUpperCase() || 'S'}
+      <div className="sidebar-bottom-row">
+        <div className="sidebar-profile-new">
+          <div className="sidebar-profile-avatar-wrapper">
+            <div
+              className="sidebar-profile-avatar-fallback"
+              style={getAvatarStyle(user?.username)}
+            >
+              {user?.username?.charAt(0)?.toUpperCase() || 'S'}
+            </div>
+            <span className="sidebar-profile-status online"></span>
           </div>
-          <div className="sidebar-user-info">
-            <span className="sidebar-user-name">{user?.username || 'Super Admin'}</span>
-            <span className="sidebar-user-role">{user?.role || 'SUPER_ADMIN'}</span>
+          <div className="sidebar-profile-info">
+            <span className="sidebar-profile-name">{user?.username || 'Super Admin'}</span>
+            <span className="sidebar-profile-role">{user?.role || 'SUPER_ADMIN'}</span>
           </div>
         </div>
-        <button className="sidebar-logout" onClick={handleLogout} title="Logout">
+        <button className="sidebar-logout-new" onClick={handleLogout} title="Logout">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
             <polyline points="16,17 21,12 16,7" />

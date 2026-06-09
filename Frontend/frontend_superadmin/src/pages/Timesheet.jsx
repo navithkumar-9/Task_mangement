@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import API from '../api/axios';
 
 const getTodayString = () => {
@@ -20,21 +20,73 @@ const formatWorkingHours = (workingHours) => {
 
 const Timesheet = () => {
     const [timesheets, setTimesheets] = useState([]);
+    const [allTimesheetsForFilters, setAllTimesheetsForFilters] = useState([]);
     const [loading, setLoading] = useState(false);
     const [dateFilter, setDateFilter] = useState(getTodayString());
     const [taskNameFilter, setTaskNameFilter] = useState('');
     const [projectNameFilter, setProjectNameFilter] = useState('');
+    const [employeeFilter, setEmployeeFilter] = useState('');
     const [viewingTimesheet, setViewingTimesheet] = useState(null);
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const [totalCount, setTotalCount] = useState(0);
+
+    useEffect(() => {
+        fetchAllTimesheetsForFilters();
+    }, []);
+
+    const fetchAllTimesheetsForFilters = async () => {
+        try {
+            const res = await API.get('/timesheets/super-admin/?page_size=1000');
+            let items = [];
+            if (res.data.results && res.data.results.data)
+                items = res.data.results.data;
+            else if (res.data.data) items = res.data.data;
+            else if (res.data.results) items = res.data.results;
+            else items = res.data;
+            setAllTimesheetsForFilters(Array.isArray(items) ? items : []);
+        } catch (err) {
+            console.error('Failed to fetch timesheets for filters', err);
+        }
+    };
+
+    const uniqueEmployees = useMemo(() => {
+        const names = new Set();
+        allTimesheetsForFilters.forEach((ts) => {
+            if (ts.team_member?.username) {
+                names.add(ts.team_member.username);
+            }
+        });
+        return Array.from(names).sort();
+    }, [allTimesheetsForFilters]);
+
+    const uniqueProjects = useMemo(() => {
+        const names = new Set();
+        allTimesheetsForFilters.forEach((ts) => {
+            if (ts.task?.project_name) {
+                names.add(ts.task.project_name);
+            }
+        });
+        return Array.from(names).sort();
+    }, [allTimesheetsForFilters]);
+
+    const uniqueTasks = useMemo(() => {
+        const names = new Set();
+        allTimesheetsForFilters.forEach((ts) => {
+            if (ts.task?.task_name) {
+                names.add(ts.task.task_name);
+            }
+        });
+        return Array.from(names).sort();
+    }, [allTimesheetsForFilters]);
+
     useEffect(() => {
         fetchTimesheets();
-    }, [dateFilter, taskNameFilter, projectNameFilter, page]);
+    }, [dateFilter, taskNameFilter, projectNameFilter, employeeFilter, page]);
 
     useEffect(() => {
         setPage(1);
-    }, [dateFilter, taskNameFilter, projectNameFilter]);
+    }, [dateFilter, taskNameFilter, projectNameFilter, employeeFilter]);
 
     const fetchTimesheets = async () => {
         setLoading(true);
@@ -51,6 +103,8 @@ const Timesheet = () => {
                 query += `&task_name=${encodeURIComponent(taskNameFilter)}`;
             if (projectNameFilter)
                 query += `&project_name=${encodeURIComponent(projectNameFilter)}`;
+            if (employeeFilter)
+                query += `&employee_name=${encodeURIComponent(employeeFilter)}`;
             const endpoint = `/timesheets/super-admin/?${query}`;
             const res = await API.get(endpoint);
             let items = [];
@@ -164,25 +218,84 @@ const Timesheet = () => {
             </div>
 
             <div className="content-card">
-                <div className="content-card-header ext-announcements-12">
-                    <label className="ext-dashboard-90">
-                        Filter by Date:
-                    </label>
-                    <input type="date" className="search-input ext-timesheet-176" value={dateFilter} onChange={(e) => setDateFilter(e.target.value)} />
-                    {dateFilter && (
-                        <button className="btn-danger ext-timesheet-177" onClick={() => setDateFilter('')} >
-                            Clear
-                        </button>
-                    )}
-                    <label className="ext-timesheet-178">
-                        Task Name:
-                    </label>
-                    <input type="text" className="search-input ext-timesheet-176" placeholder="Task name" value={taskNameFilter} onChange={(e) => setTaskNameFilter(e.target.value)} />
-                    <label className="ext-timesheet-178">
-                        Project Name:
-                    </label>
-                    <input type="text" className="search-input ext-timesheet-176" placeholder="Project name" value={projectNameFilter} onChange={(e) => setProjectNameFilter(e.target.value)} />
+            <div className="filter-bar">
+                <div className="filter-group">
+                    <label className="form-label">Filter by Date</label>
+                    <input
+                        type="date"
+                        className="filter-input"
+                        value={dateFilter}
+                        onChange={(e) => setDateFilter(e.target.value)}
+                    />
                 </div>
+
+                <div className="filter-group">
+                    <label className="form-label">Employee Name</label>
+                    <select
+                        value={employeeFilter}
+                        onChange={(e) => setEmployeeFilter(e.target.value)}
+                        className="filter-select"
+                    >
+                        <option value="">All Employees</option>
+                        {uniqueEmployees.map((name) => (
+                            <option key={name} value={name}>
+                                @{name}
+                            </option>
+                        ))}
+                    </select>
+                </div>
+
+                <div className="filter-group">
+                    <label className="form-label">Project Name</label>
+                    <select
+                        value={projectNameFilter}
+                        onChange={(e) => setProjectNameFilter(e.target.value)}
+                        className="filter-select"
+                    >
+                        <option value="">All Projects</option>
+                        {uniqueProjects.map((name) => (
+                            <option key={name} value={name}>
+                                {name}
+                            </option>
+                        ))}
+                    </select>
+                </div>
+
+                <div className="filter-group">
+                    <label className="form-label">Task Name</label>
+                    <select
+                        value={taskNameFilter}
+                        onChange={(e) => setTaskNameFilter(e.target.value)}
+                        className="filter-select"
+                        style={{ maxWidth: '200px' }}
+                    >
+                        <option value="">All Tasks</option>
+                        {uniqueTasks.map((name) => (
+                            <option key={name} value={name} title={name}>
+                                {name.length > 25 ? name.substring(0, 25) + '...' : name}
+                            </option>
+                        ))}
+                    </select>
+                </div>
+
+                {(dateFilter || employeeFilter || projectNameFilter || taskNameFilter) && (
+                    <button
+                        className="btn-clear-filter"
+                        onClick={() => {
+                            setDateFilter('');
+                            setEmployeeFilter('');
+                            setProjectNameFilter('');
+                            setTaskNameFilter('');
+                        }}
+                    >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                            <line x1="18" y1="6" x2="6" y2="18"></line>
+                            <line x1="6" y1="6" x2="18" y2="18"></line>
+                        </svg>
+                        Clear All
+                    </button>
+                )}
+            </div>
                 {loading ? (
                         <div className="page-loader ext-calendar-69">
                             <div className="page-loader-spinner"></div>

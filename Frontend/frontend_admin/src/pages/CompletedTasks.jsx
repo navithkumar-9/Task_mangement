@@ -162,30 +162,66 @@ const CompletedTasks = () => {
             </div>
 
             {/* Filters panel */}
-            <div className="content-card ext-completed-tasks-84">
-                <div className="ext-completed-tasks-85">
-                    <div className="ext-announcements-16">
-                        <label className="form-label ext-completed-tasks-86">Date:</label>
-                        <input type="date" className="search-input ext-completed-tasks-87" value={dateFilter} onChange={(e) => { setDateFilter(e.target.value); setPage(1); }} />
-                        {dateFilter && (
-                            <button
-                                onClick={() => { setDateFilter(''); setPage(1); }}
-                                style={{ background: 'transparent', border: 'none', color: 'var(--danger)', cursor: 'pointer', fontWeight: 600, fontSize: '0.85rem' }}
-                            >
-                                Clear
-                            </button>
-                        )}
+            <div className="content-card" style={{ padding: 0 }}>
+                <div className="filter-bar">
+                    <div className="filter-group">
+                        <label className="form-label">Date</label>
+                        <input
+                            type="date"
+                            className="filter-input"
+                            value={dateFilter}
+                            onChange={(e) => {
+                                setDateFilter(e.target.value);
+                                setPage(1);
+                            }}
+                        />
                     </div>
 
-                    <div className="ext-announcements-16">
-                        <label className="form-label ext-completed-tasks-86">Project:</label>
-                        <input type="text" className="search-input ext-completed-tasks-89" placeholder="Filter project..." value={projectFilter} onChange={(e) => { setProjectFilter(e.target.value); setPage(1); }} />
+                    <div className="filter-group">
+                        <label className="form-label">Project</label>
+                        <input
+                            type="text"
+                            className="filter-input"
+                            placeholder="Filter project..."
+                            value={projectFilter}
+                            onChange={(e) => {
+                                setProjectFilter(e.target.value);
+                                setPage(1);
+                            }}
+                        />
                     </div>
 
-                    <div className="ext-announcements-16">
-                        <label className="form-label ext-completed-tasks-86">Employee:</label>
-                        <input type="text" className="search-input ext-completed-tasks-89" placeholder="Filter assignee..." value={employeeFilter} onChange={(e) => { setEmployeeFilter(e.target.value); setPage(1); }} />
+                    <div className="filter-group">
+                        <label className="form-label">Employee</label>
+                        <input
+                            type="text"
+                            className="filter-input"
+                            placeholder="Filter assignee..."
+                            value={employeeFilter}
+                            onChange={(e) => {
+                                setEmployeeFilter(e.target.value);
+                                setPage(1);
+                            }}
+                        />
                     </div>
+
+                    {(dateFilter || projectFilter || employeeFilter) && (
+                        <button
+                            className="btn-clear-filter"
+                            onClick={() => {
+                                setDateFilter('');
+                                setProjectFilter('');
+                                setEmployeeFilter('');
+                                setPage(1);
+                            }}
+                        >
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                <line x1="18" y1="6" x2="6" y2="18"></line>
+                                <line x1="6" y1="6" x2="18" y2="18"></line>
+                            </svg>
+                            Clear All
+                        </button>
+                    )}
                 </div>
             </div>
 
@@ -257,16 +293,23 @@ const CompletedTasks = () => {
                                             <td className="ext-completed-tasks-91">
                                                 <button
                                                     onClick={() => openTaskDetail(task)}
-                                                    className="btn-primary"
+                                                    title="View Details"
                                                     style={{
-                                                        padding: '6px 12px',
-                                                        fontSize: '0.8rem',
-                                                        background: 'var(--primary-light)',
-                                                        color: 'var(--primary)',
-                                                        boxShadow: 'none',
+                                                        padding: '6px',
+                                                        borderRadius: '6px',
+                                                        border: 'none',
+                                                        background: 'var(--primary)',
+                                                        color: '#ffffff',
+                                                        cursor: 'pointer',
+                                                        display: 'inline-flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'center',
                                                     }}
                                                 >
-                                                    View Details
+                                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                                                        <circle cx="12" cy="12" r="3" />
+                                                    </svg>
                                                 </button>
                                             </td>
                                         </tr>
