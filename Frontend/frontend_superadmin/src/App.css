@@ -93,37 +93,54 @@
 .sidebar-brand {
     display: flex;
     align-items: center;
-    gap: 10px;
-    padding: 0 20px 20px;
-    border-bottom: 1px solid var(--border-color);
-    margin-bottom: 15px;
+    gap: 12px;
+    padding: 0 20px 24px;
+    border-bottom: 1px solid rgba(229, 231, 235, 0.7);
+    margin-bottom: 20px;
+    transition: all 0.3s;
 }
 .sidebar-logo {
-    width: 34px;
-    height: 34px;
-    background: var(--primary);
-    border-radius: var(--radius-sm);
+    width: 40px;
+    height: 40px;
+    background: transparent;
     display: flex;
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.sidebar-logo img.ext-sidebar-1 {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    transition: transform 0.3s ease;
+}
+.sidebar-brand:hover .sidebar-logo {
+    transform: translateY(-2px) scale(1.05);
 }
 .sidebar-brand-info {
     display: flex;
     flex-direction: column;
+    gap: 2px;
 }
 .sidebar-brand-name {
-    font-size: 1rem;
-    font-weight: 700;
+    font-size: 1.05rem;
+    font-weight: 800;
     color: var(--text-primary);
-    letter-spacing: -0.2px;
+    letter-spacing: -0.4px;
+    line-height: 1.2;
 }
 .sidebar-brand-role {
-    font-size: 0.65rem;
-    color: var(--text-muted);
+    font-size: 0.62rem;
+    color: var(--primary);
+    background: var(--primary-light);
+    padding: 1px 8px;
+    border-radius: 10px;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    font-weight: 600;
+    font-weight: 700;
+    width: fit-content;
+    border: 1px solid rgba(154, 85, 255, 0.12);
 }
 
 /* Sidebar Profile Block */
