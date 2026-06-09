@@ -389,10 +389,10 @@ const Timesheet = () => {
                                                 style={{
                                                     padding: '6px',
                                                     borderRadius: '6px',
-                                                    border: '1px solid var(--border-color)',
-                                                    background: 'transparent',
+                                                    border: 'none',
+                                                    background: 'var(--primary)',
+                                                    color: '#ffffff',
                                                     cursor: 'pointer',
-                                                    color: 'var(--primary)',
                                                     display: 'flex',
                                                     alignItems: 'center',
                                                     justifyContent: 'center',

@@ -285,7 +285,7 @@ const EditMemberModal = ({ member, onClose, onSave }) => {
                 padding: '10px 20px',
                 borderRadius: '8px',
                 border: 'none',
-                background: 'linear-gradient(135deg, #f59e0b, #d97706)',
+                background: 'var(--primary)',
                 color: '#fff',
                 cursor: 'pointer',
                 fontSize: '0.9rem',
@@ -552,11 +552,21 @@ const TeamList = () => {
                            <div className="ext-team-list-246">
                              {/* View */}
                              <button
-                               className="btn-icon"
-                               title="View Profile"
-                               onClick={() => setSelectedUser(m)}
-                               style={{ border: '1px solid var(--border-color)' }}
-                             >
+                                className="btn-icon"
+                                title="View Profile"
+                                onClick={() => setSelectedUser(m)}
+                                style={{
+                                    padding: '6px',
+                                    borderRadius: '6px',
+                                    border: 'none',
+                                    background: 'var(--primary)',
+                                    color: '#ffffff',
+                                    cursor: 'pointer',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                }}
+                              >
                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
                                  <circle cx="12" cy="12" r="3" />

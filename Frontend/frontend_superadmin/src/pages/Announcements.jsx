@@ -458,7 +458,7 @@ const Announcements = () => {
                             </div>
 
                             <div className="ext-announcements-33">
-                                <button type="button" className="btn-danger ext-announcements-34" onClick={() => setShowCreateModal(false)}>
+                                <button type="button" className="btn-cancel-white" onClick={() => setShowCreateModal(false)}>
                                     Cancel
                                 </button>
                                 <button type="submit" className="btn-primary ext-announcements-35">
@@ -535,7 +535,7 @@ const Announcements = () => {
                             </div>
 
                             <div className="ext-announcements-33">
-                                <button type="button" className="btn-danger ext-announcements-34" onClick={() => setShowEditModal(false)}>
+                                <button type="button" className="btn-cancel-white" onClick={() => setShowEditModal(false)}>
                                     Cancel
                                 </button>
                                 <button type="submit" className="btn-primary ext-announcements-35">

@@ -381,12 +381,23 @@ const ManageUsers = () => {
                                             <td>
                                                 <div className="ext-manage-users-151">
                                                 <button
-                                                    className="btn-icon"
-                                                    title="View Profile"
-                                                    onClick={() =>
-                                                        setSelectedUser(user)
-                                                    }
-                                                >
+                                                     className="btn-icon"
+                                                     title="View Profile"
+                                                     onClick={() =>
+                                                         setSelectedUser(user)
+                                                     }
+                                                     style={{
+                                                         padding: '6px',
+                                                         borderRadius: '6px',
+                                                         border: 'none',
+                                                         background: 'var(--primary)',
+                                                         color: '#ffffff',
+                                                         cursor: 'pointer',
+                                                         display: 'inline-flex',
+                                                         alignItems: 'center',
+                                                         justifyContent: 'center',
+                                                     }}
+                                                 >
                                                     <svg
                                                         width="18"
                                                         height="18"
@@ -553,7 +564,7 @@ const ManageUsers = () => {
                                     Cancel
                                 </button>
                                 <button type="submit" disabled={editLoading}
-                                    style={{ padding: '10px 20px', borderRadius: '8px', border: 'none', background: 'linear-gradient(135deg, #f59e0b, #d97706)', color: '#fff', cursor: 'pointer', fontSize: '0.9rem', fontWeight: 600, opacity: editLoading ? 0.7 : 1 }}>
+                                    style={{ padding: '10px 20px', borderRadius: '8px', border: 'none', background: 'var(--primary)', color: '#fff', cursor: 'pointer', fontSize: '0.9rem', fontWeight: 600, opacity: editLoading ? 0.7 : 1 }}>
                                     {editLoading ? 'Saving...' : 'Save Changes'}
                                 </button>
                             </div>
