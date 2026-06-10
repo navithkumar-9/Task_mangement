@@ -797,12 +797,19 @@ class SuperAdminTaskProgressView(APIView):
                 | Q(status__icontains=search)
             )
 
-        serializer = TaskListSerializer(queryset, many=True)
+        paginator = CustomPagination()
 
-        return success_response(
-            message="Task progress fetched successfully",
-            data=serializer.data,
-            status_code=status.HTTP_200_OK,
+        paginated_queryset = paginator.paginate_queryset(queryset, request)
+
+        serializer = TaskListSerializer(paginated_queryset, many=True)
+
+        return paginator.get_paginated_response(
+            {
+                "isV1": True,
+                "success": True,
+                "message": "Task progress fetched successfully",
+                "data": serializer.data,
+            }
         )
 
 

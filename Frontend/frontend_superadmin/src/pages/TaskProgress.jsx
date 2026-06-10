@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import API from '../api/axios';
 
 const ITEMS_PER_PAGE = 10;
@@ -10,63 +10,109 @@ const TaskProgress = () => {
   const [projectFilter, setProjectFilter] = useState('');
   const [assigneeFilter, setAssigneeFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
+
+  // Backend pagination state
   const [page, setPage] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+  const [nextUrl, setNextUrl] = useState(null);
+  const [prevUrl, setPrevUrl] = useState(null);
 
-  useEffect(() => {
-    fetchTasks();
-  }, []);
+  const totalPages = Math.ceil(totalCount / ITEMS_PER_PAGE) || 1;
 
-  useEffect(() => {
-    setPage(1);
-  }, [taskFilter, projectFilter, assigneeFilter, statusFilter]);
-
-  const fetchTasks = async () => {
+  const fetchTasks = useCallback(async (pageNum = 1) => {
     setLoading(true);
     try {
-      const endpoint = `/tasks/progress/?page_size=1000`;
-      const res = await API.get(endpoint);
+      const res = await API.get(`/tasks/progress/?page=${pageNum}&page_size=${ITEMS_PER_PAGE}`);
+      const responseData = res.data;
+
+      // Handle paginated response: { count, next, previous, results: { data: [...] } }
       let items = [];
-      if (res.data.results && res.data.results.data) items = res.data.results.data;
-      else if (res.data.data) items = res.data.data;
-      else if (res.data.results) items = res.data.results;
-      else items = res.data;
-      
+      if (responseData.results && responseData.results.data) {
+        items = responseData.results.data;
+      } else if (responseData.results && Array.isArray(responseData.results)) {
+        items = responseData.results;
+      } else if (responseData.data) {
+        items = responseData.data;
+      } else {
+        items = responseData;
+      }
+
       setTasks(Array.isArray(items) ? items : []);
-      
+      setTotalCount(responseData.count || 0);
+      setNextUrl(responseData.next || null);
+      setPrevUrl(responseData.previous || null);
     } catch (err) {
       console.error('Failed to fetch tasks progress', err);
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchTasks(page);
+  }, [page, fetchTasks]);
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    if (page !== 1) {
+      setPage(1);
+    }
+  }, [taskFilter, projectFilter, assigneeFilter, statusFilter]);
+
+  // Collect unique values for filter dropdowns from ALL tasks (fetched so far)
+  // We fetch all tasks once for filter options
+  const [allTasks, setAllTasks] = useState([]);
+
+  useEffect(() => {
+    const fetchAllForFilters = async () => {
+      try {
+        const res = await API.get(`/tasks/progress/?page_size=1000`);
+        const responseData = res.data;
+        let items = [];
+        if (responseData.results && responseData.results.data) {
+          items = responseData.results.data;
+        } else if (responseData.results && Array.isArray(responseData.results)) {
+          items = responseData.results;
+        } else if (responseData.data) {
+          items = responseData.data;
+        } else {
+          items = responseData;
+        }
+        setAllTasks(Array.isArray(items) ? items : []);
+      } catch (err) {
+        console.error('Failed to fetch all tasks for filters', err);
+      }
+    };
+    fetchAllForFilters();
+  }, []);
 
   const uniqueTasks = useMemo(() => {
     const names = new Set();
-    tasks.forEach(t => { if (t.task_name) names.add(t.task_name); });
+    allTasks.forEach(t => { if (t.task_name) names.add(t.task_name); });
     return Array.from(names).sort();
-  }, [tasks]);
+  }, [allTasks]);
 
   const uniqueProjects = useMemo(() => {
     const names = new Set();
-    tasks.forEach(t => { if (t.project_name) names.add(t.project_name); });
+    allTasks.forEach(t => { if (t.project_name) names.add(t.project_name); });
     return Array.from(names).sort();
-  }, [tasks]);
+  }, [allTasks]);
 
   const uniqueAssignees = useMemo(() => {
     const names = new Set();
-    tasks.forEach(t => {
+    allTasks.forEach(t => {
       if (t.assignees) {
         t.assignees.forEach(a => { if (a.username) names.add(a.username); });
       }
     });
     return Array.from(names).sort();
-  }, [tasks]);
+  }, [allTasks]);
 
   const uniqueStatuses = useMemo(() => {
     const statuses = new Set();
-    tasks.forEach(t => { if (t.status) statuses.add(t.status); });
+    allTasks.forEach(t => { if (t.status) statuses.add(t.status); });
     return Array.from(statuses).sort();
-  }, [tasks]);
+  }, [allTasks]);
 
   const STATUS_LABELS = {
     'PENDING': 'To-do',
@@ -76,6 +122,7 @@ const TaskProgress = () => {
     'COMPLETED': 'Completed',
   };
 
+  // Client-side filtering on the current page's tasks
   const filteredTasks = useMemo(() => {
     return tasks.filter(t => {
       if (taskFilter && t.task_name !== taskFilter) return false;
@@ -88,19 +135,6 @@ const TaskProgress = () => {
       return true;
     });
   }, [tasks, taskFilter, projectFilter, assigneeFilter, statusFilter]);
-
-  const totalPages = Math.ceil(filteredTasks.length / ITEMS_PER_PAGE) || 1;
-
-  useEffect(() => {
-    if (page > totalPages) {
-      setPage(totalPages);
-    }
-  }, [page, totalPages]);
-
-  const paginatedTasks = useMemo(() => {
-    const start = (page - 1) * ITEMS_PER_PAGE;
-    return filteredTasks.slice(start, start + ITEMS_PER_PAGE);
-  }, [filteredTasks, page]);
 
   const getStatusBadge = (status) => {
     const colorMap = {
@@ -122,6 +156,20 @@ const TaskProgress = () => {
     };
     const style = colorMap[priority] || { bg: 'rgba(0,0,0,0.1)', color: '#666' };
     return <span style={{ padding: '4px 10px', borderRadius: '6px', fontSize: '0.7rem', fontWeight: 700, backgroundColor: style.bg, color: style.color }}>{priority}</span>;
+  };
+
+  const getPageNumbers = () => {
+    const pages = [];
+    const maxVisible = 5;
+    let start = Math.max(1, page - Math.floor(maxVisible / 2));
+    let end = Math.min(totalPages, start + maxVisible - 1);
+    if (end - start + 1 < maxVisible) {
+      start = Math.max(1, end - maxVisible + 1);
+    }
+    for (let i = start; i <= end; i++) {
+      pages.push(i);
+    }
+    return pages;
   };
 
   return (
@@ -248,7 +296,7 @@ const TaskProgress = () => {
                 </tr>
               </thead>
               <tbody>
-                {paginatedTasks.map((task, i) => (
+                {filteredTasks.map((task, i) => (
                   <tr key={task.id || i}>
                     <td className="text-bold">{task.task_name}</td>
                     <td className="text-muted">{task.project_name}</td>
@@ -279,47 +327,127 @@ const TaskProgress = () => {
               </tbody>
             </table>
           </div>
-          {filteredTasks.length > ITEMS_PER_PAGE && (
+
+          {/* Pagination Controls */}
+          {totalPages > 1 && (
             <div className="pagination ext-timesheet-185">
-              <button
-                className="pagination-btn"
-                disabled={page <= 1}
-                onClick={() => setPage(page - 1)}
-                style={{
-                  padding: '8px 16px',
-                  borderRadius: '6px',
-                  border: '1px solid var(--border-color)',
-                  background: page <= 1 ? 'var(--bg-color)' : 'var(--primary)',
-                  color: page <= 1 ? 'var(--text-muted)' : '#fff',
-                  cursor: page <= 1 ? 'not-allowed' : 'pointer',
-                  fontWeight: 600,
-                  fontSize: '0.85rem',
-                }}
-              >
-                Previous
-              </button>
-              <span className="pagination-info ext-timesheet-186">
-                Page {page} of {totalPages}
-              </span>
-              <button
-                className="pagination-btn"
-                disabled={page >= totalPages}
-                onClick={() => setPage(page + 1)}
-                style={{
-                  padding: '8px 16px',
-                  borderRadius: '6px',
-                  border: '1px solid var(--border-color)',
-                  background: page >= totalPages ? 'var(--bg-color)' : 'var(--primary)',
-                  color: page >= totalPages ? 'var(--text-muted)' : '#fff',
-                  cursor: page >= totalPages ? 'not-allowed' : 'pointer',
-                  fontWeight: 600,
-                  fontSize: '0.85rem',
-                }}
-              >
-                Next
-              </button>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <button
+                  className="pagination-btn"
+                  disabled={!prevUrl}
+                  onClick={() => setPage(1)}
+                  title="First page"
+                  style={{
+                    padding: '8px 12px',
+                    borderRadius: '6px',
+                    border: '1px solid var(--border-color)',
+                    background: !prevUrl ? 'var(--bg-color)' : 'var(--primary)',
+                    color: !prevUrl ? 'var(--text-muted)' : '#fff',
+                    cursor: !prevUrl ? 'not-allowed' : 'pointer',
+                    fontWeight: 600,
+                    fontSize: '0.85rem',
+                  }}
+                >
+                  «
+                </button>
+                <button
+                  className="pagination-btn"
+                  disabled={!prevUrl}
+                  onClick={() => setPage(page - 1)}
+                  style={{
+                    padding: '8px 16px',
+                    borderRadius: '6px',
+                    border: '1px solid var(--border-color)',
+                    background: !prevUrl ? 'var(--bg-color)' : 'var(--primary)',
+                    color: !prevUrl ? 'var(--text-muted)' : '#fff',
+                    cursor: !prevUrl ? 'not-allowed' : 'pointer',
+                    fontWeight: 600,
+                    fontSize: '0.85rem',
+                  }}
+                >
+                  Previous
+                </button>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                {getPageNumbers().map(p => (
+                  <button
+                    key={p}
+                    onClick={() => setPage(p)}
+                    style={{
+                      padding: '6px 12px',
+                      borderRadius: '6px',
+                      border: p === page ? '2px solid var(--primary)' : '1px solid var(--border-color)',
+                      background: p === page ? 'var(--primary)' : 'transparent',
+                      color: p === page ? '#fff' : 'var(--text-primary)',
+                      cursor: 'pointer',
+                      fontWeight: p === page ? 700 : 500,
+                      fontSize: '0.85rem',
+                      minWidth: '36px',
+                      transition: 'all 0.2s ease',
+                    }}
+                  >
+                    {p}
+                  </button>
+                ))}
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <button
+                  className="pagination-btn"
+                  disabled={!nextUrl}
+                  onClick={() => setPage(page + 1)}
+                  style={{
+                    padding: '8px 16px',
+                    borderRadius: '6px',
+                    border: '1px solid var(--border-color)',
+                    background: !nextUrl ? 'var(--bg-color)' : 'var(--primary)',
+                    color: !nextUrl ? 'var(--text-muted)' : '#fff',
+                    cursor: !nextUrl ? 'not-allowed' : 'pointer',
+                    fontWeight: 600,
+                    fontSize: '0.85rem',
+                  }}
+                >
+                  Next
+                </button>
+                <button
+                  className="pagination-btn"
+                  disabled={!nextUrl}
+                  onClick={() => setPage(totalPages)}
+                  title="Last page"
+                  style={{
+                    padding: '8px 12px',
+                    borderRadius: '6px',
+                    border: '1px solid var(--border-color)',
+                    background: !nextUrl ? 'var(--bg-color)' : 'var(--primary)',
+                    color: !nextUrl ? 'var(--text-muted)' : '#fff',
+                    cursor: !nextUrl ? 'not-allowed' : 'pointer',
+                    fontWeight: 600,
+                    fontSize: '0.85rem',
+                  }}
+                >
+                  »
+                </button>
+              </div>
             </div>
           )}
+
+          {/* Pagination Info */}
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            padding: '8px 4px 0',
+            fontSize: '0.8rem',
+            color: 'var(--text-muted)',
+          }}>
+            <span>
+              Showing {((page - 1) * ITEMS_PER_PAGE) + 1}–{Math.min(page * ITEMS_PER_PAGE, totalCount)} of {totalCount} tasks
+            </span>
+            <span>
+              Page {page} of {totalPages}
+            </span>
+          </div>
           </>
         )}
       </div>
