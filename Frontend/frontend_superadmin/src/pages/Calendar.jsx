@@ -36,7 +36,7 @@ const priorityColors = {
 };
 
 const statusColors = {
-    PENDING: { bg: 'rgba(73,204,249,0.1)', color: '#49CCF9', label: 'Pending' },
+    PENDING: { bg: 'rgba(73,204,249,0.1)', color: '#49CCF9', label: 'To-do' },
     IN_PROGRESS: {
         bg: 'rgba(255,185,70,0.1)',
         color: '#ffb946',

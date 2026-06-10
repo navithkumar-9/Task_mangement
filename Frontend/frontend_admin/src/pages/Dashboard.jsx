@@ -290,7 +290,7 @@ const Dashboard = () => {
 
         const statusLabels = {
 
-            'PENDING': 'Pending',
+            'PENDING': 'To-do',
 
             'IN_PROGRESS': 'In Progress',
 
@@ -464,7 +464,7 @@ const Dashboard = () => {
 
         switch (statusName) {
 
-            case 'Pending': return '#49CCF9';
+            case 'To-do': return '#49CCF9';
 
             case 'In Progress': return '#ffb946';
 

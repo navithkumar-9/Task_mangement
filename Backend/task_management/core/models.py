@@ -40,7 +40,7 @@ User = get_user_model()
 
 
 class TaskStatus(models.TextChoices):
-    PENDING = "PENDING", "Pending"
+    PENDING = "PENDING", "To-do"
     IN_PROGRESS = "IN_PROGRESS", "In Progress"
     HOLD = "HOLD", "Hold"
     IN_REVIEW = "IN_REVIEW", "In Review"

@@ -145,7 +145,7 @@ const Dashboard = () => {
             .sort((a, b) => b.tasks - a.tasks);
 
         const statusLabels = {
-            PENDING: 'Pending',
+            PENDING: 'To-do',
             IN_PROGRESS: 'In Progress',
             IN_REVIEW: 'In Review',
             HOLD: 'Hold',
@@ -248,7 +248,7 @@ const Dashboard = () => {
 
     const getStatusColor = (statusName) => {
         switch (statusName) {
-            case 'Pending':
+            case 'To-do':
                 return '#49CCF9';
             case 'In Progress':
                 return '#ffb946';

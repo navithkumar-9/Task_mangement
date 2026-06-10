@@ -61,6 +61,14 @@ const TaskProgress = () => {
     return Array.from(statuses).sort();
   }, [tasks]);
 
+  const STATUS_LABELS = {
+    'PENDING': 'To-do',
+    'IN_PROGRESS': 'In Progress',
+    'HOLD': 'Hold',
+    'IN_REVIEW': 'In Review',
+    'COMPLETED': 'Completed',
+  };
+
   const filteredTasks = useMemo(() => {
     return tasks.filter(t => {
       if (taskFilter && t.task_name !== taskFilter) return false;
@@ -76,7 +84,7 @@ const TaskProgress = () => {
 
   const getStatusBadge = (status) => {
     const colorMap = {
-      'PENDING': { bg: 'rgba(73,204,249,0.1)', color: '#49CCF9', label: 'Pending' },
+      'PENDING': { bg: 'rgba(73,204,249,0.1)', color: '#49CCF9', label: 'To-do' },
       'IN_PROGRESS': { bg: 'rgba(255,185,70,0.1)', color: '#ffb946', label: 'In Progress' },
       'HOLD': { bg: 'rgba(255,107,107,0.1)', color: '#ff6b6b', label: 'Hold' },
       'IN_REVIEW': { bg: 'rgba(123,104,238,0.1)', color: '#7B68EE', label: 'In Review' },
@@ -165,7 +173,7 @@ const TaskProgress = () => {
               <option value="">All Statuses</option>
               {uniqueStatuses.map(status => (
                 <option key={status} value={status}>
-                  {status}
+                  {STATUS_LABELS[status] || status}
                 </option>
               ))}
             </select>

@@ -233,7 +233,7 @@ const Timesheet = () => {
             PENDING: {
                 bg: 'rgba(73,204,249,0.1)',
                 color: '#49CCF9',
-                label: 'Pending',
+                label: 'To-do',
             },
             IN_PROGRESS: {
                 bg: 'rgba(255,185,70,0.1)',
@@ -769,7 +769,7 @@ const Timesheet = () => {
                                         Status Updates
                                     </label>
                                     <select className="form-input ext-timesheet-268" value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value, }) } >
-                                        <option value="PENDING">Pending</option>
+                                        <option value="PENDING">To-do</option>
                                         <option value="IN_PROGRESS">
                                             In Progress
                                         </option>

@@ -6,7 +6,7 @@ import API from '../api/axios';
 import { useAuth } from '../context/AuthContext';
 
 const COLUMNS_BASE = [
-    { id: 'PENDING', label: 'Pending', color: '#49CCF9' },
+    { id: 'PENDING', label: 'To-do', color: '#49CCF9' },
 
     { id: 'IN_PROGRESS', label: 'In Progress', color: '#ffb946' },
 
@@ -558,6 +558,46 @@ const Tasks = () => {
                 </div>
 
                 <div className="ext-announcements-6">
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <select
+                            value={selectedTaskFilter}
+                            onChange={(e) => setSelectedTaskFilter(e.target.value)}
+                            className="filter-select"
+                            style={{ minWidth: '180px' }}
+                        >
+                            <option value="">All Tasks</option>
+                            {uniqueTasks.map((name) => (
+                                <option key={name} value={name} title={name}>
+                                    {name.length > 25
+                                        ? name.substring(0, 25) + '...'
+                                        : name}
+                                </option>
+                            ))}
+                        </select>
+                        {selectedTaskFilter && (
+                            <button
+                                className="btn-clear-filter"
+                                onClick={() => setSelectedTaskFilter('')}
+                                style={{ padding: '8px 12px' }}
+                            >
+                                <svg
+                                    width="14"
+                                    height="14"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    strokeWidth="2.5"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                >
+                                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                                </svg>
+                                Clear
+                            </button>
+                        )}
+                    </div>
+
                     {canCrud && (
                         <button
                             className="btn-primary"
@@ -579,54 +619,6 @@ const Tasks = () => {
                         </button>
                     )}
                 </div>
-            </div>
-
-            <div
-                className="filter-bar"
-                style={{
-                    marginBottom: '24px',
-                    background: 'var(--bg-white)',
-                    borderRadius: 'var(--radius)',
-                    border: '1px solid var(--border-color)',
-                }}
-            >
-                <div className="filter-group">
-                    <label className="form-label">Task Filter</label>
-                    <select
-                        value={selectedTaskFilter}
-                        onChange={(e) => setSelectedTaskFilter(e.target.value)}
-                        className="filter-select"
-                        style={{ minWidth: '200px' }}
-                    >
-                        <option value="">All Tasks</option>
-                        {uniqueTasks.map((name) => (
-                            <option key={name} value={name} title={name}>
-                                {name.length > 25
-                                    ? name.substring(0, 25) + '...'
-                                    : name}
-                            </option>
-                        ))}
-                    </select>
-                </div>
-                {selectedTaskFilter && (
-                    <button
-                        className="btn-clear-filter"
-                        onClick={() => setSelectedTaskFilter('')}
-                    >
-                        <svg
-                            width="14"
-                            height="14"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2.5"
-                        >
-                            <line x1="18" y1="6" x2="6" y2="18"></line>
-                            <line x1="6" y1="6" x2="18" y2="18"></line>
-                        </svg>
-                        Clear
-                    </button>
-                )}
             </div>
 
             {loading ? (
