@@ -625,7 +625,7 @@ const Timesheet = () => {
                                 fontSize: '0.85rem',
                             }}
                         >
-                            â† Previous
+                            Previous
                         </button>
                         <span className="pagination-info ext-completed-tasks-101">
                             Page {page} of {totalPages}
@@ -645,7 +645,7 @@ const Timesheet = () => {
                                 fontSize: '0.85rem',
                             }}
                         >
-                            Next â†’
+                            Next
                         </button>
                     </div>
                 )}

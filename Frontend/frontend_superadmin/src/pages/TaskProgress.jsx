@@ -1,6 +1,8 @@
 import { useState, useEffect, useMemo } from 'react';
 import API from '../api/axios';
 
+const ITEMS_PER_PAGE = 10;
+
 const TaskProgress = () => {
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -8,10 +10,15 @@ const TaskProgress = () => {
   const [projectFilter, setProjectFilter] = useState('');
   const [assigneeFilter, setAssigneeFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
+  const [page, setPage] = useState(1);
 
   useEffect(() => {
     fetchTasks();
   }, []);
+
+  useEffect(() => {
+    setPage(1);
+  }, [taskFilter, projectFilter, assigneeFilter, statusFilter]);
 
   const fetchTasks = async () => {
     setLoading(true);
@@ -81,6 +88,19 @@ const TaskProgress = () => {
       return true;
     });
   }, [tasks, taskFilter, projectFilter, assigneeFilter, statusFilter]);
+
+  const totalPages = Math.ceil(filteredTasks.length / ITEMS_PER_PAGE) || 1;
+
+  useEffect(() => {
+    if (page > totalPages) {
+      setPage(totalPages);
+    }
+  }, [page, totalPages]);
+
+  const paginatedTasks = useMemo(() => {
+    const start = (page - 1) * ITEMS_PER_PAGE;
+    return filteredTasks.slice(start, start + ITEMS_PER_PAGE);
+  }, [filteredTasks, page]);
 
   const getStatusBadge = (status) => {
     const colorMap = {
@@ -212,6 +232,7 @@ const TaskProgress = () => {
             </p>
           </div>
         ) : (
+          <>
           <div className="table-wrapper">
             <table className="data-table">
               <thead>
@@ -227,7 +248,7 @@ const TaskProgress = () => {
                 </tr>
               </thead>
               <tbody>
-                {filteredTasks.map((task, i) => (
+                {paginatedTasks.map((task, i) => (
                   <tr key={task.id || i}>
                     <td className="text-bold">{task.task_name}</td>
                     <td className="text-muted">{task.project_name}</td>
@@ -258,6 +279,48 @@ const TaskProgress = () => {
               </tbody>
             </table>
           </div>
+          {filteredTasks.length > ITEMS_PER_PAGE && (
+            <div className="pagination ext-timesheet-185">
+              <button
+                className="pagination-btn"
+                disabled={page <= 1}
+                onClick={() => setPage(page - 1)}
+                style={{
+                  padding: '8px 16px',
+                  borderRadius: '6px',
+                  border: '1px solid var(--border-color)',
+                  background: page <= 1 ? 'var(--bg-color)' : 'var(--primary)',
+                  color: page <= 1 ? 'var(--text-muted)' : '#fff',
+                  cursor: page <= 1 ? 'not-allowed' : 'pointer',
+                  fontWeight: 600,
+                  fontSize: '0.85rem',
+                }}
+              >
+                Previous
+              </button>
+              <span className="pagination-info ext-timesheet-186">
+                Page {page} of {totalPages}
+              </span>
+              <button
+                className="pagination-btn"
+                disabled={page >= totalPages}
+                onClick={() => setPage(page + 1)}
+                style={{
+                  padding: '8px 16px',
+                  borderRadius: '6px',
+                  border: '1px solid var(--border-color)',
+                  background: page >= totalPages ? 'var(--bg-color)' : 'var(--primary)',
+                  color: page >= totalPages ? 'var(--text-muted)' : '#fff',
+                  cursor: page >= totalPages ? 'not-allowed' : 'pointer',
+                  fontWeight: 600,
+                  fontSize: '0.85rem',
+                }}
+              >
+                Next
+              </button>
+            </div>
+          )}
+          </>
         )}
       </div>
     </div>

@@ -427,7 +427,7 @@ const Timesheet = () => {
                                 fontSize: '0.85rem',
                             }}
                         >
-                            â† Previous
+                            Previous
                         </button>
                         <span className="pagination-info ext-timesheet-186">
                             Page {page} of {totalPages}
@@ -447,7 +447,7 @@ const Timesheet = () => {
                                 fontSize: '0.85rem',
                             }}
                         >
-                            Next â†’
+                            Next
                         </button>
                     </div>
                 )}
