@@ -594,7 +594,7 @@ class AdminTaskListView(APIView):
                 Q(assigned_by=request.user) | Q(assignees=request.user)
             )
 
-        queryset = queryset.prefetch_related("assignees").select_related("assigned_by")
+        queryset = queryset.prefetch_related("assignees").select_related("assigned_by", "assigned_by__created_by")
 
         # Filters
         completed_param = request.GET.get("completed")
@@ -609,6 +609,13 @@ class AdminTaskListView(APIView):
         date_val = request.GET.get("date")
         if date_val:
             queryset = queryset.filter(Q(due_date=date_val) | Q(revised_due_date=date_val))
+
+        start_date = request.GET.get("start_date")
+        end_date = request.GET.get("end_date")
+        if start_date and end_date:
+            queryset = queryset.filter(
+                Q(due_date__range=(start_date, end_date)) | Q(revised_due_date__range=(start_date, end_date))
+            )
 
         project_val = request.GET.get("project")
         if project_val:
@@ -719,10 +726,17 @@ class TeamMemberTaskListView(APIView):
     def get(self, request):
 
         search = request.GET.get("search")
+        start_date = request.GET.get("start_date")
+        end_date = request.GET.get("end_date")
 
         queryset = Task.objects.filter(assignees=request.user).prefetch_related(
             "assignees"
-        ).select_related("assigned_by")
+        ).select_related("assigned_by", "assigned_by__created_by")
+
+        if start_date and end_date:
+            queryset = queryset.filter(
+                Q(due_date__range=(start_date, end_date)) | Q(revised_due_date__range=(start_date, end_date))
+            )
 
         if search:
             queryset = queryset.filter(
@@ -731,12 +745,17 @@ class TeamMemberTaskListView(APIView):
                 | Q(status__icontains=search)
             )
 
-        serializer = TaskListSerializer(queryset, many=True)
+        paginator = CustomPagination()
+        paginated_queryset = paginator.paginate_queryset(queryset, request)
+        serializer = TaskListSerializer(paginated_queryset, many=True)
 
-        return success_response(
-            message="Your tasks fetched successfully",
-            data=serializer.data,
-            status_code=status.HTTP_200_OK,
+        return paginator.get_paginated_response(
+            {
+                "isV1": True,
+                "success": True,
+                "message": "Your tasks fetched successfully",
+                "data": serializer.data,
+            }
         )
 
 
@@ -787,8 +806,28 @@ class SuperAdminTaskProgressView(APIView):
     def get(self, request):
 
         search = request.GET.get("search")
+        task_name = request.GET.get("task_name")
+        project_name = request.GET.get("project_name")
+        status_filter = request.GET.get("status")
+        assignee = request.GET.get("assignee")
+        start_date = request.GET.get("start_date")
+        end_date = request.GET.get("end_date")
 
-        queryset = Task.objects.prefetch_related("assignees").select_related("assigned_by")
+        queryset = Task.objects.prefetch_related("assignees").select_related("assigned_by", "assigned_by__created_by")
+
+        # Dropdown Filters
+        if task_name:
+            queryset = queryset.filter(task_name=task_name)
+        if project_name:
+            queryset = queryset.filter(project_name=project_name)
+        if status_filter:
+            queryset = queryset.filter(status=status_filter)
+        if assignee:
+            queryset = queryset.filter(assignees__username=assignee).distinct()
+        if start_date and end_date:
+            queryset = queryset.filter(
+                Q(due_date__range=(start_date, end_date)) | Q(revised_due_date__range=(start_date, end_date))
+            )
 
         if search:
             queryset = queryset.filter(
@@ -902,6 +941,9 @@ class AdminTimesheetListView(APIView):
             "task",
             "team_member",
             "task__assigned_by",
+            "task__assigned_by__created_by",
+        ).prefetch_related(
+            "task__assignees"
         )
         
         start_date = request.GET.get("start_date")
@@ -955,6 +997,9 @@ class SuperAdminTimesheetListView(APIView):
             "task",
             "team_member",
             "task__assigned_by",
+            "task__assigned_by__created_by",
+        ).prefetch_related(
+            "task__assignees"
         )
         
         start_date = request.GET.get("start_date")
@@ -1015,6 +1060,9 @@ class TeamMemberTimesheetListView(APIView):
             "task",
             "team_member",
             "task__assigned_by",
+            "task__assigned_by__created_by",
+        ).prefetch_related(
+            "task__assignees"
         )
 
         start_date = request.GET.get("start_date")
@@ -1120,7 +1168,7 @@ class TaskCommentListCreateView(APIView):
         if err:
             return err
 
-        comments = task.comments.all()
+        comments = task.comments.select_related("user")
         serializer = TaskCommentSerializer(comments, many=True)
         return success_response(
             message="Comments fetched",
@@ -1169,6 +1217,10 @@ class TaskCommentListCreateView(APIView):
             for rid in recipient_ids
         ]
         if notifications:
+            from django.utils import timezone
+            from datetime import timedelta
+            one_day_ago = timezone.now() - timedelta(days=1)
+            Notification.objects.filter(recipient_id__in=recipient_ids, created_at__lt=one_day_ago).delete()
             Notification.objects.bulk_create(notifications)
 
         serializer = TaskCommentSerializer(comment)
@@ -1305,11 +1357,6 @@ class NotificationListView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        from django.utils import timezone
-        from datetime import timedelta
-        # Delete notifications older than 24 hours (1 day)
-        one_day_ago = timezone.now() - timedelta(days=1)
-        Notification.objects.filter(recipient=request.user, created_at__lt=one_day_ago).delete()
 
         queryset = Notification.objects.filter(
             recipient=request.user
@@ -1437,6 +1484,10 @@ class CreateAnnouncementView(APIView):
             for recipient in recipients
         ]
         if notifications:
+            from django.utils import timezone
+            from datetime import timedelta
+            one_day_ago = timezone.now() - timedelta(days=1)
+            Notification.objects.filter(recipient__in=recipients, created_at__lt=one_day_ago).delete()
             Notification.objects.bulk_create(notifications)
 
         return success_response(
@@ -1665,4 +1716,206 @@ class SuperAdminTeamMemberDetailView(APIView):
             message="Team member deleted successfully",
             status_code=status.HTTP_200_OK,
         )
+
+
+class TaskFilterOptionsView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+        if user.role == UserRole.SUPER_ADMIN.value:
+            tasks_qs = Task.objects.all()
+        elif user.role == UserRole.ADMIN.value:
+            tasks_qs = Task.objects.filter(
+                Q(assigned_by=user) | Q(assigned_by__created_by=user)
+            )
+        else:
+            tasks_qs = Task.objects.filter(assignees=user)
+
+        projects = list(tasks_qs.values_list("project_name", flat=True).distinct().order_by("project_name"))
+        task_names = list(tasks_qs.values_list("task_name", flat=True).distinct().order_by("task_name"))
+
+        assignee_ids = tasks_qs.values_list("assignees", flat=True).distinct()
+        assignees = list(User.objects.filter(id__in=assignee_ids).values_list("username", flat=True).order_by("username"))
+
+        statuses = list(tasks_qs.values_list("status", flat=True).distinct().order_by("status"))
+
+        return success_response(
+            message="Filter options fetched successfully",
+            data={
+                "projects": [p for p in projects if p],
+                "task_names": [t for t in task_names if t],
+                "assignees": [a for a in assignees if a],
+                "statuses": [s for s in statuses if s],
+            },
+            status_code=status.HTTP_200_OK,
+        )
+
+
+class DashboardStatsView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        from django.db.models import Q, Count
+        from django.utils import timezone
+        import datetime
+        from .roles import UserRole
+        from .models import Task, Timesheet, TaskStatus
+        
+        user = request.user
+        role = user.role
+        
+        if role == UserRole.SUPER_ADMIN.value:
+            tasks_qs = Task.objects.all()
+            timesheets_qs = Timesheet.objects.all()
+        elif role == UserRole.ADMIN.value:
+            tasks_qs = Task.objects.filter(
+                Q(assigned_by=user) | Q(assigned_by__created_by=user)
+            )
+            timesheets_qs = Timesheet.objects.filter(
+                team_member__created_by=user
+            )
+        else: # TEAM_MEMBER
+            tasks_qs = Task.objects.filter(assignees=user)
+            if getattr(user, "can_crud_tasks", False):
+                timesheets_qs = Timesheet.objects.filter(
+                    Q(team_member=user) | Q(task__assigned_by=user)
+                )
+            else:
+                timesheets_qs = Timesheet.objects.filter(team_member=user)
+
+        total_count = tasks_qs.count()
+        completed_count = tasks_qs.filter(status=TaskStatus.COMPLETED).count()
+        active_count = total_count - completed_count
+        
+        today = timezone.localdate()
+        overdue_count = tasks_qs.exclude(status=TaskStatus.COMPLETED).filter(due_date__lt=today).count()
+        
+        progress = round((completed_count / total_count) * 100) if total_count > 0 else 0
+        
+        status_counts = tasks_qs.values("status").annotate(count=Count("id"))
+        status_map = {
+            "PENDING": 0,
+            "IN_PROGRESS": 0,
+            "IN_REVIEW": 0,
+            "HOLD": 0,
+            "COMPLETED": 0
+        }
+        for item in status_counts:
+            stat = item["status"]
+            if stat in status_map:
+                status_map[stat] = item["count"]
+            else:
+                status_map[stat] = item["count"]
+        
+        active_tasks = tasks_qs.exclude(status=TaskStatus.COMPLETED)
+        workload_query = active_tasks.values("assignees__username").annotate(count=Count("id"))
+        unassigned_count = active_tasks.filter(assignees__isnull=True).count()
+        
+        workload_map = {}
+        for item in workload_query:
+            username = item["assignees__username"]
+            if username:
+                workload_map[username] = item["count"]
+        if unassigned_count > 0:
+            workload_map["Unassigned"] = unassigned_count
+            
+        workload_data = [{"name": name, "tasks": count} for name, count in workload_map.items()]
+        workload_data.sort(key=lambda x: x["tasks"], reverse=True)
+        
+        active_list = list(active_tasks.prefetch_related("assignees").select_related("assigned_by", "assigned_by__created_by")[:100])
+        p_weight = {"HIGH": 3, "MEDIUM": 2, "LOW": 1}
+        
+        def get_urgency(task):
+            due = task.due_date
+            if not due:
+                return 1
+            if due < today:
+                return 3
+            elif due == today:
+                return 2
+            else:
+                return 1
+
+        active_list.sort(
+            key=lambda t: (
+                -get_urgency(t),
+                -p_weight.get(t.priority, 0),
+                t.due_date or datetime.date.max
+            )
+        )
+        top_critical = active_list[:5]
+        
+        top_critical_serialized = []
+        for t in top_critical:
+            top_critical_serialized.append({
+                "id": t.id,
+                "task_name": t.task_name,
+                "project_name": t.project_name,
+                "priority": t.priority,
+                "status": t.status,
+                "due_date": str(t.due_date) if t.due_date else None,
+                "revised_due_date": str(t.revised_due_date) if t.revised_due_date else None,
+                "assignees": [
+                    {
+                        "id": u.id,
+                        "username": u.username,
+                        "name": getattr(u, "name", "") or "",
+                    }
+                    for u in t.assignees.all()
+                ]
+            })
+
+        recent_tasks = tasks_qs.order_by("-created_at")[:10].prefetch_related("assignees").select_related("assigned_by", "assigned_by__created_by")
+        recent_timesheets = timesheets_qs.order_by("-created_at")[:10].select_related("task", "team_member")
+        
+        activities = []
+        for t in recent_tasks:
+            activities.append({
+                "id": f"task-{t.id}",
+                "type": "TASK",
+                "date": t.created_at.isoformat(),
+                "title": f"Task Created: {t.task_name}",
+                "desc": f"{', '.join(['@' + u.username for u in t.assignees.all()]) if t.assignees.exists() else 'Someone'} was assigned to {t.project_name}",
+                "user": t.assigned_by.username if t.assigned_by else "Admin"
+            })
+            
+        for ts in recent_timesheets:
+            activities.append({
+                "id": f"ts-{ts.id}",
+                "type": "TIMESHEET",
+                "date": ts.created_at.isoformat(),
+                "title": f"Time Logged: {ts.task.task_name if ts.task else 'A task'}",
+                "desc": f"{ts.team_member.username if ts.team_member else 'A member'} logged time.",
+                "user": ts.team_member.username if ts.team_member else "Unknown"
+            })
+            
+        activities.sort(key=lambda x: x["date"], reverse=True)
+        recent_activities = activities[:8]
+
+        return success_response(
+            message="Dashboard statistics fetched successfully",
+            data={
+                "metrics": {
+                    "totalActive": active_count,
+                    "overdue": overdue_count,
+                    "completed": completed_count,
+                    "progress": progress
+                },
+                "statusData": [
+                    item for item in [
+                        {"name": "To-do", "value": status_map.get("PENDING", 0), "originalStatus": "PENDING"},
+                        {"name": "In Progress", "value": status_map.get("IN_PROGRESS", 0), "originalStatus": "IN_PROGRESS"},
+                        {"name": "In Review", "value": status_map.get("IN_REVIEW", 0), "originalStatus": "IN_REVIEW"},
+                        {"name": "Hold", "value": status_map.get("HOLD", 0), "originalStatus": "HOLD"},
+                        {"name": "Completed", "value": status_map.get("COMPLETED", 0), "originalStatus": "COMPLETED"}
+                    ] if item["value"] > 0
+                ],
+                "workloadData": workload_data,
+                "topCriticalTasks": top_critical_serialized,
+                "recentActivity": recent_activities
+            },
+            status_code=status.HTTP_200_OK
+        )
+
 

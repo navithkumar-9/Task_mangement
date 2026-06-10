@@ -4,8 +4,12 @@ import html
 import os
 from django.conf import settings
 from django.core.mail import EmailMultiAlternatives
+from concurrent.futures import ThreadPoolExecutor
 
 logger = logging.getLogger(__name__)
+
+# Global thread pool executor for background email dispatching
+_email_executor = ThreadPoolExecutor(max_workers=4)
 
 # Professional, mobile-responsive HTML email template with inline styles
 EMAIL_HTML_TEMPLATE = """<!DOCTYPE html>
@@ -264,5 +268,5 @@ def send_task_notification_email_async(task, admin_user, assignees):
             except Exception as e:
                 logger.error(f"Failed to send email via SMTP to {getattr(assignee, 'email', 'Unknown')}: {str(e)}")
 
-    # Run in a background thread to prevent blocking the API response
-    threading.Thread(target=run).start()
+    # Dispatch to global thread pool executor to prevent thread exhaustion
+    _email_executor.submit(run)

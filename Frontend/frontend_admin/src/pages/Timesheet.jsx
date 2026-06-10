@@ -47,7 +47,6 @@ const Timesheet = () => {
     const isAdmin = user?.role === 'ADMIN';
 
     const [timesheets, setTimesheets] = useState([]);
-    const [allTimesheetsForFilters, setAllTimesheetsForFilters] = useState([]);
     const [loading, setLoading] = useState(false);
     const [dateFilter, setDateFilter] = useState(getTodayString());
     const [taskNameFilter, setTaskNameFilter] = useState('');
@@ -71,57 +70,38 @@ const Timesheet = () => {
     const [totalPages, setTotalPages] = useState(1);
     const [totalCount, setTotalCount] = useState(0);
 
+    const [filterOptions, setFilterOptions] = useState({
+        projects: [],
+        task_names: [],
+        assignees: []
+    });
+
     useEffect(() => {
-        fetchAllTimesheetsForFilters();
+        fetchFilterOptions();
     }, [isAdmin]);
 
-    const fetchAllTimesheetsForFilters = async () => {
+    const fetchFilterOptions = async () => {
         try {
-            const endpoint = isAdmin
-                ? '/timesheets/admin/?page_size=1000'
-                : '/timesheets/my-timesheets/?page_size=1000';
-            const res = await API.get(endpoint);
-            let items = [];
-            if (res.data.results && res.data.results.data)
-                items = res.data.results.data;
-            else if (res.data.data) items = res.data.data;
-            else if (res.data.results) items = res.data.results;
-            else items = res.data;
-            setAllTimesheetsForFilters(Array.isArray(items) ? items : []);
+            const res = await API.get('/tasks/filter-options/');
+            if (res.data.success) {
+                setFilterOptions(res.data.data);
+            }
         } catch (err) {
-            console.error('Failed to fetch timesheets for filters', err);
+            console.error('Failed to fetch filter options', err);
         }
     };
 
     const uniqueEmployees = useMemo(() => {
-        const names = new Set();
-        allTimesheetsForFilters.forEach((ts) => {
-            if (ts.team_member?.username) {
-                names.add(ts.team_member.username);
-            }
-        });
-        return Array.from(names).sort();
-    }, [allTimesheetsForFilters]);
+        return (filterOptions.assignees || []).sort();
+    }, [filterOptions.assignees]);
 
     const uniqueProjects = useMemo(() => {
-        const names = new Set();
-        allTimesheetsForFilters.forEach((ts) => {
-            if (ts.task?.project_name) {
-                names.add(ts.task.project_name);
-            }
-        });
-        return Array.from(names).sort();
-    }, [allTimesheetsForFilters]);
+        return (filterOptions.projects || []).sort();
+    }, [filterOptions.projects]);
 
     const uniqueTasks = useMemo(() => {
-        const names = new Set();
-        allTimesheetsForFilters.forEach((ts) => {
-            if (ts.task?.task_name) {
-                names.add(ts.task.task_name);
-            }
-        });
-        return Array.from(names).sort();
-    }, [allTimesheetsForFilters]);
+        return (filterOptions.task_names || []).sort();
+    }, [filterOptions.task_names]);
 
     useEffect(() => {
         fetchTimesheets();

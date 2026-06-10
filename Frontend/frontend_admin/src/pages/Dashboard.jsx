@@ -82,9 +82,7 @@ const Dashboard = () => {
 
     const [profile, setProfile] = useState(null);
 
-    const [tasks, setTasks] = useState([]);
-
-    const [timesheets, setTimesheets] = useState([]);
+    const [dashboardData, setDashboardData] = useState(null);
 
     const [loading, setLoading] = useState(true);
 
@@ -116,49 +114,13 @@ const Dashboard = () => {
 
             try {
 
-                const tasksEndpoint = isAdmin ? '/tasks/admin/?page_size=1000' : '/tasks/my-tasks/?page_size=1000';
+                const res = await API.get('/dashboard/stats/');
 
-                const timesheetsEndpoint = isAdmin ? '/timesheets/admin/?page_size=50' : '/timesheets/my-timesheets/?page_size=50';
+                if (res.data.success) {
 
-                
+                    setDashboardData(res.data.data);
 
-                const [tasksRes, timesheetsRes] = await Promise.all([
-
-                    API.get(tasksEndpoint).catch(() => ({ data: [] })),
-
-                    API.get(timesheetsEndpoint).catch(() => ({ data: [] }))
-
-                ]);
-
-
-
-                let tasksData = [];
-
-                if (tasksRes.data.results && tasksRes.data.results.data) tasksData = tasksRes.data.results.data;
-
-                else if (tasksRes.data.data) tasksData = tasksRes.data.data;
-
-                else if (tasksRes.data.results) tasksData = tasksRes.data.results;
-
-                else tasksData = tasksRes.data;
-
-
-
-                let timesheetsData = [];
-
-                if (timesheetsRes.data.results && timesheetsRes.data.results.data) timesheetsData = timesheetsRes.data.results.data;
-
-                else if (timesheetsRes.data.data) timesheetsData = timesheetsRes.data.data;
-
-                else if (timesheetsRes.data.results) timesheetsData = timesheetsRes.data.results;
-
-                else timesheetsData = timesheetsRes.data;
-
-
-
-                setTasks(Array.isArray(tasksData) ? tasksData : []);
-
-                setTimesheets(Array.isArray(timesheetsData) ? timesheetsData : []);
+                }
 
             } catch (error) {
 
@@ -176,7 +138,7 @@ const Dashboard = () => {
 
         fetchDashboardData();
 
-    }, [isAdmin]);
+    }, []);
 
 
 
@@ -184,145 +146,27 @@ const Dashboard = () => {
 
     const headerMetrics = useMemo(() => {
 
-        const active = tasks.filter(t => t.status !== 'COMPLETED');
+        return dashboardData?.metrics || { totalActive: 0, overdue: 0, progress: 0 };
 
-        const overdue = tasks.filter(t => t.status !== 'COMPLETED' && t.due_date && new Date(t.due_date) < new Date(new Date().toDateString()));
-
-        const completed = tasks.filter(t => t.status === 'COMPLETED');
-
-        const progress = tasks.length > 0 ? Math.round((completed.length / tasks.length) * 100) : 0;
-
-
-
-        return {
-
-            totalActive: active.length,
-
-            overdue: overdue.length,
-
-            progress: progress,
-
-        };
-
-    }, [tasks]);
+    }, [dashboardData]);
 
 
 
     // Data Processing for Charts
 
-    const { workloadData, statusData } = useMemo(() => {
+    const workloadData = useMemo(() => {
 
-        const workloadMap = {};
+        return dashboardData?.workloadData || [];
 
-        const statusMap = {
-
-            'PENDING': 0,
-
-            'IN_PROGRESS': 0,
-
-            'IN_REVIEW': 0,
-
-            'HOLD': 0,
-
-            'COMPLETED': 0
-
-        };
+    }, [dashboardData]);
 
 
 
-        tasks.forEach(task => {
+    const statusData = useMemo(() => {
 
-            // Workload (Active tasks only)
+        return dashboardData?.statusData || [];
 
-            if (task.status !== 'COMPLETED') {
-
-                const assigneeList = task.assignees || [];
-
-                if (assigneeList.length === 0) {
-
-                    if (!workloadMap['Unassigned']) workloadMap['Unassigned'] = 0;
-
-                    workloadMap['Unassigned']++;
-
-                } else {
-
-                    assigneeList.forEach(a => {
-
-                        const name = a.username || 'Unassigned';
-
-                        if (!workloadMap[name]) workloadMap[name] = 0;
-
-                        workloadMap[name]++;
-
-                    });
-
-                }
-
-            }
-
-
-
-            // Status Pie Chart
-
-            if (statusMap[task.status] !== undefined) {
-
-                statusMap[task.status]++;
-
-            } else {
-
-                statusMap[task.status] = 1;
-
-            }
-
-        });
-
-
-
-        const workloadArr = Object.keys(workloadMap).map(key => ({
-
-            name: key,
-
-            tasks: workloadMap[key]
-
-        })).sort((a, b) => b.tasks - a.tasks);
-
-
-
-        const statusLabels = {
-
-            'PENDING': 'To-do',
-
-            'IN_PROGRESS': 'In Progress',
-
-            'IN_REVIEW': 'In Review',
-
-            'HOLD': 'Hold',
-
-            'COMPLETED': 'Completed'
-
-        };
-
-
-
-        const statusArr = Object.keys(statusMap)
-
-            .filter(key => statusMap[key] > 0)
-
-            .map(key => ({
-
-                name: statusLabels[key] || key,
-
-                value: statusMap[key],
-
-                originalStatus: key
-
-            }));
-
-
-
-        return { workloadData: workloadArr, statusData: statusArr };
-
-    }, [tasks]);
+    }, [dashboardData]);
 
 
 
@@ -330,115 +174,25 @@ const Dashboard = () => {
 
     const topCriticalTasks = useMemo(() => {
 
-        return tasks
+        return dashboardData?.topCriticalTasks || [];
 
-            .filter(t => t.status !== 'COMPLETED')
-
-            .sort((a, b) => {
-
-                // Priority weight
-
-                const pWeight = { 'HIGH': 3, 'MEDIUM': 2, 'LOW': 1 };
-
-                const aP = pWeight[a.priority] || 0;
-
-                const bP = pWeight[b.priority] || 0;
-
-                
-
-                // Urgency (Overdue > Due Today > Due Future)
-
-                const today = new Date(new Date().toDateString());
-
-                const aDue = a.due_date ? new Date(a.due_date) : new Date(8640000000000000);
-
-                const bDue = b.due_date ? new Date(b.due_date) : new Date(8640000000000000);
-
-                
-
-                const aUrgent = aDue < today ? 3 : (aDue.getTime() === today.getTime() ? 2 : 1);
-
-                const bUrgent = bDue < today ? 3 : (bDue.getTime() === today.getTime() ? 2 : 1);
-
-
-
-                // Sort by Urgency then Priority
-
-                if (aUrgent !== bUrgent) return bUrgent - aUrgent;
-
-                if (aP !== bP) return bP - aP;
-
-                return aDue - bDue;
-
-            })
-
-            .slice(0, 5);
-
-    }, [tasks]);
+    }, [dashboardData]);
 
 
 
     const recentActivity = useMemo(() => {
 
-        const activities = [];
+        if (!dashboardData?.recentActivity) return [];
 
-        
+        return dashboardData.recentActivity.map(act => ({
 
-        // Add recent tasks
+            ...act,
 
-        tasks.slice(0, 10).forEach(t => {
+            date: new Date(act.date)
 
-            activities.push({
+        }));
 
-                id: `task-${t.id}`,
-
-                type: 'TASK',
-
-                date: new Date(t.created_at),
-
-                title: `Task Created: ${t.task_name}`,
-
-                desc: `${t.assignees?.length ? t.assignees.map(a => `@${a.username}`).join(', ') : 'Someone'} was assigned to ${t.project_name}`,
-
-                user: t.assigned_by?.username || 'Admin'
-
-            });
-
-        });
-
-
-
-        // Add recent timesheets
-
-        timesheets.slice(0, 10).forEach(ts => {
-
-            activities.push({
-
-                id: `ts-${ts.id}`,
-
-                type: 'TIMESHEET',
-
-                date: new Date(ts.created_at),
-
-                title: `Time Logged: ${ts.task?.task_name || 'A task'}`,
-
-                desc: `${ts.team_member?.username || 'A member'} logged time.`,
-
-                user: ts.team_member?.username || 'Unknown'
-
-            });
-
-        });
-
-
-
-        return activities
-
-            .sort((a, b) => b.date - a.date)
-
-            .slice(0, 8);
-
-    }, [tasks, timesheets]);
+    }, [dashboardData]);
 
 
 

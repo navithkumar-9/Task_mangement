@@ -52,6 +52,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "django.middleware.gzip.GZipMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "corsheaders.middleware.CorsMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -93,6 +94,7 @@ DATABASES = {
         "PASSWORD": os.getenv("MYSQL_PASSWORD", default="password"),
         "HOST": os.getenv("MYSQL_HOST", default="127.0.0.1"),
         "PORT": os.getenv("MYSQL_PORT", default="3306"),
+        "CONN_MAX_AGE": 600,
     }
 }
 

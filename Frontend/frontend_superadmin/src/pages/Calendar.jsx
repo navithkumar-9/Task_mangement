@@ -231,12 +231,21 @@ const Calendar = () => {
 
     useEffect(() => {
         fetchTasks();
-    }, []);
+    }, [currentMonth, currentYear]);
 
     const fetchTasks = async () => {
         setLoading(true);
         try {
-            const res = await API.get('/tasks/progress/?page_size=500');
+            const formatDateStr = (d) => {
+                const year = d.getFullYear();
+                const month = String(d.getMonth() + 1).padStart(2, '0');
+                const day = String(d.getDate()).padStart(2, '0');
+                return `${year}-${month}-${day}`;
+            };
+            const startStr = formatDateStr(new Date(currentYear, currentMonth - 1, 1));
+            const endStr = formatDateStr(new Date(currentYear, currentMonth + 2, 0));
+
+            const res = await API.get(`/tasks/progress/?page_size=500&start_date=${startStr}&end_date=${endStr}`);
             let items = [];
             if (res.data.results && res.data.results.data)
                 items = res.data.results.data;

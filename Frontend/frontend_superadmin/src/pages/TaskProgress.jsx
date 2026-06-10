@@ -22,7 +22,13 @@ const TaskProgress = () => {
   const fetchTasks = useCallback(async (pageNum = 1) => {
     setLoading(true);
     try {
-      const res = await API.get(`/tasks/progress/?page=${pageNum}&page_size=${ITEMS_PER_PAGE}`);
+      let url = `/tasks/progress/?page=${pageNum}&page_size=${ITEMS_PER_PAGE}`;
+      if (taskFilter) url += `&task_name=${encodeURIComponent(taskFilter)}`;
+      if (projectFilter) url += `&project_name=${encodeURIComponent(projectFilter)}`;
+      if (statusFilter) url += `&status=${encodeURIComponent(statusFilter)}`;
+      if (assigneeFilter) url += `&assignee=${encodeURIComponent(assigneeFilter)}`;
+
+      const res = await API.get(url);
       const responseData = res.data;
 
       // Handle paginated response: { count, next, previous, results: { data: [...] } }
@@ -46,73 +52,58 @@ const TaskProgress = () => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [taskFilter, projectFilter, statusFilter, assigneeFilter]);
 
   useEffect(() => {
     fetchTasks(page);
   }, [page, fetchTasks]);
 
-  // Reset to page 1 when filters change
+  // Reset to page 1 when filters change, if already on page 1, trigger fetch
   useEffect(() => {
     if (page !== 1) {
       setPage(1);
+    } else {
+      fetchTasks(1);
     }
   }, [taskFilter, projectFilter, assigneeFilter, statusFilter]);
 
-  // Collect unique values for filter dropdowns from ALL tasks (fetched so far)
-  // We fetch all tasks once for filter options
-  const [allTasks, setAllTasks] = useState([]);
+  // Fetch unique filter values efficiently from the backend filter options endpoint
+  const [filterOptions, setFilterOptions] = useState({
+    projects: [],
+    task_names: [],
+    assignees: [],
+    statuses: []
+  });
 
   useEffect(() => {
-    const fetchAllForFilters = async () => {
+    const fetchOptions = async () => {
       try {
-        const res = await API.get(`/tasks/progress/?page_size=1000`);
-        const responseData = res.data;
-        let items = [];
-        if (responseData.results && responseData.results.data) {
-          items = responseData.results.data;
-        } else if (responseData.results && Array.isArray(responseData.results)) {
-          items = responseData.results;
-        } else if (responseData.data) {
-          items = responseData.data;
-        } else {
-          items = responseData;
+        const res = await API.get('/tasks/filter-options/');
+        if (res.data.success) {
+          setFilterOptions(res.data.data);
         }
-        setAllTasks(Array.isArray(items) ? items : []);
       } catch (err) {
-        console.error('Failed to fetch all tasks for filters', err);
+        console.error('Failed to fetch filter options', err);
       }
     };
-    fetchAllForFilters();
+    fetchOptions();
   }, []);
 
   const uniqueTasks = useMemo(() => {
-    const names = new Set();
-    allTasks.forEach(t => { if (t.task_name) names.add(t.task_name); });
-    return Array.from(names).sort();
-  }, [allTasks]);
+    return (filterOptions.task_names || []).sort();
+  }, [filterOptions.task_names]);
 
   const uniqueProjects = useMemo(() => {
-    const names = new Set();
-    allTasks.forEach(t => { if (t.project_name) names.add(t.project_name); });
-    return Array.from(names).sort();
-  }, [allTasks]);
+    return (filterOptions.projects || []).sort();
+  }, [filterOptions.projects]);
 
   const uniqueAssignees = useMemo(() => {
-    const names = new Set();
-    allTasks.forEach(t => {
-      if (t.assignees) {
-        t.assignees.forEach(a => { if (a.username) names.add(a.username); });
-      }
-    });
-    return Array.from(names).sort();
-  }, [allTasks]);
+    return (filterOptions.assignees || []).sort();
+  }, [filterOptions.assignees]);
 
   const uniqueStatuses = useMemo(() => {
-    const statuses = new Set();
-    allTasks.forEach(t => { if (t.status) statuses.add(t.status); });
-    return Array.from(statuses).sort();
-  }, [allTasks]);
+    return (filterOptions.statuses || []).sort();
+  }, [filterOptions.statuses]);
 
   const STATUS_LABELS = {
     'PENDING': 'To-do',
@@ -122,19 +113,10 @@ const TaskProgress = () => {
     'COMPLETED': 'Completed',
   };
 
-  // Client-side filtering on the current page's tasks
+  // Direct rendering since filtering is backend-driven
   const filteredTasks = useMemo(() => {
-    return tasks.filter(t => {
-      if (taskFilter && t.task_name !== taskFilter) return false;
-      if (projectFilter && t.project_name !== projectFilter) return false;
-      if (statusFilter && t.status !== statusFilter) return false;
-      if (assigneeFilter) {
-        const hasAssignee = t.assignees?.some(a => a.username === assigneeFilter);
-        if (!hasAssignee) return false;
-      }
-      return true;
-    });
-  }, [tasks, taskFilter, projectFilter, assigneeFilter, statusFilter]);
+    return tasks;
+  }, [tasks]);
 
   const getStatusBadge = (status) => {
     const colorMap = {

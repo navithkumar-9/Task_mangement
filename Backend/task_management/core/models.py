@@ -86,6 +86,12 @@ class Task(models.Model):
 
     class Meta:
         ordering = ["-id"]
+        indexes = [
+            models.Index(fields=["status"]),
+            models.Index(fields=["priority"]),
+            models.Index(fields=["due_date"]),
+            models.Index(fields=["created_at"]),
+        ]
 
     def __str__(self):
         return self.task_name
@@ -130,6 +136,12 @@ class Timesheet(models.Model):
 
     class Meta:
         ordering = ["-id"]
+        indexes = [
+            models.Index(fields=["team_member"]),
+            models.Index(fields=["task"]),
+            models.Index(fields=["status"]),
+            models.Index(fields=["start_time"]),
+        ]
 
     def save(self, *args, **kwargs):
         self.priority = self.task.priority
@@ -223,6 +235,10 @@ class Notification(models.Model):
 
     class Meta:
         ordering = ["-created_at"]
+        indexes = [
+            models.Index(fields=["recipient", "is_read"]),
+            models.Index(fields=["created_at"]),
+        ]
 
     def __str__(self):
         return f"Notification for {self.recipient.username}: {self.message[:50]}"

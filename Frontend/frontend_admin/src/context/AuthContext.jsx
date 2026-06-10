@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect, useMemo } from 'react';
 import API from '../api/axios';
 
 const AuthContext = createContext();
@@ -69,8 +69,10 @@ export const AuthProvider = ({ children }) => {
         localStorage.removeItem('admin_tokens');
     };
 
+    const authValue = useMemo(() => ({ user, tokens, login, logout }), [user, tokens]);
+
     return (
-        <AuthContext.Provider value={{ user, tokens, login, logout }}>
+        <AuthContext.Provider value={authValue}>
             {children}
         </AuthContext.Provider>
     );

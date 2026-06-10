@@ -151,38 +151,27 @@ const Tasks = () => {
         revised_due_date: '',
     });
 
-    const [allTasksForFilters, setAllTasksForFilters] = useState([]);
+    const [filterOptions, setFilterOptions] = useState({ task_names: [] });
     const [selectedTaskFilter, setSelectedTaskFilter] = useState('');
 
     useEffect(() => {
-        fetchAllTasksForFilters();
+        fetchFilterOptions();
     }, [canCrud]);
 
-    const fetchAllTasksForFilters = async () => {
+    const fetchFilterOptions = async () => {
         try {
-            const endpoint = canCrud
-                ? `/tasks/admin/?page_size=1000`
-                : `/tasks/my-tasks/?page_size=1000`;
-            const res = await API.get(endpoint);
-            let items = [];
-            if (res.data.results && res.data.results.data)
-                items = res.data.results.data;
-            else if (res.data.data) items = res.data.data;
-            else if (res.data.results) items = res.data.results;
-            else items = res.data;
-            setAllTasksForFilters(Array.isArray(items) ? items : []);
+            const res = await API.get('/tasks/filter-options/');
+            if (res.data.success) {
+                setFilterOptions(res.data.data);
+            }
         } catch (err) {
-            console.error('Failed to fetch tasks for filter', err);
+            console.error('Failed to fetch filter options', err);
         }
     };
 
     const uniqueTasks = useMemo(() => {
-        const names = new Set();
-        allTasksForFilters.forEach((t) => {
-            if (t.task_name) names.add(t.task_name);
-        });
-        return Array.from(names).sort();
-    }, [allTasksForFilters]);
+        return (filterOptions.task_names || []).sort();
+    }, [filterOptions.task_names]);
 
     useEffect(() => {
         fetchTasks();

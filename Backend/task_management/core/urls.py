@@ -35,11 +35,15 @@ from .views import (
     AnnouncementDetailView,
     SuperAdminAnnouncementListView,
     SuperAdminTeamMemberDetailView,
+    TaskFilterOptionsView,
+    DashboardStatsView,
 )
 
 urlpatterns = [
     path("super-admin/login/", SuperAdminLoginView.as_view()),
     path("login/", LoginView.as_view()),
+    path("dashboard/stats/", DashboardStatsView.as_view()),
+    path("tasks/filter-options/", TaskFilterOptionsView.as_view()),
     path("create-admin/", CreateAdminView.as_view()),
     path("create-team-member/", CreateTeamLeaderView.as_view()),
     path("profile/", ProfileView.as_view()),
