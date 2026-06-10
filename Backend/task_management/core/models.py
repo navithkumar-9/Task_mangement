@@ -91,6 +91,8 @@ class Task(models.Model):
             models.Index(fields=["priority"]),
             models.Index(fields=["due_date"]),
             models.Index(fields=["created_at"]),
+            models.Index(fields=["project_name"]),
+            models.Index(fields=["task_name"]),
         ]
 
     def __str__(self):
@@ -141,6 +143,7 @@ class Timesheet(models.Model):
             models.Index(fields=["task"]),
             models.Index(fields=["status"]),
             models.Index(fields=["start_time"]),
+            models.Index(fields=["created_at"]),
         ]
 
     def save(self, *args, **kwargs):

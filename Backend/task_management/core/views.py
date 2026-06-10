@@ -1112,7 +1112,14 @@ class TaskFullDetailView(APIView):
 
     def get(self, request, task_id):
         try:
-            task = Task.objects.get(id=task_id)
+            task = Task.objects.prefetch_related(
+                "assignees",
+                "comments__user",
+                "subtasks"
+            ).select_related(
+                "assigned_by",
+                "assigned_by__created_by"
+            ).get(id=task_id)
         except Task.DoesNotExist:
             return error_response(
                 message="Task not found",
