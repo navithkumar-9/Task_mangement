@@ -83,9 +83,23 @@ const getAvatarStyle = (username) => {
     return colors[index];
 };
 
+// Local module-level cache to prevent flashing "Loading..." on page navigation
+let cachedUserId = null;
+let cachedTasksList = null;
+let cachedTeamMembersList = null;
+let cachedFilterOptionsList = null;
+
 const Tasks = () => {
     const { user } = useAuth();
     const [searchParams, setSearchParams] = useSearchParams();
+
+    // Clear cache if logged in user changes
+    if (user && cachedUserId !== user.id) {
+        cachedUserId = user.id;
+        cachedTasksList = null;
+        cachedTeamMembersList = null;
+        cachedFilterOptionsList = null;
+    }
 
     const isAdmin = user?.role === 'ADMIN';
     const canCrud = isAdmin || user?.can_crud_tasks;
@@ -94,9 +108,13 @@ const Tasks = () => {
         ? COLUMNS_BASE
         : COLUMNS_BASE.filter((c) => c.id !== 'COMPLETED');
 
-    const [tasks, setTasks] = useState([]);
+    const [tasks, setTasks] = useState(() =>
+        cachedUserId === user?.id ? cachedTasksList || [] : [],
+    );
 
-    const [teamMembers, setTeamMembers] = useState([]);
+    const [teamMembers, setTeamMembers] = useState(() =>
+        cachedUserId === user?.id ? cachedTeamMembersList || [] : [],
+    );
 
     const [showModal, setShowModal] = useState(false);
 
@@ -151,18 +169,24 @@ const Tasks = () => {
         revised_due_date: '',
     });
 
-    const [filterOptions, setFilterOptions] = useState({ task_names: [] });
+    const [filterOptions, setFilterOptions] = useState(() =>
+        cachedUserId === user?.id
+            ? cachedFilterOptionsList || { task_names: [] }
+            : { task_names: [] },
+    );
     const [selectedTaskFilter, setSelectedTaskFilter] = useState('');
 
     useEffect(() => {
+        if (!user) return;
         fetchFilterOptions();
-    }, [canCrud]);
+    }, [user]);
 
     const fetchFilterOptions = async () => {
         try {
             const res = await API.get('/tasks/filter-options/');
             if (res.data.success) {
                 setFilterOptions(res.data.data);
+                cachedFilterOptionsList = res.data.data;
             }
         } catch (err) {
             console.error('Failed to fetch filter options', err);
@@ -174,12 +198,13 @@ const Tasks = () => {
     }, [filterOptions.task_names]);
 
     useEffect(() => {
+        if (!user) return;
         fetchTasks();
 
         if (canCrud) {
             fetchTeamMembers();
         }
-    }, [canCrud, selectedTaskFilter]);
+    }, [user, canCrud, selectedTaskFilter]);
 
     /* ── Auto-open task from notification (URL ?taskId=X) ── */
     useEffect(() => {
@@ -197,7 +222,9 @@ const Tasks = () => {
     }, [tasks, searchParams]);
 
     const fetchTasks = async () => {
-        setLoading(true);
+        if (!cachedTasksList || cachedUserId !== user?.id) {
+            setLoading(true);
+        }
 
         try {
             const endpoint = canCrud
@@ -218,7 +245,10 @@ const Tasks = () => {
                 items = res.data;
             }
 
-            setTasks(Array.isArray(items) ? items : []);
+            const tasksList = Array.isArray(items) ? items : [];
+            setTasks(tasksList);
+            cachedTasksList = tasksList;
+            cachedUserId = user?.id;
         } catch (err) {
             console.error('Failed to fetch tasks', err);
         } finally {
@@ -237,7 +267,9 @@ const Tasks = () => {
             else if (res.data.data) items = res.data.data;
             else if (res.data.results) items = res.data.results;
 
-            setTeamMembers(Array.isArray(items) ? items : []);
+            const membersList = Array.isArray(items) ? items : [];
+            setTeamMembers(membersList);
+            cachedTeamMembersList = membersList;
         } catch (err) {
             console.error('Failed to fetch team members', err);
         }
@@ -547,10 +579,18 @@ const Tasks = () => {
                 </div>
 
                 <div className="ext-announcements-6">
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <div
+                        style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px',
+                        }}
+                    >
                         <select
                             value={selectedTaskFilter}
-                            onChange={(e) => setSelectedTaskFilter(e.target.value)}
+                            onChange={(e) =>
+                                setSelectedTaskFilter(e.target.value)
+                            }
                             className="filter-select"
                             style={{ minWidth: '180px' }}
                         >

@@ -1,10 +1,17 @@
 import os
+import datetime
+from datetime import timedelta
 from dotenv import load_dotenv
 from django.contrib.auth import get_user_model
+from django.utils import timezone
+from django.core.cache import cache
+from django.db.models import Q, Count
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
 from rest_framework import status
 from rest_framework_simplejwt.tokens import RefreshToken
+from core.cache_utils import make_cache_key
 from .serializers import (
     LoginSerializer,
     CreateAdminSerializer,
@@ -29,7 +36,6 @@ from .permissions import IsAdmin, IsSuperAdmin, CanCrudTasks
 from .roles import UserRole
 from .response import success_response, error_response
 from .pagination import CustomPagination
-from django.db.models import Q
 from .models import Task, Timesheet, TaskComment, SubTask, Notification, Announcement, AnnouncementAudience, TaskStatus
 
 load_dotenv()
@@ -583,6 +589,11 @@ class AdminTaskListView(APIView):
 
     def get(self, request):
 
+        cache_key = make_cache_key(f"user:{request.user.id}:tasks", request)
+        cached_data = cache.get(cache_key)
+        if cached_data:
+            return Response(cached_data)
+
         search = request.GET.get("search")
 
         if request.user.role == UserRole.ADMIN.value:
@@ -601,8 +612,6 @@ class AdminTaskListView(APIView):
         if completed_param == "true":
             queryset = queryset.filter(status=TaskStatus.COMPLETED)
         else:
-            from django.utils import timezone
-            from datetime import timedelta
             one_week_ago = timezone.now() - timedelta(days=7)
             queryset = queryset.exclude(status=TaskStatus.COMPLETED, updated_at__lt=one_week_ago)
 
@@ -641,7 +650,7 @@ class AdminTaskListView(APIView):
 
         serializer = TaskListSerializer(paginated_queryset, many=True)
 
-        return paginator.get_paginated_response(
+        response_obj = paginator.get_paginated_response(
             {
                 "isV1": True,
                 "success": True,
@@ -649,6 +658,8 @@ class AdminTaskListView(APIView):
                 "data": serializer.data,
             }
         )
+        cache.set(cache_key, response_obj.data, timeout=86400)
+        return response_obj
 
 
 class AdminTaskDetailView(APIView):
@@ -725,6 +736,11 @@ class TeamMemberTaskListView(APIView):
 
     def get(self, request):
 
+        cache_key = make_cache_key(f"user:{request.user.id}:tasks", request)
+        cached_data = cache.get(cache_key)
+        if cached_data:
+            return Response(cached_data)
+
         search = request.GET.get("search")
         start_date = request.GET.get("start_date")
         end_date = request.GET.get("end_date")
@@ -749,7 +765,7 @@ class TeamMemberTaskListView(APIView):
         paginated_queryset = paginator.paginate_queryset(queryset, request)
         serializer = TaskListSerializer(paginated_queryset, many=True)
 
-        return paginator.get_paginated_response(
+        response_obj = paginator.get_paginated_response(
             {
                 "isV1": True,
                 "success": True,
@@ -757,6 +773,8 @@ class TeamMemberTaskListView(APIView):
                 "data": serializer.data,
             }
         )
+        cache.set(cache_key, response_obj.data, timeout=86400)
+        return response_obj
 
 
 class UpdateTaskStatusView(APIView):
@@ -805,6 +823,11 @@ class SuperAdminTaskProgressView(APIView):
 
     def get(self, request):
 
+        cache_key = make_cache_key("superadmin:task_progress", request)
+        cached_data = cache.get(cache_key)
+        if cached_data:
+            return Response(cached_data)
+
         search = request.GET.get("search")
         task_name = request.GET.get("task_name")
         project_name = request.GET.get("project_name")
@@ -842,7 +865,7 @@ class SuperAdminTaskProgressView(APIView):
 
         serializer = TaskListSerializer(paginated_queryset, many=True)
 
-        return paginator.get_paginated_response(
+        response_obj = paginator.get_paginated_response(
             {
                 "isV1": True,
                 "success": True,
@@ -850,6 +873,8 @@ class SuperAdminTaskProgressView(APIView):
                 "data": serializer.data,
             }
         )
+        cache.set(cache_key, response_obj.data, timeout=86400)
+        return response_obj
 
 
 class CreateTimesheetView(APIView):
@@ -894,8 +919,6 @@ class UpdateTimesheetView(APIView):
                 status_code=status.HTTP_404_NOT_FOUND,
             )
 
-        from django.utils import timezone
-        from datetime import timedelta
         if timezone.now() - timesheet.created_at > timedelta(hours=24):
             return error_response(
                 message="Timesheet cannot be updated after 24 hours of creation.",
@@ -933,6 +956,12 @@ class AdminTimesheetListView(APIView):
     permission_classes = [IsAuthenticated, IsAdmin]
 
     def get(self, request):
+
+        cache_key = make_cache_key(f"user:{request.user.id}:timesheets", request)
+        cached_data = cache.get(cache_key)
+        if cached_data:
+            return Response(cached_data)
+
         date_filter = request.GET.get("date")
         
         queryset = Timesheet.objects.filter(
@@ -976,7 +1005,7 @@ class AdminTimesheetListView(APIView):
             many=True,
         )
 
-        return paginator.get_paginated_response(
+        response_obj = paginator.get_paginated_response(
             {
                 "isV1": True,
                 "success": True,
@@ -984,6 +1013,8 @@ class AdminTimesheetListView(APIView):
                 "data": serializer.data,
             }
         )
+        cache.set(cache_key, response_obj.data, timeout=86400)
+        return response_obj
 
 
 class SuperAdminTimesheetListView(APIView):
@@ -991,6 +1022,12 @@ class SuperAdminTimesheetListView(APIView):
     permission_classes = [IsAuthenticated, IsSuperAdmin]
 
     def get(self, request):
+
+        cache_key = make_cache_key("superadmin:timesheets", request)
+        cached_data = cache.get(cache_key)
+        if cached_data:
+            return Response(cached_data)
+
         date_filter = request.GET.get("date")
 
         queryset = Timesheet.objects.select_related(
@@ -1032,7 +1069,7 @@ class SuperAdminTimesheetListView(APIView):
             many=True,
         )
 
-        return paginator.get_paginated_response(
+        response_obj = paginator.get_paginated_response(
             {
                 "isV1": True,
                 "success": True,
@@ -1040,6 +1077,8 @@ class SuperAdminTimesheetListView(APIView):
                 "data": serializer.data,
             }
         )
+        cache.set(cache_key, response_obj.data, timeout=86400)
+        return response_obj
 
 
 class TeamMemberTimesheetListView(APIView):
@@ -1047,6 +1086,12 @@ class TeamMemberTimesheetListView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
+
+        cache_key = make_cache_key(f"user:{request.user.id}:timesheets", request)
+        cached_data = cache.get(cache_key)
+        if cached_data:
+            return Response(cached_data)
+
         date_filter = request.GET.get("date")
 
         if getattr(request.user, "can_crud_tasks", False):
@@ -1094,7 +1139,7 @@ class TeamMemberTimesheetListView(APIView):
             many=True,
         )
 
-        return paginator.get_paginated_response(
+        response_obj = paginator.get_paginated_response(
             {
                 "isV1": True,
                 "success": True,
@@ -1102,6 +1147,8 @@ class TeamMemberTimesheetListView(APIView):
                 "data": serializer.data,
             }
         )
+        cache.set(cache_key, response_obj.data, timeout=86400)
+        return response_obj
 
 
 # ─── Task Full Detail (comments + subtasks) ───
@@ -1224,8 +1271,6 @@ class TaskCommentListCreateView(APIView):
             for rid in recipient_ids
         ]
         if notifications:
-            from django.utils import timezone
-            from datetime import timedelta
             one_day_ago = timezone.now() - timedelta(days=1)
             Notification.objects.filter(recipient_id__in=recipient_ids, created_at__lt=one_day_ago).delete()
             Notification.objects.bulk_create(notifications)
@@ -1491,8 +1536,6 @@ class CreateAnnouncementView(APIView):
             for recipient in recipients
         ]
         if notifications:
-            from django.utils import timezone
-            from datetime import timedelta
             one_day_ago = timezone.now() - timedelta(days=1)
             Notification.objects.filter(recipient__in=recipients, created_at__lt=one_day_ago).delete()
             Notification.objects.bulk_create(notifications)
@@ -1763,15 +1806,23 @@ class DashboardStatsView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        from django.db.models import Q, Count
-        from django.utils import timezone
-        import datetime
-        from .roles import UserRole
-        from .models import Task, Timesheet, TaskStatus
         
         user = request.user
         role = user.role
         
+        if role == UserRole.SUPER_ADMIN.value:
+            cache_key = "superadmin:dashboard:stats"
+        else:
+            cache_key = f"user:{user.id}:dashboard:stats"
+
+        cached_data = cache.get(cache_key)
+        if cached_data:
+            return success_response(
+                message="Dashboard statistics fetched successfully (cached)",
+                data=cached_data,
+                status_code=status.HTTP_200_OK
+            )
+
         if role == UserRole.SUPER_ADMIN.value:
             tasks_qs = Task.objects.all()
             timesheets_qs = Timesheet.objects.all()
@@ -1900,28 +1951,32 @@ class DashboardStatsView(APIView):
         activities.sort(key=lambda x: x["date"], reverse=True)
         recent_activities = activities[:8]
 
+        response_data = {
+            "metrics": {
+                "totalActive": active_count,
+                "overdue": overdue_count,
+                "completed": completed_count,
+                "progress": progress
+            },
+            "statusData": [
+                item for item in [
+                    {"name": "To-do", "value": status_map.get("PENDING", 0), "originalStatus": "PENDING"},
+                    {"name": "In Progress", "value": status_map.get("IN_PROGRESS", 0), "originalStatus": "IN_PROGRESS"},
+                    {"name": "In Review", "value": status_map.get("IN_REVIEW", 0), "originalStatus": "IN_REVIEW"},
+                    {"name": "Hold", "value": status_map.get("HOLD", 0), "originalStatus": "HOLD"},
+                    {"name": "Completed", "value": status_map.get("COMPLETED", 0), "originalStatus": "COMPLETED"}
+                ] if item["value"] > 0
+            ],
+            "workloadData": workload_data,
+            "topCriticalTasks": top_critical_serialized,
+            "recentActivity": recent_activities
+        }
+
+        cache.set(cache_key, response_data, timeout=86400)
+
         return success_response(
             message="Dashboard statistics fetched successfully",
-            data={
-                "metrics": {
-                    "totalActive": active_count,
-                    "overdue": overdue_count,
-                    "completed": completed_count,
-                    "progress": progress
-                },
-                "statusData": [
-                    item for item in [
-                        {"name": "To-do", "value": status_map.get("PENDING", 0), "originalStatus": "PENDING"},
-                        {"name": "In Progress", "value": status_map.get("IN_PROGRESS", 0), "originalStatus": "IN_PROGRESS"},
-                        {"name": "In Review", "value": status_map.get("IN_REVIEW", 0), "originalStatus": "IN_REVIEW"},
-                        {"name": "Hold", "value": status_map.get("HOLD", 0), "originalStatus": "HOLD"},
-                        {"name": "Completed", "value": status_map.get("COMPLETED", 0), "originalStatus": "COMPLETED"}
-                    ] if item["value"] > 0
-                ],
-                "workloadData": workload_data,
-                "topCriticalTasks": top_critical_serialized,
-                "recentActivity": recent_activities
-            },
+            data=response_data,
             status_code=status.HTTP_200_OK
         )
 
