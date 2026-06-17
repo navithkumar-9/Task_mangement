@@ -108,13 +108,10 @@ const Tasks = () => {
         ? COLUMNS_BASE
         : COLUMNS_BASE.filter((c) => c.id !== 'COMPLETED');
 
-    const [tasks, setTasks] = useState(() =>
-        cachedUserId === user?.id ? cachedTasksList || [] : [],
-    );
+    const [tasks, setTasks] = useState(() => (cachedUserId === user?.id ? (cachedTasksList || []) : []));
+    const [sortBy, setSortBy] = useState('-id');
 
-    const [teamMembers, setTeamMembers] = useState(() =>
-        cachedUserId === user?.id ? cachedTeamMembersList || [] : [],
-    );
+    const [teamMembers, setTeamMembers] = useState(() => (cachedUserId === user?.id ? (cachedTeamMembersList || []) : []));
 
     const [showModal, setShowModal] = useState(false);
 
@@ -204,7 +201,7 @@ const Tasks = () => {
         if (canCrud) {
             fetchTeamMembers();
         }
-    }, [user, canCrud, selectedTaskFilter]);
+    }, [user, canCrud, selectedTaskFilter, sortBy]);
 
     /* ── Auto-open task from notification (URL ?taskId=X) ── */
     useEffect(() => {
@@ -228,8 +225,8 @@ const Tasks = () => {
 
         try {
             const endpoint = canCrud
-                ? `/tasks/admin/?page_size=100${selectedTaskFilter ? `&search=${encodeURIComponent(selectedTaskFilter)}` : ''}`
-                : `/tasks/my-tasks/?page_size=100${selectedTaskFilter ? `&search=${encodeURIComponent(selectedTaskFilter)}` : ''}`;
+                ? `/tasks/admin/?page_size=100&sort_by=${sortBy}${selectedTaskFilter ? `&search=${encodeURIComponent(selectedTaskFilter)}` : ''}`
+                : `/tasks/my-tasks/?page_size=100&sort_by=${sortBy}${selectedTaskFilter ? `&search=${encodeURIComponent(selectedTaskFilter)}` : ''}`;
 
             const res = await API.get(endpoint);
 
@@ -602,6 +599,23 @@ const Tasks = () => {
                                         : name}
                                 </option>
                             ))}
+                        </select>
+                        <select
+                            value={sortBy}
+                            onChange={(e) => setSortBy(e.target.value)}
+                            className="filter-select"
+                            style={{ minWidth: '160px' }}
+                        >
+                            <option value="-id">Newest Created</option>
+                            <option value="id">Oldest Created</option>
+                            <option value="due_date">Due Date (Earliest)</option>
+                            <option value="-due_date">Due Date (Latest)</option>
+                            <option value="task_name">Task Name (A-Z)</option>
+                            <option value="-task_name">Task Name (Z-A)</option>
+                            <option value="project_name">Project Name (A-Z)</option>
+                            <option value="-project_name">Project Name (Z-A)</option>
+                            <option value="priority">Priority (A-Z)</option>
+                            <option value="-priority">Priority (Z-A)</option>
                         </select>
                         {selectedTaskFilter && (
                             <button

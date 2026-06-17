@@ -29,6 +29,30 @@ const Timesheet = () => {
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const [totalCount, setTotalCount] = useState(0);
+    const [sortBy, setSortBy] = useState('-id');
+
+    const handleSort = (field) => {
+        setSortBy((prevSort) => {
+            if (prevSort === field) {
+                return `-${field}`;
+            } else if (prevSort === `-${field}`) {
+                return field;
+            } else {
+                return `-${field}`;
+            }
+        });
+        setPage(1);
+    };
+
+    const renderSortArrow = (field) => {
+        if (sortBy === field) {
+            return <span style={{ marginLeft: '4px', fontSize: '0.75rem', color: 'var(--primary)' }}>▲</span>;
+        }
+        if (sortBy === `-${field}`) {
+            return <span style={{ marginLeft: '4px', fontSize: '0.75rem', color: 'var(--primary)' }}>▼</span>;
+        }
+        return <span style={{ marginLeft: '4px', fontSize: '0.75rem', opacity: 0.35 }}>↕</span>;
+    };
 
     const [filterOptions, setFilterOptions] = useState({
         projects: [],
@@ -64,7 +88,7 @@ const Timesheet = () => {
 
     useEffect(() => {
         fetchTimesheets();
-    }, [dateFilter, taskNameFilter, projectNameFilter, employeeFilter, page]);
+    }, [dateFilter, taskNameFilter, projectNameFilter, employeeFilter, page, sortBy]);
 
     useEffect(() => {
         setPage(1);
@@ -73,7 +97,7 @@ const Timesheet = () => {
     const fetchTimesheets = async () => {
         setLoading(true);
         try {
-            let query = `page=${page}`;
+            let query = `page=${page}&sort_by=${sortBy}`;
             if (dateFilter) {
                 const localDate = new Date(dateFilter + 'T00:00:00');
                 const startUTC = localDate.toISOString();
@@ -296,15 +320,15 @@ const Timesheet = () => {
                         <table className="data-table">
                             <thead>
                                 <tr>
-                                    <th>Team Member</th>
+                                    <th onClick={() => handleSort('team_member__username')} style={{ cursor: 'pointer', userSelect: 'none' }}>Team Member {renderSortArrow('team_member__username')}</th>
                                     <th>Assigned By</th>
-                                    <th>Project / Task</th>
+                                    <th onClick={() => handleSort('task__task_name')} style={{ cursor: 'pointer', userSelect: 'none' }}>Project / Task {renderSortArrow('task__task_name')}</th>
                                     <th>Description</th>
                                     <th>Priority</th>
-                                    <th>Status</th>
+                                    <th onClick={() => handleSort('status')} style={{ cursor: 'pointer', userSelect: 'none' }}>Status {renderSortArrow('status')}</th>
                                     <th>Start Time</th>
                                     <th>End Time</th>
-                                    <th>Created At</th>
+                                    <th onClick={() => handleSort('id')} style={{ cursor: 'pointer', userSelect: 'none' }}>Created At {renderSortArrow('id')}</th>
                                     <th>Actions</th>
                                 </tr>
                             </thead>

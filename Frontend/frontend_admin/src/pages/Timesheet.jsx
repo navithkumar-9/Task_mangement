@@ -69,6 +69,30 @@ const Timesheet = () => {
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const [totalCount, setTotalCount] = useState(0);
+    const [sortBy, setSortBy] = useState('-id');
+
+    const handleSort = (field) => {
+        setSortBy((prevSort) => {
+            if (prevSort === field) {
+                return `-${field}`;
+            } else if (prevSort === `-${field}`) {
+                return field;
+            } else {
+                return `-${field}`;
+            }
+        });
+        setPage(1);
+    };
+
+    const renderSortArrow = (field) => {
+        if (sortBy === field) {
+            return <span style={{ marginLeft: '6px', fontSize: '0.75rem', color: 'var(--primary)' }}>▲</span>;
+        }
+        if (sortBy === `-${field}`) {
+            return <span style={{ marginLeft: '6px', fontSize: '0.75rem', color: 'var(--primary)' }}>▼</span>;
+        }
+        return <span style={{ marginLeft: '6px', fontSize: '0.75rem', opacity: 0.35 }}>↕</span>;
+    };
 
     const [filterOptions, setFilterOptions] = useState({
         projects: [],
@@ -108,7 +132,7 @@ const Timesheet = () => {
         if (!isAdmin) {
             fetchMyTasks();
         }
-    }, [isAdmin, dateFilter, taskNameFilter, projectNameFilter, employeeFilter, page]);
+    }, [isAdmin, dateFilter, taskNameFilter, projectNameFilter, employeeFilter, page, sortBy]);
 
     useEffect(() => {
         setPage(1);
@@ -120,7 +144,7 @@ const Timesheet = () => {
             const endpointBase = isAdmin
                 ? '/timesheets/admin/'
                 : '/timesheets/my-timesheets/';
-            let query = `page=${page}`;
+            let query = `page=${page}&sort_by=${sortBy}`;
             if (dateFilter) {
                 const localDate = new Date(dateFilter + 'T00:00:00');
                 const startUTC = localDate.toISOString();
@@ -428,11 +452,11 @@ const Timesheet = () => {
                         <table className="data-table ext-timesheet-254">
                             <thead>
                                 <tr>
-                                    <th className="ext-timesheet-255">
-                                        Team Member
+                                    <th className="ext-timesheet-255" onClick={() => handleSort('team_member__username')} style={{ cursor: 'pointer', userSelect: 'none' }}>
+                                        Team Member {renderSortArrow('team_member__username')}
                                     </th>
-                                    <th className="ext-timesheet-255">
-                                        Project / Task
+                                    <th className="ext-timesheet-255" onClick={() => handleSort('task__task_name')} style={{ cursor: 'pointer', userSelect: 'none' }}>
+                                        Project / Task {renderSortArrow('task__task_name')}
                                     </th>
                                     <th className="ext-timesheet-255">
                                         Description
@@ -440,14 +464,14 @@ const Timesheet = () => {
                                     <th className="ext-timesheet-255">
                                         Priority
                                     </th>
-                                    <th className="ext-timesheet-255">
-                                        Status
+                                    <th className="ext-timesheet-255" onClick={() => handleSort('status')} style={{ cursor: 'pointer', userSelect: 'none' }}>
+                                        Status {renderSortArrow('status')}
                                     </th>
-                                    <th className="ext-timesheet-255">
-                                        Duration
+                                    <th className="ext-timesheet-255" onClick={() => handleSort('working_hours')} style={{ cursor: 'pointer', userSelect: 'none' }}>
+                                        Duration {renderSortArrow('working_hours')}
                                     </th>
-                                    <th className="ext-timesheet-255">
-                                        Created At
+                                    <th className="ext-timesheet-255" onClick={() => handleSort('id')} style={{ cursor: 'pointer', userSelect: 'none' }}>
+                                        Created At {renderSortArrow('id')}
                                     </th>
                                     <th className="ext-timesheet-255">
                                         Actions

@@ -51,7 +51,7 @@ const NotificationPopup = () => {
     const lastAppliedRef = useRef({ x: 0, y: 0 });
     const hasDraggedRef = useRef(false);
 
-    /* ── poll unread count every 30s ── */
+    /* ── poll unread count every 24h (1 day) ── */
     useEffect(() => {
         if (!user) return;
         const fetchCount = () => {
@@ -62,7 +62,7 @@ const NotificationPopup = () => {
                 .catch(() => {});
         };
         fetchCount();
-        const interval = setInterval(fetchCount, 30000);
+        const interval = setInterval(fetchCount, 86400000);
         return () => clearInterval(interval);
     }, [user]);
 
@@ -207,13 +207,30 @@ const NotificationPopup = () => {
         document.removeEventListener('touchend', handleTouchEnd);
     };
 
-    /* ── fetch full notification list ── */
-    const fetchNotifications = async () => {
+    /* ── fetch full notification list (cached for 1 day) ── */
+    const fetchNotifications = async (force = false) => {
+        const cacheTime = localStorage.getItem('notif_cache_time');
+        const cacheData = localStorage.getItem('notif_cache_data');
+        const isExpired = !cacheTime || (Date.now() - parseInt(cacheTime, 10) > 86400000); // 1 day
+
+        if (!force && !isExpired && cacheData) {
+            try {
+                const parsed = JSON.parse(cacheData);
+                setNotifications(parsed);
+                return;
+            } catch (e) {
+                // fall through to API call
+            }
+        }
+
         setLoadingNotifs(true);
         try {
             const res = await API.get('/notifications/?page_size=30');
             const data = res.data?.data || res.data?.results?.data || [];
-            setNotifications(Array.isArray(data) ? data : []);
+            const notifsArray = Array.isArray(data) ? data : [];
+            setNotifications(notifsArray);
+            localStorage.setItem('notif_cache_data', JSON.stringify(notifsArray));
+            localStorage.setItem('notif_cache_time', Date.now().toString());
         } catch {
             setNotifications([]);
         } finally {
@@ -234,11 +251,13 @@ const NotificationPopup = () => {
             try {
                 await API.patch(`/notifications/${notif.id}/read/`);
                 setUnreadCount((c) => Math.max(0, c - 1));
-                setNotifications((prev) =>
-                    prev.map((n) =>
+                setNotifications((prev) => {
+                    const updated = prev.map((n) =>
                         n.id === notif.id ? { ...n, is_read: true } : n,
-                    ),
-                );
+                    );
+                    localStorage.setItem('notif_cache_data', JSON.stringify(updated));
+                    return updated;
+                });
             } catch {}
         }
         setIsOpen(false);
@@ -256,9 +275,11 @@ const NotificationPopup = () => {
         try {
             await API.patch('/notifications/mark-all-read/');
             setUnreadCount(0);
-            setNotifications((prev) =>
-                prev.map((n) => ({ ...n, is_read: true })),
-            );
+            setNotifications((prev) => {
+                const updated = prev.map((n) => ({ ...n, is_read: true }));
+                localStorage.setItem('notif_cache_data', JSON.stringify(updated));
+                return updated;
+            });
         } catch {}
     };
 

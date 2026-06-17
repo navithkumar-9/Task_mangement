@@ -146,6 +146,30 @@ const ManageUsers = () => {
     const [editLoading, setEditLoading] = useState(false);
     const [deletingUser, setDeletingUser] = useState(null);
     const [deleteLoading, setDeleteLoading] = useState(false);
+    const [sortBy, setSortBy] = useState('-id');
+
+    const handleSort = (field) => {
+        setSortBy((prevSort) => {
+            if (prevSort === field) {
+                return `-${field}`;
+            } else if (prevSort === `-${field}`) {
+                return field;
+            } else {
+                return `-${field}`;
+            }
+        });
+        setPage(1);
+    };
+
+    const renderSortArrow = (field) => {
+        if (sortBy === field) {
+            return <span style={{ marginLeft: '4px', fontSize: '0.75rem', color: 'var(--primary)' }}>▲</span>;
+        }
+        if (sortBy === `-${field}`) {
+            return <span style={{ marginLeft: '4px', fontSize: '0.75rem', color: 'var(--primary)' }}>▼</span>;
+        }
+        return <span style={{ marginLeft: '4px', fontSize: '0.75rem', opacity: 0.35 }}>↕</span>;
+    };
 
     // Debounce search
     const [debouncedSearch, setDebouncedSearch] = useState(search);
@@ -159,7 +183,7 @@ const ManageUsers = () => {
 
     useEffect(() => {
         fetchUsers();
-    }, [activeTab, page, debouncedSearch]);
+    }, [activeTab, page, debouncedSearch, sortBy]);
 
     const fetchUsers = async () => {
         setLoading(true);
@@ -171,6 +195,7 @@ const ManageUsers = () => {
             const params = new URLSearchParams();
             if (page > 1) params.append('page', page);
             if (debouncedSearch) params.append('search', debouncedSearch);
+            if (sortBy) params.append('sort_by', sortBy);
 
             const res = await API.get(`${endpoint}?${params.toString()}`);
 
@@ -346,9 +371,9 @@ const ManageUsers = () => {
                             <table className="data-table">
                                 <thead>
                                     <tr>
-                                        <th>ID</th>
-                                        <th>Username</th>
-                                        <th>Email</th>
+                                        <th onClick={() => handleSort('id')} style={{ cursor: 'pointer', userSelect: 'none' }}>ID {renderSortArrow('id')}</th>
+                                        <th onClick={() => handleSort('username')} style={{ cursor: 'pointer', userSelect: 'none' }}>Username {renderSortArrow('username')}</th>
+                                        <th onClick={() => handleSort('email')} style={{ cursor: 'pointer', userSelect: 'none' }}>Email {renderSortArrow('email')}</th>
                                         <th>Role</th>
                                         <th>Status</th>
                                         <th>Action</th>

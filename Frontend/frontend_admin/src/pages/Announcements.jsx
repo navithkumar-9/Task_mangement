@@ -28,6 +28,7 @@ const Announcements = () => {
     const [announcements, setAnnouncements] = useState([]);
     const [loading, setLoading] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
+    const [sortBy, setSortBy] = useState('-created_at');
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const [totalCount, setTotalCount] = useState(0);
@@ -53,12 +54,12 @@ const Announcements = () => {
 
     useEffect(() => {
         fetchAnnouncements();
-    }, [page, searchQuery]);
+    }, [page, searchQuery, sortBy]);
 
     const fetchAnnouncements = async () => {
         setLoading(true);
         try {
-            let endpoint = `/announcements/?page=${page}`;
+            let endpoint = `/announcements/?page=${page}&sort_by=${sortBy}`;
             if (searchQuery) {
                 endpoint += `&title=${encodeURIComponent(searchQuery)}`;
             }
@@ -212,19 +213,34 @@ const Announcements = () => {
 
             {/* Filter / Search Bar */}
             <div className="content-card ext-announcements-5">
-                <div className="ext-announcements-6">
-                    <svg
-                        width="18"
-                        height="18"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="var(--text-muted)"
-                        strokeWidth="2"
-                    >
-                        <circle cx="11" cy="11" r="8" />
-                        <line x1="21" y1="21" x2="16.65" y2="16.65" />
-                    </svg>
-                    <input type="text" placeholder="Search announcements by title..." className="search-input ext-announcements-7" value={searchQuery} onChange={(e) => { setSearchQuery(e.target.value); setPage(1); }} />
+                <div style={{ display: 'flex', gap: '16px', alignItems: 'center', flexWrap: 'wrap', width: '100%' }}>
+                    <div className="ext-announcements-6" style={{ flex: 1, minWidth: '250px', display: 'flex', alignItems: 'center' }}>
+                        <svg
+                            width="18"
+                            height="18"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="var(--text-muted)"
+                            strokeWidth="2"
+                        >
+                            <circle cx="11" cy="11" r="8" />
+                            <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                        </svg>
+                        <input type="text" placeholder="Search announcements by title..." className="search-input ext-announcements-7" value={searchQuery} onChange={(e) => { setSearchQuery(e.target.value); setPage(1); }} style={{ width: '100%' }} />
+                    </div>
+                    <div>
+                        <select
+                            value={sortBy}
+                            onChange={(e) => { setSortBy(e.target.value); setPage(1); }}
+                            className="filter-select"
+                            style={{ minWidth: '160px' }}
+                        >
+                            <option value="-created_at">Newest First</option>
+                            <option value="created_at">Oldest First</option>
+                            <option value="title">Title (A-Z)</option>
+                            <option value="-title">Title (Z-A)</option>
+                        </select>
+                    </div>
                 </div>
             </div>
 

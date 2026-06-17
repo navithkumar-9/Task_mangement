@@ -29,6 +29,7 @@ const CompletedTasks = () => {
     const [loading, setLoading] = useState(false);
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
+    const [sortBy, setSortBy] = useState('-id');
 
     // Filters
     const [dateFilter, setDateFilter] = useState('');
@@ -47,12 +48,35 @@ const CompletedTasks = () => {
         if (isAdmin) {
             fetchCompletedTasks();
         }
-    }, [dateFilter, projectFilter, employeeFilter, page]);
+    }, [dateFilter, projectFilter, employeeFilter, page, sortBy]);
+
+    const handleSort = (field) => {
+        setSortBy((prevSort) => {
+            if (prevSort === field) {
+                return `-${field}`;
+            } else if (prevSort === `-${field}`) {
+                return field;
+            } else {
+                return `-${field}`;
+            }
+        });
+        setPage(1);
+    };
+
+    const renderSortArrow = (field) => {
+        if (sortBy === field) {
+            return <span style={{ marginLeft: '6px', fontSize: '0.75rem', color: 'var(--primary)' }}>▲</span>;
+        }
+        if (sortBy === `-${field}`) {
+            return <span style={{ marginLeft: '6px', fontSize: '0.75rem', color: 'var(--primary)' }}>▼</span>;
+        }
+        return <span style={{ marginLeft: '6px', fontSize: '0.75rem', opacity: 0.35 }}>↕</span>;
+    };
 
     const fetchCompletedTasks = async () => {
         setLoading(true);
         try {
-            let query = `completed=true&page=${page}`;
+            let query = `completed=true&page=${page}&sort_by=${sortBy}`;
             if (dateFilter) query += `&date=${encodeURIComponent(dateFilter)}`;
             if (projectFilter) query += `&project=${encodeURIComponent(projectFilter)}`;
             if (employeeFilter) query += `&employee_name=${encodeURIComponent(employeeFilter)}`;
@@ -242,10 +266,16 @@ const CompletedTasks = () => {
                             <table className="data-table">
                                 <thead>
                                     <tr>
-                                        <th>Project / Task</th>
+                                        <th onClick={() => handleSort('task_name')} style={{ cursor: 'pointer', userSelect: 'none' }}>
+                                            Project / Task {renderSortArrow('task_name')}
+                                        </th>
                                         <th>Assignees</th>
-                                        <th>Priority</th>
-                                        <th>Completion Date</th>
+                                        <th onClick={() => handleSort('priority')} style={{ cursor: 'pointer', userSelect: 'none' }}>
+                                            Priority {renderSortArrow('priority')}
+                                        </th>
+                                        <th onClick={() => handleSort('id')} style={{ cursor: 'pointer', userSelect: 'none' }}>
+                                            Completion Date {renderSortArrow('id')}
+                                        </th>
                                         <th>Actions</th>
                                     </tr>
                                 </thead>

@@ -16,6 +16,7 @@ const Timesheet = lazy(() => import('./pages/Timesheet'));
 const Calendar = lazy(() => import('./pages/Calendar'));
 const Announcements = lazy(() => import('./pages/Announcements'));
 const CompletedTasks = lazy(() => import('./pages/CompletedTasks'));
+const Scorecards = lazy(() => import('./pages/Scorecards'));
 
 const LoadingFallback = () => (
     <div
@@ -89,6 +90,16 @@ function App() {
                             }
                         />
                         <Route
+                            path="/scorecards"
+                            element={
+                                <ProtectedRoute>
+                                    <Layout>
+                                        <Scorecards />
+                                    </Layout>
+                                </ProtectedRoute>
+                            }
+                        />
+                        <Route
                             path="/timesheets"
                             element={
                                 <ProtectedRoute>
@@ -147,6 +158,10 @@ function App() {
                                     </Layout>
                                 </ProtectedRoute>
                             }
+                        />
+                        <Route
+                            path="/scoreboard"
+                            element={<Navigate to="/scorecards" replace />}
                         />
                         <Route
                             path="*"

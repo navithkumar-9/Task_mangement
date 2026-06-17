@@ -37,6 +37,11 @@ from .views import (
     SuperAdminTeamMemberDetailView,
     TaskFilterOptionsView,
     DashboardStatsView,
+    EmployeeScorecardListView,
+    EmployeeScorecardSaveView,
+    EmployeeScorecardReviewView,
+    EmployeeScorecardDashboardView,
+    EmployeeScorecardDrilldownView,
 )
 
 urlpatterns = [
@@ -157,4 +162,10 @@ urlpatterns = [
     path("announcements/", AnnouncementListView.as_view()),
     path("announcements/<int:announcement_id>/", AnnouncementDetailView.as_view()),
     path("announcements/super-admin/", SuperAdminAnnouncementListView.as_view()),
+    # scorecards
+    path("scorecards/", EmployeeScorecardListView.as_view()),
+    path("scorecards/save/", EmployeeScorecardSaveView.as_view()),
+    path("scorecards/<int:pk>/review/", EmployeeScorecardReviewView.as_view()),
+    path("scorecards/dashboard/", EmployeeScorecardDashboardView.as_view()),
+    path("scorecards/drilldown/<int:employee_id>/", EmployeeScorecardDrilldownView.as_view()),
 ]

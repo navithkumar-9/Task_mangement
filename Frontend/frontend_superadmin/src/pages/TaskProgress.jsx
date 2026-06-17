@@ -25,6 +25,30 @@ const TaskProgress = () => {
     const [prevUrl, setPrevUrl] = useState(cachedProgressPrevUrl || null);
 
     const totalPages = Math.ceil(totalCount / ITEMS_PER_PAGE) || 1;
+    const [sortBy, setSortBy] = useState('-id');
+
+    const handleSort = (field) => {
+        setSortBy((prevSort) => {
+            if (prevSort === field) {
+                return `-${field}`;
+            } else if (prevSort === `-${field}`) {
+                return field;
+            } else {
+                return `-${field}`;
+            }
+        });
+        setPage(1);
+    };
+
+    const renderSortArrow = (field) => {
+        if (sortBy === field) {
+            return <span style={{ marginLeft: '4px', fontSize: '0.75rem', color: 'var(--primary)' }}>▲</span>;
+        }
+        if (sortBy === `-${field}`) {
+            return <span style={{ marginLeft: '4px', fontSize: '0.75rem', color: 'var(--primary)' }}>▼</span>;
+        }
+        return <span style={{ marginLeft: '4px', fontSize: '0.75rem', opacity: 0.35 }}>↕</span>;
+    };
 
     const fetchTasks = useCallback(
         async (pageNum = 1) => {
@@ -32,7 +56,7 @@ const TaskProgress = () => {
                 setLoading(true);
             }
             try {
-                let url = `/tasks/progress/?page=${pageNum}&page_size=${ITEMS_PER_PAGE}`;
+                let url = `/tasks/progress/?page=${pageNum}&page_size=${ITEMS_PER_PAGE}&sort_by=${sortBy}`;
                 if (taskFilter)
                     url += `&task_name=${encodeURIComponent(taskFilter)}`;
                 if (projectFilter)
@@ -75,7 +99,7 @@ const TaskProgress = () => {
                 setLoading(false);
             }
         },
-        [taskFilter, projectFilter, statusFilter, assigneeFilter],
+        [taskFilter, projectFilter, statusFilter, assigneeFilter, sortBy],
     );
 
     useEffect(() => {
@@ -90,7 +114,7 @@ const TaskProgress = () => {
         } else {
             fetchTasks(1);
         }
-    }, [taskFilter, projectFilter, assigneeFilter, statusFilter]);
+    }, [taskFilter, projectFilter, assigneeFilter, statusFilter, sortBy]);
 
     // Fetch unique filter values efficiently from the backend filter options endpoint
     const [filterOptions, setFilterOptions] = useState(
@@ -365,14 +389,14 @@ const TaskProgress = () => {
                             <table className="data-table">
                                 <thead>
                                     <tr>
-                                        <th>Task Name</th>
-                                        <th>Project</th>
+                                        <th onClick={() => handleSort('task_name')} style={{ cursor: 'pointer', userSelect: 'none' }}>Task Name {renderSortArrow('task_name')}</th>
+                                        <th onClick={() => handleSort('project_name')} style={{ cursor: 'pointer', userSelect: 'none' }}>Project {renderSortArrow('project_name')}</th>
                                         <th>Assigned By</th>
                                         <th>Assignee</th>
-                                        <th>Priority</th>
-                                        <th>Status</th>
-                                        <th>Created At</th>
-                                        <th>Due Date</th>
+                                        <th onClick={() => handleSort('priority')} style={{ cursor: 'pointer', userSelect: 'none' }}>Priority {renderSortArrow('priority')}</th>
+                                        <th onClick={() => handleSort('status')} style={{ cursor: 'pointer', userSelect: 'none' }}>Status {renderSortArrow('status')}</th>
+                                        <th onClick={() => handleSort('created_at')} style={{ cursor: 'pointer', userSelect: 'none' }}>Created At {renderSortArrow('created_at')}</th>
+                                        <th onClick={() => handleSort('due_date')} style={{ cursor: 'pointer', userSelect: 'none' }}>Due Date {renderSortArrow('due_date')}</th>
                                     </tr>
                                 </thead>
                                 <tbody>

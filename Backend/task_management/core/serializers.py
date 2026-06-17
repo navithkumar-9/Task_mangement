@@ -2,7 +2,7 @@ from rest_framework import serializers
 from django.contrib.auth import authenticate
 from .models import User_model
 from .roles import UserRole
-from .models import Task, Timesheet, TaskComment, SubTask, Notification, Announcement, AnnouncementAudience
+from .models import Task, Timesheet, TaskComment, SubTask, Notification, Announcement, AnnouncementAudience, EmployeeScorecard, ScorecardStatus
 from django.contrib.auth import get_user_model
 from .emails import send_task_notification_email_async
 
@@ -204,11 +204,15 @@ class TaskCreateSerializer(serializers.ModelSerializer):
 
         task = Task.objects.create(assigned_by=request.user, **validated_data)
 
-        assignees = User.objects.filter(id__in=assignee_ids)
-        task.assignees.set(assignees)
+        # Retrieve selected assignees and include the creator by default if not already added
+        assignees_list = list(User.objects.filter(id__in=assignee_ids))
+        if request.user not in assignees_list:
+            assignees_list.append(request.user)
+
+        task.assignees.set(assignees_list)
 
         # Send email notifications to assignees asynchronously
-        send_task_notification_email_async(task, request.user, assignees)
+        send_task_notification_email_async(task, request.user, assignees_list)
 
         return task
 
@@ -521,5 +525,66 @@ class AnnouncementListSerializer(serializers.ModelSerializer):
             "profile_picture": getattr(obj.sender, "profile_picture", "") or "",
             "role": obj.sender.role,
         }
+
+
+class EmployeeScorecardSerializer(serializers.ModelSerializer):
+    employee = serializers.SerializerMethodField()
+
+    class Meta:
+        model = EmployeeScorecard
+        fields = [
+            "id",
+            "employee",
+            "month",
+            "task_completion_rate",
+            "working_hours",
+            "quality_score",
+            "attendance_score",
+            "overall_score",
+            "status",
+            "admin_comments",
+            "superadmin_comments",
+            "created_at",
+            "updated_at",
+        ]
+
+    def get_employee(self, obj):
+        return {
+            "id": obj.employee.id,
+            "username": obj.employee.username,
+            "name": getattr(obj.employee, "name", "") or "",
+            "profile_picture": getattr(obj.employee, "profile_picture", "") or "",
+        }
+
+
+class EmployeeScorecardCreateUpdateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = EmployeeScorecard
+        fields = [
+            "employee",
+            "month",
+            "task_completion_rate",
+            "working_hours",
+            "quality_score",
+            "attendance_score",
+            "status",
+            "admin_comments",
+            "superadmin_comments",
+        ]
+        extra_kwargs = {
+            "task_completion_rate": {"required": False},
+            "working_hours": {"required": False},
+        }
+
+    def validate_quality_score(self, value):
+        if value < 0 or value > 5:
+            raise serializers.ValidationError("Quality score must be between 0 and 5.")
+        return value
+
+    def validate_attendance_score(self, value):
+        if value < 0 or value > 5:
+            raise serializers.ValidationError("Attendance score must be between 0 and 5.")
+        return value
+
 
 
