@@ -2,8 +2,8 @@ import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import API from '../api/axios';
 import { useAuth } from '../context/AuthContext';
+import { getAvatarStyle } from '../utils/avatar';
 
-/* ── helpers ── */
 const timeAgo = (dateStr) => {
     const now = new Date();
     const then = new Date(dateStr);
@@ -13,23 +13,6 @@ const timeAgo = (dateStr) => {
     if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
     if (diff < 604800) return `${Math.floor(diff / 86400)}d ago`;
     return then.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-};
-
-const getAvatarStyle = (username) => {
-    const colors = [
-        { bg: 'linear-gradient(135deg, #6366f1, #4f46e5)', text: '#fff' },
-        { bg: 'linear-gradient(135deg, #10B981, #059669)', text: '#fff' },
-        { bg: 'linear-gradient(135deg, #f43f5e, #e11d48)', text: '#fff' },
-        { bg: 'linear-gradient(135deg, #8B5CF6, #7c3aed)', text: '#fff' },
-        { bg: 'linear-gradient(135deg, #f59e0b, #d97706)', text: '#fff' },
-        { bg: 'linear-gradient(135deg, #06B6D4, #0891B2)', text: '#fff' },
-        { bg: 'linear-gradient(135deg, #3B82F6, #2563eb)', text: '#fff' },
-    ];
-    let hash = 0;
-    const name = username || '';
-    for (let i = 0; i < name.length; i++)
-        hash = name.charCodeAt(i) + ((hash << 5) - hash);
-    return colors[Math.abs(hash) % colors.length];
 };
 
 const NotificationPopup = () => {
@@ -51,7 +34,7 @@ const NotificationPopup = () => {
     const lastAppliedRef = useRef({ x: 0, y: 0 });
     const hasDraggedRef = useRef(false);
 
-    /* ── poll unread count every 24h (1 day) ── */
+    /* ── poll unread count every 60s (1 minute) ── */
     useEffect(() => {
         if (!user) return;
         const fetchCount = () => {
@@ -62,7 +45,7 @@ const NotificationPopup = () => {
                 .catch(() => {});
         };
         fetchCount();
-        const interval = setInterval(fetchCount, 86400000);
+        const interval = setInterval(fetchCount, 60000);
         return () => clearInterval(interval);
     }, [user]);
 
@@ -207,32 +190,51 @@ const NotificationPopup = () => {
         document.removeEventListener('touchend', handleTouchEnd);
     };
 
-    /* ── fetch full notification list (cached for 1 day) ── */
-    const fetchNotifications = async (force = false) => {
-        const cacheTime = localStorage.getItem('notif_cache_time');
-        const cacheData = localStorage.getItem('notif_cache_data');
-        const isExpired = !cacheTime || (Date.now() - parseInt(cacheTime, 10) > 86400000); // 1 day
+    const saveNotifsToCache = (notifs) => {
+        try {
+            const cleaned = notifs.map(n => {
+                if (n.sender && n.sender.profile_picture && n.sender.profile_picture.length > 1000) {
+                    const { profile_picture, ...restSender } = n.sender;
+                    return { ...n, sender: restSender };
+                }
+                return n;
+            });
+            localStorage.setItem('notif_cache_data', JSON.stringify(cleaned));
+        } catch (err) {
+            console.warn('Failed to save notifications to cache:', err);
+        }
+    };
 
-        if (!force && !isExpired && cacheData) {
+    /* ── fetch full notification list (using Stale-While-Revalidate pattern) ── */
+    const fetchNotifications = async () => {
+        const cacheData = localStorage.getItem('notif_cache_data');
+
+        // 1. Show cached data immediately if available to prevent layout flicker
+        if (cacheData) {
             try {
                 const parsed = JSON.parse(cacheData);
                 setNotifications(parsed);
-                return;
             } catch (e) {
-                // fall through to API call
+                // ignore invalid cache
             }
         }
 
-        setLoadingNotifs(true);
+        // 2. Only show loading spinner if we have no cached data at all
+        if (!cacheData) {
+            setLoadingNotifs(true);
+        }
+
+        // 3. Always fetch latest notifications from backend in background
         try {
             const res = await API.get('/notifications/?page_size=30');
             const data = res.data?.data || res.data?.results?.data || [];
             const notifsArray = Array.isArray(data) ? data : [];
             setNotifications(notifsArray);
-            localStorage.setItem('notif_cache_data', JSON.stringify(notifsArray));
-            localStorage.setItem('notif_cache_time', Date.now().toString());
+            saveNotifsToCache(notifsArray);
         } catch {
-            setNotifications([]);
+            if (!cacheData) {
+                setNotifications([]);
+            }
         } finally {
             setLoadingNotifs(false);
         }
@@ -255,7 +257,7 @@ const NotificationPopup = () => {
                     const updated = prev.map((n) =>
                         n.id === notif.id ? { ...n, is_read: true } : n,
                     );
-                    localStorage.setItem('notif_cache_data', JSON.stringify(updated));
+                    saveNotifsToCache(updated);
                     return updated;
                 });
             } catch {}
@@ -277,7 +279,7 @@ const NotificationPopup = () => {
             setUnreadCount(0);
             setNotifications((prev) => {
                 const updated = prev.map((n) => ({ ...n, is_read: true }));
-                localStorage.setItem('notif_cache_data', JSON.stringify(updated));
+                saveNotifsToCache(updated);
                 return updated;
             });
         } catch {}
@@ -458,6 +460,11 @@ const NotificationPopup = () => {
                                                         </>
                                                     )}
                                                 </p>
+                                                {notif.task_info && notif.comment_content && (
+                                                    <span className="notif-float-card-comment-preview">
+                                                        "{notif.comment_content}"
+                                                    </span>
+                                                )}
                                                 <div className="notif-float-card-footer">
                                                     {projectName && (
                                                         <span className="notif-float-card-project">

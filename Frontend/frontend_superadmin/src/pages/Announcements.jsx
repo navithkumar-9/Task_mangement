@@ -1,24 +1,26 @@
 import { useEffect, useState } from 'react';
 import API from '../api/axios';
 import { useAuth } from '../context/AuthContext';
+import { getAvatarStyle } from '../utils/avatar';
 
-const getAvatarStyle = (username) => {
-    const colors = [
-        { bg: 'linear-gradient(135deg, #3B82F6, #1D4ED8)', text: '#ffffff' }, // Blue
-        { bg: 'linear-gradient(135deg, #10B981, #047857)', text: '#ffffff' }, // Emerald
-        { bg: 'linear-gradient(135deg, #EC4899, #BE185D)', text: '#ffffff' }, // Pink
-        { bg: 'linear-gradient(135deg, #8B5CF6, #6D28D9)', text: '#ffffff' }, // Violet
-        { bg: 'linear-gradient(135deg, #F59E0B, #B45309)', text: '#ffffff' }, // Amber
-        { bg: 'linear-gradient(135deg, #06B6D4, #0891B2)', text: '#ffffff' }, // Cyan
-        { bg: 'linear-gradient(135deg, #EF4444, #B91C1C)', text: '#ffffff' }, // Rose
-    ];
-    let hash = 0;
-    const name = username || '';
-    for (let i = 0; i < name.length; i++) {
-        hash = name.charCodeAt(i) + ((hash << 5) - hash);
+const getCategoryInfo = (title = '', message = '') => {
+    const text = (title + ' ' + message).toLowerCase();
+    if (text.includes('urgent') || text.includes('alert') || text.includes('warning') || text.includes('maintenance') || text.includes('throttling') || text.includes('security')) {
+        return { label: 'Alert', accent: 'accent-alert', color: '#ef4444', bg: '#fef2f2' };
     }
-    const index = Math.abs(hash) % colors.length;
-    return colors[index];
+    if (text.includes('scorecard') || text.includes('performance') || text.includes('evaluation') || text.includes('review') || text.includes('score')) {
+        return { label: 'Scorecard', accent: 'accent-scorecard', color: '#10b981', bg: '#f0fdf4' };
+    }
+    if (text.includes('new') || text.includes('feature') || text.includes('release') || text.includes('update') || text.includes('launch') || text.includes('optimization')) {
+        return { label: 'Feature', accent: 'accent-feature', color: '#6366f1', bg: '#e0e7ff' };
+    }
+    return { label: 'General', accent: 'accent-general', color: '#64748b', bg: '#f8fafc' };
+};
+
+const getReadTime = (message = '') => {
+    const words = message.trim().split(/\s+/).length;
+    const minutes = Math.ceil(words / 200);
+    return `${minutes} min read`;
 };
 
 const Announcements = () => {
@@ -29,6 +31,7 @@ const Announcements = () => {
     const [searchQuery, setSearchQuery] = useState('');
     const [sortBy, setSortBy] = useState('-created_at');
     const [page, setPage] = useState(1);
+    const [pageSize, setPageSize] = useState(5);
     const [totalPages, setTotalPages] = useState(1);
     const [totalCount, setTotalCount] = useState(0);
 
@@ -41,7 +44,7 @@ const Announcements = () => {
     const [form, setForm] = useState({
         title: '',
         message: '',
-        audience: 'ALL', // Super Admin default
+        audience: 'ALL',
     });
     const [formError, setFormError] = useState('');
     const [toast, setToast] = useState(null);
@@ -53,19 +56,19 @@ const Announcements = () => {
 
     useEffect(() => {
         fetchAnnouncements();
-    }, [page, searchQuery, sortBy]);
+    }, [page, searchQuery, sortBy, pageSize]);
 
     const fetchAnnouncements = async () => {
         setLoading(true);
         try {
-            let endpoint = `/announcements/super-admin/?page=${page}&sort_by=${sortBy}`;
+            let endpoint = `/announcements/super-admin/?page=${page}&sort_by=${sortBy}&page_size=${pageSize}`;
             if (searchQuery) {
                 endpoint += `&title=${encodeURIComponent(searchQuery)}`;
             }
             const res = await API.get(endpoint);
             const count = res.data.count || 0;
             setTotalCount(count);
-            setTotalPages(Math.ceil(count / 10) || 1);
+            setTotalPages(Math.ceil(count / pageSize) || 1);
 
             let items = [];
             if (res.data.results && res.data.results.data) {
@@ -104,7 +107,9 @@ const Announcements = () => {
                 fetchAnnouncements();
             }
         } catch (err) {
-            setFormError(err.response?.data?.message || 'Failed to post announcement');
+            setFormError(
+                err.response?.data?.message || 'Failed to post announcement',
+            );
         }
     };
 
@@ -116,7 +121,10 @@ const Announcements = () => {
                 title: form.title,
                 message: form.message,
             };
-            const res = await API.put(`/announcements/${selectedAnnouncement.id}/`, payload);
+            const res = await API.put(
+                `/announcements/${selectedAnnouncement.id}/`,
+                payload,
+            );
             if (res.data.success) {
                 showToast('Announcement updated successfully!', 'success');
                 setShowEditModal(false);
@@ -125,12 +133,19 @@ const Announcements = () => {
                 fetchAnnouncements();
             }
         } catch (err) {
-            setFormError(err.response?.data?.message || 'Failed to update announcement');
+            setFormError(
+                err.response?.data?.message || 'Failed to update announcement',
+            );
         }
     };
 
     const handleDelete = async (id) => {
-        if (!window.confirm('Are you sure you want to delete this announcement?')) return;
+        if (
+            !window.confirm(
+                'Are you sure you want to delete this announcement?',
+            )
+        )
+            return;
         try {
             await API.delete(`/announcements/${id}/`);
             showToast('Announcement deleted successfully!', 'success');
@@ -154,34 +169,55 @@ const Announcements = () => {
     const formatDateTime = (dateStr) => {
         if (!dateStr) return '';
         const d = new Date(dateStr);
-        return d.toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' });
+        return d.toLocaleString([], {
+            dateStyle: 'medium',
+            timeStyle: 'short',
+        });
     };
 
     const getAudienceBadgeStyle = (aud) => {
         switch (aud) {
             case 'ADMINS_ONLY':
-                return { bg: 'rgba(123, 104, 238, 0.1)', color: '#7B68EE', label: 'Admins Only' };
+                return {
+                    bg: 'rgba(123, 104, 238, 0.1)',
+                    color: '#7B68EE',
+                    label: 'Admins Only',
+                };
             case 'ALL':
-                return { bg: 'rgba(59, 130, 246, 0.1)', color: '#3B82F6', label: 'All Users' };
+                return {
+                    bg: 'rgba(59, 130, 246, 0.1)',
+                    color: '#3B82F6',
+                    label: 'All Users',
+                };
             case 'MY_TEAM':
-                return { bg: 'rgba(16, 185, 129, 0.1)', color: '#10B981', label: 'Team Only' };
+                return {
+                    bg: 'rgba(16, 185, 129, 0.1)',
+                    color: '#10B981',
+                    label: 'Team Only',
+                };
             default:
-                return { bg: 'rgba(100, 116, 139, 0.1)', color: '#64748B', label: aud };
+                return {
+                    bg: 'rgba(100, 116, 139, 0.1)',
+                    color: '#64748B',
+                    label: aud,
+                };
         }
     };
 
     return (
-        <div className="page ext-announcements-2">
+        <div className="announcements-container">
             {toast && (
                 <div className={`toast-notification toast-${toast.type}`}>
                     {toast.message}
                 </div>
             )}
 
-            <div className="page-header ext-announcements-3">
+            <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '28px' }}>
                 <div>
-                    <h1 className="page-title">Announcements</h1>
-                    <p className="page-subtitle">Broadcasting messages and managing all announcements across the system</p>
+                    <h1 className="page-title" style={{ fontSize: '1.8rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>Announcements</h1>
+                    <p className="page-subtitle" style={{ fontSize: '0.9rem', color: '#64748b', marginTop: '4px' }}>
+                        Broadcasting messages and managing all announcements across the system
+                    </p>
                 </div>
                 <button
                     className="btn-primary"
@@ -190,6 +226,7 @@ const Announcements = () => {
                         setFormError('');
                         setShowCreateModal(true);
                     }}
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '10px 18px', borderRadius: '10px', fontWeight: 600, fontSize: '0.88rem' }}
                 >
                     <svg
                         width="16"
@@ -208,101 +245,147 @@ const Announcements = () => {
                 </button>
             </div>
 
-            {/* Filter / Search Bar */}
-            <div className="content-card ext-announcements-4">
-                <div style={{ display: 'flex', gap: '16px', alignItems: 'center', flexWrap: 'wrap', width: '100%' }}>
-                    <div className="ext-announcements-5" style={{ flex: 1, minWidth: '250px', display: 'flex', alignItems: 'center' }}>
+            {/* Filter & Search Bar */}
+            <div className="announcement-control-board">
+                <div className="control-board-row">
+                    <div className="control-board-search-wrapper">
                         <svg
+                            className="control-board-search-icon"
                             width="18"
                             height="18"
                             viewBox="0 0 24 24"
                             fill="none"
-                            stroke="var(--text-muted)"
+                            stroke="currentColor"
                             strokeWidth="2"
                         >
                             <circle cx="11" cy="11" r="8" />
                             <line x1="21" y1="21" x2="16.65" y2="16.65" />
                         </svg>
-                        <input type="text" placeholder="Search all announcements by title..." className="search-input ext-announcements-6" value={searchQuery} onChange={(e) => { setSearchQuery(e.target.value); setPage(1); }} style={{ width: '100%' }} />
+                        <input
+                            type="text"
+                            placeholder="Search all announcements by title..."
+                            className="control-board-search-input"
+                            value={searchQuery}
+                            onChange={(e) => {
+                                  setSearchQuery(e.target.value);
+                                  setPage(1);
+                            }}
+                        />
                     </div>
-                    <div>
+                    <div className="control-board-select-wrapper">
                         <select
                             value={sortBy}
-                            onChange={(e) => { setSortBy(e.target.value); setPage(1); }}
-                            className="filter-select"
-                            style={{ minWidth: '160px' }}
+                            onChange={(e) => {
+                                setSortBy(e.target.value);
+                                setPage(1);
+                            }}
+                            className="control-board-select"
                         >
                             <option value="-created_at">Newest First</option>
                             <option value="created_at">Oldest First</option>
                             <option value="title">Title (A-Z)</option>
                             <option value="-title">Title (Z-A)</option>
                         </select>
+                        <select
+                            value={pageSize}
+                            onChange={(e) => {
+                                setPageSize(Number(e.target.value));
+                                setPage(1);
+                            }}
+                            className="control-board-select"
+                            style={{ minWidth: '120px' }}
+                        >
+                            <option value={5}>5 per page</option>
+                            <option value={10}>10 per page</option>
+                            <option value={20}>20 per page</option>
+                            <option value={50}>50 per page</option>
+                        </select>
                     </div>
                 </div>
             </div>
 
             {loading ? (
-                <div className="page-loader">
-                    <div className="page-loader-spinner"></div>
-                    <div className="page-loader-text">Loading announcements...</div>
+                <div className="page-loader" style={{ padding: '60px 0', textAlign: 'center' }}>
+                    <div className="page-loader-spinner" style={{ width: '40px', height: '40px', border: '3px solid #e2e8f0', borderTopColor: '#6366f1', borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '0 auto 16px auto' }}></div>
+                    <div className="page-loader-text" style={{ fontSize: '0.9rem', color: '#64748b' }}>
+                        Loading announcements...
+                    </div>
                 </div>
             ) : announcements.length === 0 ? (
-                <div className="empty-state ext-announcements-7">
-                    <p className="ext-announcements-8">No announcements found</p>
+                <div className="modern-announcement-empty">
+                    <svg
+                        className="modern-announcement-empty-icon"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.5"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                    >
+                        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+                        <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+                    </svg>
+                    <h3 className="modern-announcement-empty-title">No announcements found</h3>
+                    <p className="modern-announcement-empty-desc">Check back later for updates and broadcasts.</p>
                 </div>
             ) : (
-                <div className="ext-announcements-9">
+                <div className="announcements-grid">
                     {announcements.map((ann) => {
                         const audBadge = getAudienceBadgeStyle(ann.audience);
                         const avStyle = getAvatarStyle(ann.sender?.username);
-                        // Super admin can only edit/delete their own announcements
                         const isOwn = user?.username === ann.sender?.username || user?.id === ann.sender?.id;
+                        const cat = getCategoryInfo(ann.title, ann.message);
+                        const readTime = getReadTime(ann.message);
 
                         return (
-                            <div key={ann.id} className="content-card ext-announcements-10">
-                                <div className="ext-announcements-11">
-                                    <div className="ext-announcements-12">
+                            <div
+                                key={ann.id}
+                                className={`modern-announcement-card ${cat.accent}`}
+                            >
+                                <div className="announcement-card-header">
+                                    <div className="announcement-sender-info">
                                         {ann.sender?.profile_picture ? (
-                                            <img src={ann.sender.profile_picture} alt="Avatar" className="ext-announcements-13"/>
+                                            <img
+                                                src={ann.sender.profile_picture}
+                                                alt="Avatar"
+                                                className="announcement-avatar"
+                                            />
                                         ) : (
                                             <div
+                                                className="announcement-avatar-fallback"
                                                 style={{
                                                     background: avStyle.bg,
                                                     color: avStyle.text,
-                                                    width: '40px',
-                                                    height: '40px',
-                                                    borderRadius: '50%',
-                                                    fontSize: '1rem',
-                                                    fontWeight: '700',
-                                                    display: 'flex',
-                                                    alignItems: 'center',
-                                                    justifyContent: 'center',
                                                 }}
                                             >
                                                 {ann.sender?.username?.charAt(0).toUpperCase()}
                                             </div>
                                         )}
-                                        <div>
-                                            <div className="ext-announcements-14">
-                                                <span className="ext-announcements-15">
-                                                    {ann.sender?.name || ann.sender?.username}
-                                                </span>
-                                                <span className="ext-announcements-16">
+                                        <div className="announcement-sender-meta">
+                                            <div className="announcement-sender-name">
+                                                {ann.sender?.name || ann.sender?.username}
+                                                <span className="announcement-sender-role-badge" style={{ marginLeft: '8px' }}>
                                                     {ann.sender?.role === 'SUPER_ADMIN' ? 'Super Admin' : 'Admin'}
                                                 </span>
                                             </div>
-                                            <div className="ext-announcements-17">
+                                            <div className="announcement-post-time">
                                                 {formatDateTime(ann.created_at)}
                                             </div>
                                         </div>
                                     </div>
-                                    <div className="ext-announcements-14">
+                                    <div className="announcement-meta-badges">
                                         <span
+                                            className="announcement-badge-pill"
                                             style={{
-                                                fontSize: '0.7rem',
-                                                fontWeight: 600,
-                                                padding: '4px 8px',
-                                                borderRadius: '6px',
+                                                backgroundColor: cat.bg,
+                                                color: cat.color,
+                                            }}
+                                        >
+                                            {cat.label}
+                                        </span>
+                                        <span
+                                            className="announcement-badge-pill"
+                                            style={{
                                                 backgroundColor: audBadge.bg,
                                                 color: audBadge.color,
                                             }}
@@ -310,47 +393,41 @@ const Announcements = () => {
                                             {audBadge.label}
                                         </span>
                                         {isOwn && (
-                                            <div className="ext-announcements-18">
+                                            <div className="announcement-actions" style={{ marginLeft: '8px' }}>
                                                 <button
+                                                    className="announcement-action-btn"
                                                     onClick={() => openEditModal(ann)}
-                                                    style={{
-                                                        background: 'transparent',
-                                                        border: 'none',
-                                                        padding: '6px',
-                                                        borderRadius: '6px',
-                                                        cursor: 'pointer',
-                                                        color: 'var(--text-muted)',
-                                                        display: 'flex',
-                                                        alignItems: 'center',
-                                                        justifyContent: 'center',
-                                                    }}
                                                     title="Edit"
-                                                    onMouseEnter={(e) => e.currentTarget.style.background = 'var(--bg-body)'}
-                                                    onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
                                                 >
-                                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                    <svg
+                                                        width="16"
+                                                        height="16"
+                                                        viewBox="0 0 24 24"
+                                                        fill="none"
+                                                        stroke="currentColor"
+                                                        strokeWidth="2"
+                                                        strokeLinecap="round"
+                                                        strokeLinejoin="round"
+                                                    >
                                                         <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
                                                         <path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
                                                     </svg>
                                                 </button>
                                                 <button
+                                                    className="announcement-action-btn delete-btn"
                                                     onClick={() => handleDelete(ann.id)}
-                                                    style={{
-                                                        background: 'transparent',
-                                                        border: 'none',
-                                                        padding: '6px',
-                                                        borderRadius: '6px',
-                                                        cursor: 'pointer',
-                                                        color: '#ff6b6b',
-                                                        display: 'flex',
-                                                        alignItems: 'center',
-                                                        justifyContent: 'center',
-                                                    }}
                                                     title="Delete"
-                                                    onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255, 107, 107, 0.08)'}
-                                                    onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
                                                 >
-                                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                    <svg
+                                                        width="16"
+                                                        height="16"
+                                                        viewBox="0 0 24 24"
+                                                        fill="none"
+                                                        stroke="currentColor"
+                                                        strokeWidth="2"
+                                                        strokeLinecap="round"
+                                                        strokeLinejoin="round"
+                                                    >
                                                         <polyline points="3 6 5 6 21 6" />
                                                         <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
                                                     </svg>
@@ -359,33 +436,61 @@ const Announcements = () => {
                                         )}
                                     </div>
                                 </div>
-                                <h2 className="ext-announcements-21">
-                                    {ann.title}
-                                </h2>
-                                <p className="ext-announcements-22">
-                                    {ann.message}
-                                </p>
+
+                                <div className="announcement-card-content">
+                                    <h2 className="announcement-card-title">{ann.title}</h2>
+                                    <p className="announcement-card-message">{ann.message}</p>
+                                </div>
+
+                                <div className="announcement-card-footer">
+                                    <span className="announcement-read-time">
+                                        <svg
+                                            width="12"
+                                            height="12"
+                                            viewBox="0 0 24 24"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            strokeWidth="2.5"
+                                        >
+                                            <circle cx="12" cy="12" r="10" />
+                                            <polyline points="12 6 12 12 16 14" />
+                                        </svg>
+                                        {readTime}
+                                    </span>
+                                </div>
                             </div>
                         );
                     })}
 
                     {/* Pagination */}
-                    {totalPages > 1 && (
-                        <div className="ext-announcements-23">
+                    {totalCount > 0 && (
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '24px' }}>
                             <button
                                 className="btn-primary"
-                                style={{ padding: '8px 16px', background: page === 1 ? 'var(--border-color)' : 'var(--primary)' }}
+                                style={{
+                                    padding: '8px 16px',
+                                    borderRadius: '8px',
+                                    background: page === 1 ? '#cbd5e1' : '#4f46e5',
+                                    color: page === 1 ? '#64748b' : '#fff',
+                                    cursor: page === 1 ? 'not-allowed' : 'pointer'
+                                }}
                                 onClick={() => setPage((p) => Math.max(p - 1, 1))}
                                 disabled={page === 1}
                             >
                                 Previous
                             </button>
-                            <span className="ext-announcements-24">
+                            <span style={{ fontWeight: 600, color: '#64748b', fontSize: '0.85rem' }}>
                                 Page {page} of {totalPages}
                             </span>
                             <button
                                 className="btn-primary"
-                                style={{ padding: '8px 16px', background: page === totalPages ? 'var(--border-color)' : 'var(--primary)' }}
+                                style={{
+                                    padding: '8px 16px',
+                                    borderRadius: '8px',
+                                    background: page === totalPages ? '#cbd5e1' : '#4f46e5',
+                                    color: page === totalPages ? '#64748b' : '#fff',
+                                    cursor: page === totalPages ? 'not-allowed' : 'pointer'
+                                }}
                                 onClick={() => setPage((p) => Math.min(p + 1, totalPages))}
                                 disabled={page === totalPages}
                             >
@@ -398,86 +503,117 @@ const Announcements = () => {
 
             {/* Create Announcement Modal */}
             {showCreateModal && (
-                <div className="ext-announcements-25" onClick={() => setShowCreateModal(false)} >
+                <div
+                    className="modern-announcement-modal"
+                    onClick={() => setShowCreateModal(false)}
+                >
                     <div
+                        className="modern-announcement-modal-card"
                         onClick={(e) => e.stopPropagation()}
-                        style={{
-                            background: '#ffffff',
-                            width: '540px',
-                            maxWidth: '90vw',
-                            borderRadius: '16px',
-                            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
-                            animation: 'modalSlideIn 0.25s ease',
-                        }}
                     >
-                        <div className="ext-announcements-27">
+                        <div className="modern-announcement-modal-header">
                             <button
+                                className="modern-announcement-modal-close-btn"
                                 onClick={() => setShowCreateModal(false)}
-                                style={{
-                                    position: 'absolute',
-                                    top: '16px',
-                                    right: '16px',
-                                    background: 'rgba(255,255,255,0.2)',
-                                    border: 'none',
-                                    borderRadius: '50%',
-                                    width: '32px',
-                                    height: '32px',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    cursor: 'pointer',
-                                    color: '#fff',
-                                }}
                             >
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                <svg
+                                    width="16"
+                                    height="16"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    strokeWidth="2.5"
+                                >
                                     <line x1="18" y1="6" x2="6" y2="18" />
                                     <line x1="6" y1="6" x2="18" y2="18" />
                                 </svg>
                             </button>
-                            <h2 className="ext-announcements-29">Post Announcement</h2>
+                            <h2 className="modern-announcement-modal-title">
+                                Post Announcement
+                            </h2>
                         </div>
-                        <form onSubmit={handleCreateSubmit} className="ext-announcements-30">
+                        <form
+                            onSubmit={handleCreateSubmit}
+                            className="modern-announcement-modal-body"
+                        >
                             {formError && (
-                                <div className="ext-announcements-31">
+                                <div style={{ color: '#ef4444', background: '#fef2f2', padding: '10px 14px', borderRadius: '8px', marginBottom: '16px', fontSize: '0.88rem', fontWeight: 500, border: '1px solid rgba(239, 68, 68, 0.2)' }}>
                                     {formError}
                                 </div>
                             )}
 
-                            <div className="form-group">
-                                <label className="form-label">Title</label>
+                            <div className="form-group" style={{ marginBottom: '20px' }}>
+                                <label className="form-label" style={{ display: 'block', fontSize: '0.88rem', fontWeight: 600, color: '#334155', marginBottom: '6px' }}>Title</label>
                                 <input
                                     type="text"
                                     className="form-input"
                                     placeholder="Enter announcement title..."
                                     value={form.title}
-                                    onChange={(e) => setForm({ ...form, title: e.target.value })}
+                                    onChange={(e) =>
+                                        setForm({
+                                            ...form,
+                                            title: e.target.value,
+                                        })
+                                    }
+                                    style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1.5px solid #cbd5e1' }}
                                     required
                                 />
                             </div>
 
-                            <div className="form-group">
-                                <label className="form-label">Message</label>
-                                <textarea className="form-input form-textarea ext-announcements-32" placeholder="Enter the detailed message..." value={form.message} onChange={(e) => setForm({ ...form, message: e.target.value })} required />
+                            <div className="form-group" style={{ marginBottom: '20px' }}>
+                                <label className="form-label" style={{ display: 'block', fontSize: '0.88rem', fontWeight: 600, color: '#334155', marginBottom: '6px' }}>Message</label>
+                                <textarea
+                                    className="form-input form-textarea"
+                                    placeholder="Enter the detailed message..."
+                                    value={form.message}
+                                    onChange={(e) =>
+                                        setForm({
+                                            ...form,
+                                            message: e.target.value,
+                                        })
+                                    }
+                                    style={{ width: '100%', minHeight: '120px', padding: '10px 14px', borderRadius: '8px', border: '1.5px solid #cbd5e1', resize: 'vertical' }}
+                                    required
+                                />
                             </div>
 
-                            <div className="form-group">
-                                <label className="form-label">Audience</label>
+                            <div className="form-group" style={{ marginBottom: '24px' }}>
+                                <label className="form-label" style={{ display: 'block', fontSize: '0.88rem', fontWeight: 600, color: '#334155', marginBottom: '6px' }}>Audience</label>
                                 <select
                                     className="form-input"
                                     value={form.audience}
-                                    onChange={(e) => setForm({ ...form, audience: e.target.value })}
+                                    onChange={(e) =>
+                                        setForm({
+                                            ...form,
+                                            audience: e.target.value,
+                                        })
+                                    }
+                                    style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1.5px solid #cbd5e1' }}
                                     required
                                 >
-                                    <option value="ALL">All Users (Admins + Team Members)</option>
-                                    <option value="ADMINS_ONLY">Admins Only</option>
+                                    <option value="ALL">
+                                        All Users (Admins + Team Members)
+                                    </option>
+                                    <option value="ADMINS_ONLY">
+                                        Admins Only
+                                    </option>
                                 </select>
                             </div>
 
-                            <div className="ext-announcements-33">
-                                <button type="button" className="btn-cancel-white" onClick={() => setShowCreateModal(false)}>
+                            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
+                                <button
+                                    type="button"
+                                    className="btn-cancel-white"
+                                    onClick={() => setShowCreateModal(false)}
+                                    style={{ padding: '10px 20px', borderRadius: '8px', border: '1px solid #cbd5e1', background: '#fff', color: '#475569', fontWeight: 600, cursor: 'pointer' }}
+                                >
                                     Cancel
                                 </button>
-                                <button type="submit" className="btn-primary ext-announcements-35">
+                                <button
+                                    type="submit"
+                                    className="btn-primary"
+                                    style={{ padding: '10px 20px', borderRadius: '8px', background: '#4f46e5', color: '#fff', fontWeight: 600, border: 'none', cursor: 'pointer' }}
+                                >
                                     Publish
                                 </button>
                             </div>
@@ -488,73 +624,94 @@ const Announcements = () => {
 
             {/* Edit Announcement Modal */}
             {showEditModal && (
-                <div className="ext-announcements-25" onClick={() => setShowEditModal(false)} >
+                <div
+                    className="modern-announcement-modal"
+                    onClick={() => setShowEditModal(false)}
+                >
                     <div
+                        className="modern-announcement-modal-card"
                         onClick={(e) => e.stopPropagation()}
-                        style={{
-                            background: '#ffffff',
-                            width: '540px',
-                            maxWidth: '90vw',
-                            borderRadius: '16px',
-                            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
-                            animation: 'modalSlideIn 0.25s ease',
-                        }}
                     >
-                        <div className="ext-announcements-27">
+                        <div className="modern-announcement-modal-header">
                             <button
+                                className="modern-announcement-modal-close-btn"
                                 onClick={() => setShowEditModal(false)}
-                                style={{
-                                    position: 'absolute',
-                                    top: '16px',
-                                    right: '16px',
-                                    background: 'rgba(255,255,255,0.2)',
-                                    border: 'none',
-                                    borderRadius: '50%',
-                                    width: '32px',
-                                    height: '32px',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    cursor: 'pointer',
-                                    color: '#fff',
-                                }}
                             >
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                <svg
+                                    width="16"
+                                    height="16"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    strokeWidth="2.5"
+                                >
                                     <line x1="18" y1="6" x2="6" y2="18" />
                                     <line x1="6" y1="6" x2="18" y2="18" />
                                 </svg>
                             </button>
-                            <h2 className="ext-announcements-29">Edit Announcement</h2>
+                            <h2 className="modern-announcement-modal-title">
+                                Edit Announcement
+                            </h2>
                         </div>
-                        <form onSubmit={handleEditSubmit} className="ext-announcements-30">
+                        <form
+                            onSubmit={handleEditSubmit}
+                            className="modern-announcement-modal-body"
+                        >
                             {formError && (
-                                <div className="ext-announcements-31">
+                                <div style={{ color: '#ef4444', background: '#fef2f2', padding: '10px 14px', borderRadius: '8px', marginBottom: '16px', fontSize: '0.88rem', fontWeight: 500, border: '1px solid rgba(239, 68, 68, 0.2)' }}>
                                     {formError}
                                 </div>
                             )}
 
-                            <div className="form-group">
-                                <label className="form-label">Title</label>
+                            <div className="form-group" style={{ marginBottom: '20px' }}>
+                                <label className="form-label" style={{ display: 'block', fontSize: '0.88rem', fontWeight: 600, color: '#334155', marginBottom: '6px' }}>Title</label>
                                 <input
                                     type="text"
                                     className="form-input"
                                     placeholder="Enter announcement title..."
                                     value={form.title}
-                                    onChange={(e) => setForm({ ...form, title: e.target.value })}
+                                    onChange={(e) =>
+                                        setForm({
+                                            ...form,
+                                            title: e.target.value,
+                                        })
+                                    }
+                                    style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1.5px solid #cbd5e1' }}
                                     required
                                 />
                             </div>
 
-                            <div className="form-group">
-                                <label className="form-label">Message</label>
-                                <textarea className="form-input form-textarea ext-announcements-32" placeholder="Enter the detailed message..." value={form.message} onChange={(e) => setForm({ ...form, message: e.target.value })} required />
+                            <div className="form-group" style={{ marginBottom: '20px' }}>
+                                <label className="form-label" style={{ display: 'block', fontSize: '0.88rem', fontWeight: 600, color: '#334155', marginBottom: '6px' }}>Message</label>
+                                <textarea
+                                    className="form-input form-textarea"
+                                    placeholder="Enter the detailed message..."
+                                    value={form.message}
+                                    onChange={(e) =>
+                                        setForm({
+                                            ...form,
+                                            message: e.target.value,
+                                        })
+                                    }
+                                    style={{ width: '100%', minHeight: '120px', padding: '10px 14px', borderRadius: '8px', border: '1.5px solid #cbd5e1', resize: 'vertical' }}
+                                    required
+                                />
                             </div>
 
-                            <div className="ext-announcements-33">
-                                <button type="button" className="btn-cancel-white" onClick={() => setShowEditModal(false)}>
+                            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
+                                <button
+                                    type="button"
+                                    className="btn-cancel-white"
+                                    onClick={() => setShowEditModal(false)}
+                                    style={{ padding: '10px 20px', borderRadius: '8px', border: '1px solid #cbd5e1', background: '#fff', color: '#475569', fontWeight: 600, cursor: 'pointer' }}
+                                >
                                     Cancel
                                 </button>
-                                <button type="submit" className="btn-primary ext-announcements-35">
+                                <button
+                                    type="submit"
+                                    className="btn-primary"
+                                    style={{ padding: '10px 20px', borderRadius: '8px', background: '#4f46e5', color: '#fff', fontWeight: 600, border: 'none', cursor: 'pointer' }}
+                                >
                                     Save Changes
                                 </button>
                             </div>

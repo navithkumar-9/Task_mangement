@@ -1,4 +1,5 @@
 from django.urls import path
+from rest_framework_simplejwt.views import TokenRefreshView
 
 from .views import (
     SuperAdminLoginView,
@@ -47,6 +48,7 @@ from .views import (
 urlpatterns = [
     path("super-admin/login/", SuperAdminLoginView.as_view()),
     path("login/", LoginView.as_view()),
+    path("token/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
     path("dashboard/stats/", DashboardStatsView.as_view()),
     path("tasks/filter-options/", TaskFilterOptionsView.as_view()),
     path("create-admin/", CreateAdminView.as_view()),

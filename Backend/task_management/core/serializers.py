@@ -1,9 +1,21 @@
 from rest_framework import serializers
 from django.contrib.auth import authenticate
-from .models import User_model
-from .roles import UserRole
-from .models import Task, Timesheet, TaskComment, SubTask, Notification, Announcement, AnnouncementAudience, EmployeeScorecard, ScorecardStatus
 from django.contrib.auth import get_user_model
+from django.contrib.auth.password_validation import validate_password
+from django.core.exceptions import ValidationError
+from .roles import UserRole
+from .models import (
+    User_model,
+    Task,
+    Timesheet,
+    TaskComment,
+    SubTask,
+    Notification,
+    Announcement,
+    AnnouncementAudience,
+    EmployeeScorecard,
+    ScorecardStatus,
+)
 from .emails import send_task_notification_email_async
 
 User = get_user_model()
@@ -30,7 +42,6 @@ def serialize_team_leader(assigned_by):
     return None
 
 
-
 class LoginSerializer(serializers.Serializer):
     user_name = serializers.CharField()
     password = serializers.CharField(write_only=True)
@@ -51,6 +62,13 @@ class CreateAdminSerializer(serializers.ModelSerializer):
         model = User_model
         fields = ["user_name", "password", "email"]
 
+    def validate_password(self, value):
+        try:
+            validate_password(value)
+        except ValidationError as e:
+            raise serializers.ValidationError(list(e.messages))
+        return value
+
     def create(self, validated_data):
         request = self.context["request"]
         user = User_model.objects.create_user(
@@ -68,6 +86,13 @@ class CreateTeamLeaderSerializer(serializers.ModelSerializer):
     class Meta:
         model = User_model
         fields = ["user_name", "password", "email"]
+
+    def validate_password(self, value):
+        try:
+            validate_password(value)
+        except ValidationError as e:
+            raise serializers.ValidationError(list(e.messages))
+        return value
 
     def create(self, validated_data):
         request = self.context["request"]
@@ -179,7 +204,9 @@ class TaskCreateSerializer(serializers.ModelSerializer):
     def validate_assignee_ids(self, value):
         request = self.context["request"]
         if not value:
-            raise serializers.ValidationError("At least one team member must be selected")
+            raise serializers.ValidationError(
+                "At least one team member must be selected"
+            )
 
         leader = request.user
         if request.user.role == UserRole.TEAM_MEMBER.value:
@@ -191,9 +218,7 @@ class TaskCreateSerializer(serializers.ModelSerializer):
                     id=uid, role=UserRole.TEAM_MEMBER.value, created_by=leader
                 )
             except User.DoesNotExist:
-                raise serializers.ValidationError(
-                    f"Invalid team member with id {uid}"
-                )
+                raise serializers.ValidationError(f"Invalid team member with id {uid}")
 
         return value
 
@@ -303,6 +328,16 @@ class TimesheetCreateSerializer(serializers.ModelSerializer):
 
         return value
 
+    def validate(self, data):
+        start_time = data.get("start_time")
+        end_time = data.get("end_time")
+
+        if start_time and end_time and start_time >= end_time:
+            raise serializers.ValidationError(
+                {"end_time": "End time must be after start time."}
+            )
+        return data
+
     def create(self, validated_data):
 
         request = self.context["request"]
@@ -329,6 +364,22 @@ class TimesheetUpdateSerializer(serializers.ModelSerializer):
             "end_time",
         ]
 
+    def validate(self, data):
+        start_time = data.get("start_time")
+        end_time = data.get("end_time")
+
+        # In case of update, one of them might be missing in payload, so check instance values
+        if not start_time and self.instance:
+            start_time = self.instance.start_time
+        if not end_time and self.instance:
+            end_time = self.instance.end_time
+
+        if start_time and end_time and start_time >= end_time:
+            raise serializers.ValidationError(
+                {"end_time": "End time must be after start time."}
+            )
+        return data
+
 
 class TimesheetListSerializer(serializers.ModelSerializer):
 
@@ -353,7 +404,8 @@ class TimesheetListSerializer(serializers.ModelSerializer):
                 "id": obj.task.assigned_by.id,
                 "username": obj.task.assigned_by.username,
                 "name": getattr(obj.task.assigned_by, "name", "") or "",
-                "profile_picture": getattr(obj.task.assigned_by, "profile_picture", "") or "",
+                "profile_picture": getattr(obj.task.assigned_by, "profile_picture", "")
+                or "",
             },
             "assignees": [
                 {
@@ -384,6 +436,7 @@ class TimesheetListSerializer(serializers.ModelSerializer):
 
 # ─── Comment / Activity Serializer ───
 
+
 class TaskCommentSerializer(serializers.ModelSerializer):
     user = serializers.SerializerMethodField()
 
@@ -403,6 +456,7 @@ class TaskCommentSerializer(serializers.ModelSerializer):
 
 # ─── SubTask Serializer ───
 
+
 class SubTaskSerializer(serializers.ModelSerializer):
     class Meta:
         model = SubTask
@@ -411,6 +465,7 @@ class SubTaskSerializer(serializers.ModelSerializer):
 
 
 # ─── Full Task Detail Serializer (includes comments + subtasks) ───
+
 
 class TaskDetailSerializer(serializers.ModelSerializer):
     assignees = serializers.SerializerMethodField()
@@ -450,14 +505,31 @@ class TaskDetailSerializer(serializers.ModelSerializer):
 
 # ─── Notification Serializer ───
 
+
 class NotificationSerializer(serializers.ModelSerializer):
     sender = serializers.SerializerMethodField()
     task_info = serializers.SerializerMethodField()
+    comment_content = serializers.SerializerMethodField()
 
     class Meta:
         model = Notification
-        fields = ["id", "sender", "task_info", "message", "is_read", "created_at"]
-        read_only_fields = ["id", "sender", "task_info", "message", "created_at"]
+        fields = [
+            "id",
+            "sender",
+            "task_info",
+            "comment_content",
+            "message",
+            "is_read",
+            "created_at",
+        ]
+        read_only_fields = [
+            "id",
+            "sender",
+            "task_info",
+            "comment_content",
+            "message",
+            "created_at",
+        ]
 
     def get_sender(self, obj):
         return {
@@ -476,8 +548,14 @@ class NotificationSerializer(serializers.ModelSerializer):
             "project_name": obj.task.project_name,
         }
 
+    def get_comment_content(self, obj):
+        if obj.comment:
+            return obj.comment.content
+        return None
+
 
 # ─── Announcement Serializers ───
+
 
 class AnnouncementCreateSerializer(serializers.ModelSerializer):
     class Meta:
@@ -490,7 +568,9 @@ class AnnouncementCreateSerializer(serializers.ModelSerializer):
         user = request.user
         if user.role == "SUPER_ADMIN":
             if value not in ["ADMINS_ONLY", "ALL"]:
-                raise serializers.ValidationError("Super Admin can only target ADMINS_ONLY or ALL.")
+                raise serializers.ValidationError(
+                    "Super Admin can only target ADMINS_ONLY or ALL."
+                )
         elif user.role == "ADMIN":
             if value != "MY_TEAM":
                 raise serializers.ValidationError("Admins can only target MY_TEAM.")
@@ -515,7 +595,15 @@ class AnnouncementListSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Announcement
-        fields = ["id", "sender", "title", "message", "audience", "created_at", "updated_at"]
+        fields = [
+            "id",
+            "sender",
+            "title",
+            "message",
+            "audience",
+            "created_at",
+            "updated_at",
+        ]
 
     def get_sender(self, obj):
         return {
@@ -583,8 +671,7 @@ class EmployeeScorecardCreateUpdateSerializer(serializers.ModelSerializer):
 
     def validate_attendance_score(self, value):
         if value < 0 or value > 5:
-            raise serializers.ValidationError("Attendance score must be between 0 and 5.")
+            raise serializers.ValidationError(
+                "Attendance score must be between 0 and 5."
+            )
         return value
-
-
-

@@ -3,7 +3,7 @@ from django.contrib.auth import get_user_model
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APITestCase
-from core.models import Task, Timesheet, TaskStatus, TaskPriority, EmployeeScorecard, ScorecardStatus
+from core.models import Task, Timesheet, TaskStatus, TaskPriority, EmployeeScorecard, ScorecardStatus, Notification, Announcement
 from core.roles import UserRole
 
 User = get_user_model()
@@ -174,3 +174,124 @@ class ScorecardTestCase(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertIsNotNone(response.data["data"]["scorecard"])
         self.assertEqual(response.data["data"]["scorecard"]["overall_score"], scorecard.overall_score)
+
+
+class TaskNotificationAndPermissionTestCase(APITestCase):
+
+    def setUp(self):
+        # Create Superadmin
+        self.superadmin = User.objects.create_user(
+            username="super_admin_user",
+            email="superadmin_user@test.com",
+            password="SecurePassword123!",
+            role=UserRole.SUPER_ADMIN.value,
+        )
+
+        # Create Admins
+        self.admin_1 = User.objects.create_user(
+            username="admin_user_1",
+            email="admin1@test.com",
+            password="SecurePassword123!",
+            role=UserRole.ADMIN.value,
+        )
+        self.admin_2 = User.objects.create_user(
+            username="admin_user_2",
+            email="admin2@test.com",
+            password="SecurePassword123!",
+            role=UserRole.ADMIN.value,
+        )
+
+        # Create Team Members
+        self.member_1 = User.objects.create_user(
+            username="member_1",
+            email="member1@test.com",
+            password="SecurePassword123!",
+            role=UserRole.TEAM_MEMBER.value,
+            created_by=self.admin_1,
+        )
+        self.member_2 = User.objects.create_user(
+            username="member_2",
+            email="member2@test.com",
+            password="SecurePassword123!",
+            role=UserRole.TEAM_MEMBER.value,
+            created_by=self.admin_1,
+        )
+
+        # Create Task created by member_1
+        self.task = Task.objects.create(
+            project_name="Project A",
+            task_name="Task A",
+            description="Detail",
+            assigned_by=self.member_1,
+            due_date=timezone.now().date(),
+        )
+        self.task.assignees.set([self.member_1, self.member_2])
+
+    def test_admin_owner_access_to_member_task(self):
+        # admin_1 should have access to task created by member_1
+        self.client.force_authenticate(user=self.admin_1)
+        url = f"/api/tasks/{self.task.id}/detail/"
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        # admin_2 should NOT have access to task created by member_1
+        self.client.force_authenticate(user=self.admin_2)
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_comment_notification_recipients(self):
+        # member_2 comments on task
+        self.client.force_authenticate(user=self.member_2)
+        url = f"/api/tasks/{self.task.id}/comments/"
+        payload = {"content": "Hello World"}
+        response = self.client.post(url, payload)
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+        # Verify notifications:
+        # - member_1 should get a notification (assignee + creator)
+        # - admin_1 should get a notification (manager of member_1 & member_2)
+        # - member_2 should NOT get a notification (commenter)
+        self.assertTrue(Notification.objects.filter(recipient=self.member_1, task=self.task).exists())
+        self.assertTrue(Notification.objects.filter(recipient=self.admin_1, task=self.task).exists())
+        self.assertFalse(Notification.objects.filter(recipient=self.member_2, task=self.task).exists())
+
+    def test_non_destructive_notification_deletion(self):
+        # Create an announcement notification for self.member_1
+        ann = Announcement.objects.create(
+            sender=self.superadmin,
+            title="Important Announcement",
+            message="Read this",
+        )
+        ann_notif = Notification.objects.create(
+            recipient=self.member_1,
+            sender=self.superadmin,
+            announcement=ann,
+            message="Announcement details",
+        )
+
+        # Now, member_2 comments on task, which triggers notification deletion for older comments
+        # but should preserve announcement notifications!
+        self.client.force_authenticate(user=self.member_2)
+        url = f"/api/tasks/{self.task.id}/comments/"
+        self.client.post(url, {"content": "New comment"})
+
+        # Verify that ann_notif still exists!
+        self.assertTrue(Notification.objects.filter(id=ann_notif.id).exists())
+
+    def test_timesheet_start_end_time_validation(self):
+        self.client.force_authenticate(user=self.member_1)
+        url = "/api/timesheets/create/"
+        
+        # Payload with invalid end_time <= start_time
+        now = timezone.now()
+        payload = {
+            "task_id": self.task.id,
+            "description": "Attempting invalid log",
+            "status": "COMPLETED",
+            "start_time": now.isoformat(),
+            "end_time": (now - datetime.timedelta(hours=2)).isoformat(),
+        }
+        
+        response = self.client.post(url, payload)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("end_time", response.data["errors"])

@@ -1,25 +1,7 @@
 import { useEffect, useState } from 'react';
 import API from '../api/axios';
 import { useAuth } from '../context/AuthContext';
-
-const getAvatarStyle = (username) => {
-    const colors = [
-        { bg: 'linear-gradient(135deg, #3B82F6, #1D4ED8)', text: '#ffffff' }, // Blue
-        { bg: 'linear-gradient(135deg, #10B981, #047857)', text: '#ffffff' }, // Emerald
-        { bg: 'linear-gradient(135deg, #EC4899, #BE185D)', text: '#ffffff' }, // Pink
-        { bg: 'linear-gradient(135deg, #8B5CF6, #6D28D9)', text: '#ffffff' }, // Violet
-        { bg: 'linear-gradient(135deg, #F59E0B, #B45309)', text: '#ffffff' }, // Amber
-        { bg: 'linear-gradient(135deg, #06B6D4, #0891B2)', text: '#ffffff' }, // Cyan
-        { bg: 'linear-gradient(135deg, #EF4444, #B91C1C)', text: '#ffffff' }, // Rose
-    ];
-    let hash = 0;
-    const name = username || '';
-    for (let i = 0; i < name.length; i++) {
-        hash = name.charCodeAt(i) + ((hash << 5) - hash);
-    }
-    const index = Math.abs(hash) % colors.length;
-    return colors[index];
-};
+import { getAvatarStyle } from '../utils/avatar';
 
 const Settings = () => {
     const { user } = useAuth();
@@ -79,14 +61,22 @@ const Settings = () => {
                             setProfilePic(base64Pic);
                             // Dispatch profileUpdate event
                             window.dispatchEvent(new Event('profileUpdate'));
-                            showToastNotification('Profile picture updated successfully!');
+                            showToastNotification(
+                                'Profile picture updated successfully!',
+                            );
                         } else {
-                            showToastNotification('Failed to update profile picture.', 'error');
+                            showToastNotification(
+                                'Failed to update profile picture.',
+                                'error',
+                            );
                         }
                     })
                     .catch((err) => {
                         console.error(err);
-                        showToastNotification('Failed to update profile picture.', 'error');
+                        showToastNotification(
+                            'Failed to update profile picture.',
+                            'error',
+                        );
                     })
                     .finally(() => {
                         setUploadingPic(false);
@@ -105,7 +95,9 @@ const Settings = () => {
                     setProfile(res.data.data);
                     // Dispatch profileUpdate event
                     window.dispatchEvent(new Event('profileUpdate'));
-                    showToastNotification('Profile details saved successfully!');
+                    showToastNotification(
+                        'Profile details saved successfully!',
+                    );
                 } else {
                     showToastNotification('Failed to update details.', 'error');
                 }
@@ -126,7 +118,10 @@ const Settings = () => {
             return;
         }
         if (passwordForm.newPassword.length < 6) {
-            showToastNotification('Password must be at least 6 characters long.', 'error');
+            showToastNotification(
+                'Password must be at least 6 characters long.',
+                'error',
+            );
             return;
         }
         setSaving(true);
@@ -134,9 +129,16 @@ const Settings = () => {
             .then((res) => {
                 if (res.data.success) {
                     showToastNotification('Password changed successfully!');
-                    setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
+                    setPasswordForm({
+                        currentPassword: '',
+                        newPassword: '',
+                        confirmPassword: '',
+                    });
                 } else {
-                    showToastNotification('Failed to change password.', 'error');
+                    showToastNotification(
+                        'Failed to change password.',
+                        'error',
+                    );
                 }
             })
             .catch((err) => {
@@ -172,7 +174,9 @@ const Settings = () => {
             <div className="page-header">
                 <div>
                     <h1 className="page-title">Settings</h1>
-                    <p className="page-subtitle">Manage your personal details and account security</p>
+                    <p className="page-subtitle">
+                        Manage your personal details and account security
+                    </p>
                 </div>
             </div>
 
@@ -181,7 +185,11 @@ const Settings = () => {
                 <div className="content-card ext-settings-173">
                     <div className="profile-edit-avatar-wrapper ext-settings-174">
                         {profilePic ? (
-                            <img src={profilePic} alt="Profile" className="profile-edit-avatar-img" />
+                            <img
+                                src={profilePic}
+                                alt="Profile"
+                                className="profile-edit-avatar-img"
+                            />
                         ) : (
                             <div
                                 style={{
@@ -204,22 +212,38 @@ const Settings = () => {
                                 <div className="spinner ext-settings-176"></div>
                             </div>
                         )}
-                        <label className="profile-edit-avatar-overlay" htmlFor="profile-upload-file">
-                            <svg fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z" />
+                        <label
+                            className="profile-edit-avatar-overlay"
+                            htmlFor="profile-upload-file"
+                        >
+                            <svg
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="2.5"
+                                viewBox="0 0 24 24"
+                            >
+                                <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z"
+                                />
                                 <circle cx="12" cy="13" r="3" />
                             </svg>
                         </label>
-                        <input type="file" id="profile-upload-file" accept="image/*" className="ext-settings-177" onChange={handleFileChange}/>
+                        <input
+                            type="file"
+                            id="profile-upload-file"
+                            accept="image/*"
+                            className="ext-settings-177"
+                            onChange={handleFileChange}
+                        />
                     </div>
 
-                    <h2 className="ext-settings-178">
-                        {name || 'User'}
-                    </h2>
-                    <p className="ext-settings-179">
-                        @{profile?.username}
-                    </p>
-                    <span className={`role-badge ${profile?.role === 'ADMIN' ? 'role-admin' : 'role-member'}`}>
+                    <h2 className="ext-settings-178">{name || 'User'}</h2>
+                    <p className="ext-settings-179">@{profile?.username}</p>
+                    <span
+                        className={`role-badge ${profile?.role === 'ADMIN' ? 'role-admin' : 'role-member'}`}
+                    >
                         {profile?.role}
                     </span>
 
@@ -251,42 +275,68 @@ const Settings = () => {
                         <form onSubmit={handleSaveDetails}>
                             <div className="form-row">
                                 <div className="form-group">
-                                    <label className="form-label">Full Name</label>
+                                    <label className="form-label">
+                                        Full Name
+                                    </label>
                                     <input
                                         type="text"
                                         className="form-input"
                                         placeholder="Enter your name"
                                         value={name}
-                                        onChange={(e) => setName(e.target.value)}
+                                        onChange={(e) =>
+                                            setName(e.target.value)
+                                        }
                                         required
                                     />
                                 </div>
                                 <div className="form-group">
-                                    <label className="form-label">Employee ID</label>
+                                    <label className="form-label">
+                                        Employee ID
+                                    </label>
                                     <input
                                         type="text"
                                         className="form-input"
                                         placeholder="e.g. EMP-1049"
                                         value={employeeId}
-                                        onChange={(e) => setEmployeeId(e.target.value)}
+                                        onChange={(e) =>
+                                            setEmployeeId(e.target.value)
+                                        }
                                         required
                                     />
                                 </div>
                             </div>
                             <div className="form-row">
                                 <div className="form-group">
-                                    <label className="form-label">Username</label>
-                                    <input type="text" className="form-input ext-settings-181" value={profile?.username || ''} disabled/>
+                                    <label className="form-label">
+                                        Username
+                                    </label>
+                                    <input
+                                        type="text"
+                                        className="form-input ext-settings-181"
+                                        value={profile?.username || ''}
+                                        disabled
+                                    />
                                 </div>
                                 <div className="form-group">
                                     <label className="form-label">Role</label>
-                                    <input type="text" className="form-input ext-settings-181" value={profile?.role || ''} disabled/>
+                                    <input
+                                        type="text"
+                                        className="form-input ext-settings-181"
+                                        value={profile?.role || ''}
+                                        disabled
+                                    />
                                 </div>
                             </div>
 
-                             <div className="ext-settings-182">
-                                <button type="submit" className="btn-primary ext-settings-183" disabled={saving}>
-                                    {saving && <span className="spinner ext-settings-184"></span>}
+                            <div className="ext-settings-182">
+                                <button
+                                    type="submit"
+                                    className="btn-primary ext-settings-183"
+                                    disabled={saving}
+                                >
+                                    {saving && (
+                                        <span className="spinner ext-settings-184"></span>
+                                    )}
                                     {saving ? 'Saving...' : 'Save Details'}
                                 </button>
                             </div>
@@ -294,25 +344,63 @@ const Settings = () => {
                     ) : (
                         <form onSubmit={handleSavePassword}>
                             <div className="form-group">
-                                <label className="form-label">Current Password</label>
+                                <label className="form-label">
+                                    Current Password
+                                </label>
                                 <div className="password-input-container">
                                     <input
-                                        type={showCurrentPass ? 'text' : 'password'}
+                                        type={
+                                            showCurrentPass
+                                                ? 'text'
+                                                : 'password'
+                                        }
                                         className="form-input"
                                         placeholder="Enter current password"
                                         value={passwordForm.currentPassword}
-                                        onChange={(e) => setPasswordForm({ ...passwordForm, currentPassword: e.target.value })}
+                                        onChange={(e) =>
+                                            setPasswordForm({
+                                                ...passwordForm,
+                                                currentPassword: e.target.value,
+                                            })
+                                        }
                                         required
                                     />
                                     <button
                                         type="button"
                                         className="password-toggle-eye"
-                                        onClick={() => setShowCurrentPass(!showCurrentPass)}
+                                        onClick={() =>
+                                            setShowCurrentPass(!showCurrentPass)
+                                        }
                                     >
                                         {showCurrentPass ? (
-                                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" /><line x1="1" y1="1" x2="23" y2="23" /></svg>
+                                            <svg
+                                                width="18"
+                                                height="18"
+                                                viewBox="0 0 24 24"
+                                                fill="none"
+                                                stroke="currentColor"
+                                                strokeWidth="2"
+                                            >
+                                                <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
+                                                <line
+                                                    x1="1"
+                                                    y1="1"
+                                                    x2="23"
+                                                    y2="23"
+                                                />
+                                            </svg>
                                         ) : (
-                                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" /></svg>
+                                            <svg
+                                                width="18"
+                                                height="18"
+                                                viewBox="0 0 24 24"
+                                                fill="none"
+                                                stroke="currentColor"
+                                                strokeWidth="2"
+                                            >
+                                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                                                <circle cx="12" cy="12" r="3" />
+                                            </svg>
                                         )}
                                     </button>
                                 </div>
@@ -320,58 +408,151 @@ const Settings = () => {
 
                             <div className="form-row ext-settings-182">
                                 <div className="form-group">
-                                    <label className="form-label">New Password</label>
+                                    <label className="form-label">
+                                        New Password
+                                    </label>
                                     <div className="password-input-container">
                                         <input
-                                            type={showNewPass ? 'text' : 'password'}
+                                            type={
+                                                showNewPass
+                                                    ? 'text'
+                                                    : 'password'
+                                            }
                                             className="form-input"
                                             placeholder="Enter new password"
                                             value={passwordForm.newPassword}
-                                            onChange={(e) => setPasswordForm({ ...passwordForm, newPassword: e.target.value })}
+                                            onChange={(e) =>
+                                                setPasswordForm({
+                                                    ...passwordForm,
+                                                    newPassword: e.target.value,
+                                                })
+                                            }
                                             required
                                         />
                                         <button
                                             type="button"
                                             className="password-toggle-eye"
-                                            onClick={() => setShowNewPass(!showNewPass)}
+                                            onClick={() =>
+                                                setShowNewPass(!showNewPass)
+                                            }
                                         >
                                             {showNewPass ? (
-                                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" /><line x1="1" y1="1" x2="23" y2="23" /></svg>
+                                                <svg
+                                                    width="18"
+                                                    height="18"
+                                                    viewBox="0 0 24 24"
+                                                    fill="none"
+                                                    stroke="currentColor"
+                                                    strokeWidth="2"
+                                                >
+                                                    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
+                                                    <line
+                                                        x1="1"
+                                                        y1="1"
+                                                        x2="23"
+                                                        y2="23"
+                                                    />
+                                                </svg>
                                             ) : (
-                                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" /></svg>
+                                                <svg
+                                                    width="18"
+                                                    height="18"
+                                                    viewBox="0 0 24 24"
+                                                    fill="none"
+                                                    stroke="currentColor"
+                                                    strokeWidth="2"
+                                                >
+                                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                                                    <circle
+                                                        cx="12"
+                                                        cy="12"
+                                                        r="3"
+                                                    />
+                                                </svg>
                                             )}
                                         </button>
                                     </div>
                                 </div>
                                 <div className="form-group">
-                                    <label className="form-label">Confirm New Password</label>
+                                    <label className="form-label">
+                                        Confirm New Password
+                                    </label>
                                     <div className="password-input-container">
                                         <input
-                                            type={showConfirmPass ? 'text' : 'password'}
+                                            type={
+                                                showConfirmPass
+                                                    ? 'text'
+                                                    : 'password'
+                                            }
                                             className="form-input"
                                             placeholder="Confirm new password"
                                             value={passwordForm.confirmPassword}
-                                            onChange={(e) => setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })}
+                                            onChange={(e) =>
+                                                setPasswordForm({
+                                                    ...passwordForm,
+                                                    confirmPassword:
+                                                        e.target.value,
+                                                })
+                                            }
                                             required
                                         />
                                         <button
                                             type="button"
                                             className="password-toggle-eye"
-                                            onClick={() => setShowConfirmPass(!showConfirmPass)}
+                                            onClick={() =>
+                                                setShowConfirmPass(
+                                                    !showConfirmPass,
+                                                )
+                                            }
                                         >
                                             {showConfirmPass ? (
-                                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" /><line x1="1" y1="1" x2="23" y2="23" /></svg>
+                                                <svg
+                                                    width="18"
+                                                    height="18"
+                                                    viewBox="0 0 24 24"
+                                                    fill="none"
+                                                    stroke="currentColor"
+                                                    strokeWidth="2"
+                                                >
+                                                    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
+                                                    <line
+                                                        x1="1"
+                                                        y1="1"
+                                                        x2="23"
+                                                        y2="23"
+                                                    />
+                                                </svg>
                                             ) : (
-                                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" /></svg>
+                                                <svg
+                                                    width="18"
+                                                    height="18"
+                                                    viewBox="0 0 24 24"
+                                                    fill="none"
+                                                    stroke="currentColor"
+                                                    strokeWidth="2"
+                                                >
+                                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                                                    <circle
+                                                        cx="12"
+                                                        cy="12"
+                                                        r="3"
+                                                    />
+                                                </svg>
                                             )}
                                         </button>
                                     </div>
                                 </div>
                             </div>
 
-                             <div className="ext-calendar-74">
-                                <button type="submit" className="btn-primary ext-settings-183" disabled={saving}>
-                                    {saving && <span className="spinner ext-settings-184"></span>}
+                            <div className="ext-calendar-74">
+                                <button
+                                    type="submit"
+                                    className="btn-primary ext-settings-183"
+                                    disabled={saving}
+                                >
+                                    {saving && (
+                                        <span className="spinner ext-settings-184"></span>
+                                    )}
                                     {saving ? 'Updating...' : 'Change Password'}
                                 </button>
                             </div>

@@ -1,26 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import API from '../api/axios';
-
-const getAvatarStyle = (username) => {
-    const colors = [
-        { background: 'linear-gradient(135deg, #3B82F6, #1D4ED8)', color: '#ffffff' }, // Blue
-        { background: 'linear-gradient(135deg, #10B981, #047857)', color: '#ffffff' }, // Emerald
-        { background: 'linear-gradient(135deg, #EC4899, #BE185D)', color: '#ffffff' }, // Pink
-        { background: 'linear-gradient(135deg, #8B5CF6, #6D28D9)', color: '#ffffff' }, // Violet
-        { background: 'linear-gradient(135deg, #F59E0B, #B45309)', color: '#ffffff' }, // Amber
-        { background: 'linear-gradient(135deg, #06B6D4, #0891B2)', color: '#ffffff' }, // Cyan
-        { background: 'linear-gradient(135deg, #EF4444, #B91C1C)', color: '#ffffff' }, // Rose
-    ];
-    let hash = 0;
-    const name = username || '';
-    for (let i = 0; i < name.length; i++) {
-        hash = name.charCodeAt(i) + ((hash << 5) - hash);
-    }
-    const index = Math.abs(hash) % colors.length;
-    return colors[index];
-};
+import { getAvatarStyle } from '../utils/avatar';
 
 const Sidebar = () => {
     const { user, logout } = useAuth();
@@ -263,7 +244,11 @@ const Sidebar = () => {
             <div className="sidebar-top">
                 <div className="sidebar-brand">
                     <div className="sidebar-logo">
-                        <img src="/logo.jpg" alt="Logo" className="ext-sidebar-1"/>
+                        <img
+                            src="/logo.jpg"
+                            alt="Logo"
+                            className="ext-sidebar-1"
+                        />
                     </div>
                     <div className="sidebar-brand-info">
                         <span className="sidebar-brand-name">Tracker</span>
@@ -274,7 +259,9 @@ const Sidebar = () => {
                     <button
                         className="sidebar-toggle-btn"
                         onClick={toggleSidebar}
-                        title={isCollapsed ? 'Expand Sidebar' : 'Collapse Sidebar'}
+                        title={
+                            isCollapsed ? 'Expand Sidebar' : 'Collapse Sidebar'
+                        }
                     >
                         <svg
                             width="18"
@@ -312,7 +299,11 @@ const Sidebar = () => {
                 <div className="sidebar-profile-new">
                     <div className="sidebar-profile-avatar-wrapper">
                         {profilePic ? (
-                            <img src={profilePic} alt="Avatar" className="sidebar-profile-avatar"/>
+                            <img
+                                src={profilePic}
+                                alt="Avatar"
+                                className="sidebar-profile-avatar"
+                            />
                         ) : (
                             <div
                                 className="sidebar-profile-avatar-fallback"

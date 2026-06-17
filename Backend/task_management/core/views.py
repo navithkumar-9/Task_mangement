@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 from django.contrib.auth import get_user_model
 from django.utils import timezone
 from django.core.cache import cache
-from django.db.models import Q, Count
+from django.db.models import Q, Count, Avg, F, Sum
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -31,6 +31,8 @@ from .serializers import (
     AnnouncementCreateSerializer,
     AnnouncementUpdateSerializer,
     AnnouncementListSerializer,
+    EmployeeScorecardSerializer,
+    EmployeeScorecardCreateUpdateSerializer,
 )
 from .permissions import IsAdmin, IsSuperAdmin, CanCrudTasks
 from .roles import UserRole
@@ -45,6 +47,8 @@ from .models import (
     Announcement,
     AnnouncementAudience,
     TaskStatus,
+    EmployeeScorecard,
+    ScorecardStatus,
 )
 
 load_dotenv()
@@ -643,7 +647,7 @@ class AdminTaskListView(APIView):
 
         queryset = queryset.prefetch_related("assignees").select_related(
             "assigned_by", "assigned_by__created_by"
-        )
+        ).distinct()
 
         # Filters
         completed_param = request.GET.get("completed")
@@ -813,6 +817,7 @@ class TeamMemberTaskListView(APIView):
             Task.objects.filter(assignees=request.user)
             .prefetch_related("assignees")
             .select_related("assigned_by", "assigned_by__created_by")
+            .distinct()
         )
 
         if start_date and end_date:
@@ -1308,7 +1313,13 @@ class TaskFullDetailView(APIView):
 
         is_admin_owner = (
             request.user.role == UserRole.ADMIN.value
-            and task.assigned_by == request.user
+            and (
+                task.assigned_by == request.user
+                or (
+                    task.assigned_by
+                    and task.assigned_by.created_by == request.user
+                )
+            )
         )
         is_assignee = task.assignees.filter(id=request.user.id).exists()
         is_super = request.user.role == UserRole.SUPER_ADMIN.value
@@ -1346,7 +1357,13 @@ class TaskCommentListCreateView(APIView):
 
         is_admin_owner = (
             request.user.role == UserRole.ADMIN.value
-            and task.assigned_by == request.user
+            and (
+                task.assigned_by == request.user
+                or (
+                    task.assigned_by
+                    and task.assigned_by.created_by == request.user
+                )
+            )
         )
         is_assignee = task.assignees.filter(id=request.user.id).exists()
         is_super = request.user.role == UserRole.SUPER_ADMIN.value
@@ -1394,8 +1411,19 @@ class TaskCommentListCreateView(APIView):
         assignee_ids = set(task.assignees.values_list("id", flat=True))
         admin_id = task.assigned_by_id
 
-        # Collect all recipient IDs (assignees + admin creator), excluding the commenter
+        # Collect all recipient IDs (assignees + creator + managers), excluding the commenter
         recipient_ids = assignee_ids | {admin_id}
+        if task.assigned_by and task.assigned_by.created_by_id:
+            recipient_ids.add(task.assigned_by.created_by_id)
+
+        # Include the admin managers/leaders of all assignees
+        assignee_managers = set(
+            task.assignees.filter(created_by__isnull=False).values_list(
+                "created_by_id", flat=True
+            )
+        )
+        recipient_ids.update(assignee_managers)
+
         recipient_ids.discard(sender.id)
 
         sender_display = getattr(sender, "name", "") or sender.username
@@ -1414,7 +1442,9 @@ class TaskCommentListCreateView(APIView):
         if notifications:
             one_day_ago = timezone.now() - timedelta(days=1)
             Notification.objects.filter(
-                recipient_id__in=recipient_ids, created_at__lt=one_day_ago
+                recipient_id__in=recipient_ids,
+                comment__isnull=False,
+                created_at__lt=one_day_ago,
             ).delete()
             Notification.objects.bulk_create(notifications)
 
@@ -1572,8 +1602,7 @@ class NotificationListView(APIView):
     def get(self, request):
         one_day_ago = timezone.now() - datetime.timedelta(days=1)
         queryset = Notification.objects.filter(
-            recipient=request.user,
-            created_at__gte=one_day_ago
+            recipient=request.user, created_at__gte=one_day_ago
         ).select_related("sender", "task")
 
         unread = request.GET.get("unread")
@@ -1602,9 +1631,7 @@ class NotificationUnreadCountView(APIView):
     def get(self, request):
         one_day_ago = timezone.now() - datetime.timedelta(days=1)
         count = Notification.objects.filter(
-            recipient=request.user,
-            is_read=False,
-            created_at__gte=one_day_ago
+            recipient=request.user, is_read=False, created_at__gte=one_day_ago
         ).count()
 
         return success_response(
@@ -1648,9 +1675,7 @@ class NotificationMarkAllReadView(APIView):
     def patch(self, request):
         one_day_ago = timezone.now() - datetime.timedelta(days=1)
         updated = Notification.objects.filter(
-            recipient=request.user,
-            is_read=False,
-            created_at__gte=one_day_ago
+            recipient=request.user, is_read=False, created_at__gte=one_day_ago
         ).update(is_read=True)
 
         return success_response(
@@ -1714,7 +1739,9 @@ class CreateAnnouncementView(APIView):
         if notifications:
             one_day_ago = timezone.now() - timedelta(days=1)
             Notification.objects.filter(
-                recipient__in=recipients, created_at__lt=one_day_ago
+                recipient__in=recipients,
+                announcement__isnull=False,
+                created_at__lt=one_day_ago,
             ).delete()
             Notification.objects.bulk_create(notifications)
 
@@ -2153,13 +2180,13 @@ class DashboardStatsView(APIView):
             )
 
         recent_tasks = (
-            tasks_qs.order_by("-created_at")[:10]
+            tasks_qs.order_by("-created_at")
             .prefetch_related("assignees")
-            .select_related("assigned_by", "assigned_by__created_by")
+            .select_related("assigned_by", "assigned_by__created_by")[:10]
         )
-        recent_timesheets = timesheets_qs.order_by("-created_at")[:10].select_related(
+        recent_timesheets = timesheets_qs.order_by("-created_at").select_related(
             "task", "team_member"
-        )
+        )[:10]
 
         activities = []
         for t in recent_tasks:
@@ -2243,10 +2270,6 @@ class DashboardStatsView(APIView):
 
 # ─── Employee Scorecard APIs ───
 
-from django.db.models import Avg
-from core.models import EmployeeScorecard, ScorecardStatus
-from core.serializers import EmployeeScorecardSerializer, EmployeeScorecardCreateUpdateSerializer
-
 
 def calculate_monthly_metrics(employee, year, month):
     start_date = datetime.date(year, month, 1)
@@ -2255,34 +2278,104 @@ def calculate_monthly_metrics(employee, year, month):
     else:
         end_date = datetime.date(year, month + 1, 1) - datetime.timedelta(days=1)
 
+
+
     # Total tasks due in this month
     tasks = Task.objects.filter(
-        assignees=employee,
-        due_date__range=(start_date, end_date)
+        assignees=employee, due_date__range=(start_date, end_date)
     )
 
     total_tasks = tasks.count()
-    completed_on_time = 0
-    for task in tasks:
-        if task.status == TaskStatus.COMPLETED:
-            deadline = task.revised_due_date if task.revised_due_date else task.due_date
-            if task.updated_at:
-                if task.updated_at.date() <= deadline:
-                    completed_on_time += 1
-            else:
-                completed_on_time += 1  # Fallback if no updated_at
-
-    task_completion_rate = (completed_on_time / total_tasks * 100.0) if total_tasks > 0 else 100.0
+    if total_tasks > 0:
+        completed_on_time = (
+            tasks.filter(status=TaskStatus.COMPLETED)
+            .filter(
+                Q(updated_at__isnull=True)
+                | (
+                    Q(revised_due_date__isnull=False)
+                    & Q(updated_at__date__lte=F("revised_due_date"))
+                )
+                | (
+                    Q(revised_due_date__isnull=True)
+                    & Q(updated_at__date__lte=F("due_date"))
+                )
+            )
+            .count()
+        )
+        task_completion_rate = completed_on_time / total_tasks * 100.0
+    else:
+        task_completion_rate = 100.0
 
     # Timesheet hours
     timesheets = Timesheet.objects.filter(
-        team_member=employee,
-        start_time__year=year,
-        start_time__month=month
+        team_member=employee, start_time__year=year, start_time__month=month
     )
-    working_hours = sum(t.working_hours for t in timesheets if t.working_hours)
+    working_hours = timesheets.aggregate(total=Sum("working_hours"))["total"] or 0.0
 
     return round(task_completion_rate, 2), round(float(working_hours), 2)
+
+
+def get_bulk_monthly_metrics(team_members, year, month):
+    start_date = datetime.date(year, month, 1)
+    if month == 12:
+        end_date = datetime.date(year + 1, 1, 1) - datetime.timedelta(days=1)
+    else:
+        end_date = datetime.date(year, month + 1, 1) - datetime.timedelta(days=1)
+
+
+
+    # Bulk count tasks for all team members in a single query
+    task_counts = (
+        Task.objects.filter(
+            assignees__in=team_members, due_date__range=(start_date, end_date)
+        )
+        .values("assignees")
+        .annotate(
+            total=Count("id"),
+            completed_on_time=Count(
+                "id",
+                filter=Q(status=TaskStatus.COMPLETED)
+                & (
+                    Q(updated_at__isnull=True)
+                    | (
+                        Q(revised_due_date__isnull=False)
+                        & Q(updated_at__date__lte=F("revised_due_date"))
+                    )
+                    | (
+                        Q(revised_due_date__isnull=True)
+                        & Q(updated_at__date__lte=F("due_date"))
+                    )
+                ),
+            ),
+        )
+    )
+    task_metrics_map = {item["assignees"]: item for item in task_counts}
+
+    # Bulk sum working hours for all team members in a single query
+    timesheet_hours = (
+        Timesheet.objects.filter(
+            team_member__in=team_members, start_time__year=year, start_time__month=month
+        )
+        .values("team_member")
+        .annotate(total_hours=Sum("working_hours"))
+    )
+    timesheet_metrics_map = {
+        item["team_member"]: item["total_hours"] for item in timesheet_hours
+    }
+
+    metrics = {}
+    for tm in team_members:
+        task_stats = task_metrics_map.get(tm.id, {"total": 0, "completed_on_time": 0})
+        total_t = task_stats["total"]
+        cot = task_stats["completed_on_time"]
+        tcr = (cot / total_t * 100.0) if total_t > 0 else 100.0
+        tcr = round(tcr, 2)
+
+        wh = float(timesheet_metrics_map.get(tm.id, 0.0) or 0.0)
+        wh = round(wh, 2)
+        metrics[tm.id] = (tcr, wh)
+
+    return metrics
 
 
 class EmployeeScorecardListView(APIView):
@@ -2312,37 +2405,53 @@ class EmployeeScorecardListView(APIView):
         role = request.user.role
 
         if role == UserRole.SUPER_ADMIN.value:
-            scorecards = EmployeeScorecard.objects.filter(month=month_date)
+            scorecards = EmployeeScorecard.objects.filter(
+                month=month_date
+            ).select_related("employee")
             team_members = User.objects.filter(role=UserRole.TEAM_MEMBER.value)
             scorecard_map = {sc.employee.id: sc for sc in scorecards}
+
+            missing_members = [tm for tm in team_members if tm.id not in scorecard_map]
+            bulk_metrics = (
+                get_bulk_monthly_metrics(missing_members, year, month)
+                if missing_members
+                else {}
+            )
 
             data = []
             for tm in team_members:
                 if tm.id in scorecard_map:
                     data.append(EmployeeScorecardSerializer(scorecard_map[tm.id]).data)
                 else:
-                    tcr, wh = calculate_monthly_metrics(tm, year, month)
+                    tcr, wh = bulk_metrics.get(tm.id, (100.0, 0.0))
                     hours_comp = min(100.0, (wh / 160.0) * 100.0) if wh > 0 else 0.0
-                    data.append({
-                        "id": None,
-                        "employee": {
-                            "id": tm.id,
-                            "username": tm.username,
-                            "name": getattr(tm, "name", "") or tm.username,
-                            "profile_picture": getattr(tm, "profile_picture", "") or "",
-                        },
-                        "month": month_date.strftime("%Y-%m-%d"),
-                        "task_completion_rate": tcr,
-                        "working_hours": wh,
-                        "quality_score": 0.0,
-                        "attendance_score": 0.0,
-                        "overall_score": round((tcr * 0.40) + (hours_comp * 0.30), 2),
-                        "status": "NOT_CREATED",
-                        "admin_comments": "",
-                        "superadmin_comments": "",
-                    })
+                    data.append(
+                        {
+                            "id": None,
+                            "employee": {
+                                "id": tm.id,
+                                "username": tm.username,
+                                "name": getattr(tm, "name", "") or tm.username,
+                                "profile_picture": getattr(tm, "profile_picture", "")
+                                or "",
+                            },
+                            "month": month_date.strftime("%Y-%m-%d"),
+                            "task_completion_rate": tcr,
+                            "working_hours": wh,
+                            "quality_score": 0.0,
+                            "attendance_score": 0.0,
+                            "overall_score": round(
+                                (tcr * 0.40) + (hours_comp * 0.30), 2
+                            ),
+                            "status": "NOT_CREATED",
+                            "admin_comments": "",
+                            "superadmin_comments": "",
+                        }
+                    )
 
-            company_avg = scorecards.aggregate(Avg("overall_score"))["overall_score__avg"] or 0.0
+            company_avg = (
+                scorecards.aggregate(Avg("overall_score"))["overall_score__avg"] or 0.0
+            )
 
             return success_response(
                 data={
@@ -2353,37 +2462,55 @@ class EmployeeScorecardListView(APIView):
             )
 
         elif role == UserRole.ADMIN.value:
-            team_members = User.objects.filter(role=UserRole.TEAM_MEMBER.value, created_by=request.user)
-            scorecards = EmployeeScorecard.objects.filter(month=month_date, employee__in=team_members)
+            team_members = User.objects.filter(
+                role=UserRole.TEAM_MEMBER.value, created_by=request.user
+            )
+            scorecards = EmployeeScorecard.objects.filter(
+                month=month_date, employee__in=team_members
+            ).select_related("employee")
             scorecard_map = {sc.employee.id: sc for sc in scorecards}
+
+            missing_members = [tm for tm in team_members if tm.id not in scorecard_map]
+            bulk_metrics = (
+                get_bulk_monthly_metrics(missing_members, year, month)
+                if missing_members
+                else {}
+            )
 
             data = []
             for tm in team_members:
                 if tm.id in scorecard_map:
                     data.append(EmployeeScorecardSerializer(scorecard_map[tm.id]).data)
                 else:
-                    tcr, wh = calculate_monthly_metrics(tm, year, month)
+                    tcr, wh = bulk_metrics.get(tm.id, (100.0, 0.0))
                     hours_comp = min(100.0, (wh / 160.0) * 100.0) if wh > 0 else 0.0
-                    data.append({
-                        "id": None,
-                        "employee": {
-                            "id": tm.id,
-                            "username": tm.username,
-                            "name": getattr(tm, "name", "") or tm.username,
-                            "profile_picture": getattr(tm, "profile_picture", "") or "",
-                        },
-                        "month": month_date.strftime("%Y-%m-%d"),
-                        "task_completion_rate": tcr,
-                        "working_hours": wh,
-                        "quality_score": 0.0,
-                        "attendance_score": 0.0,
-                        "overall_score": round((tcr * 0.40) + (hours_comp * 0.30), 2),
-                        "status": "NOT_CREATED",
-                        "admin_comments": "",
-                        "superadmin_comments": "",
-                    })
+                    data.append(
+                        {
+                            "id": None,
+                            "employee": {
+                                "id": tm.id,
+                                "username": tm.username,
+                                "name": getattr(tm, "name", "") or tm.username,
+                                "profile_picture": getattr(tm, "profile_picture", "")
+                                or "",
+                            },
+                            "month": month_date.strftime("%Y-%m-%d"),
+                            "task_completion_rate": tcr,
+                            "working_hours": wh,
+                            "quality_score": 0.0,
+                            "attendance_score": 0.0,
+                            "overall_score": round(
+                                (tcr * 0.40) + (hours_comp * 0.30), 2
+                            ),
+                            "status": "NOT_CREATED",
+                            "admin_comments": "",
+                            "superadmin_comments": "",
+                        }
+                    )
 
-            avg_score = scorecards.aggregate(Avg("overall_score"))["overall_score__avg"] or 0.0
+            avg_score = (
+                scorecards.aggregate(Avg("overall_score"))["overall_score__avg"] or 0.0
+            )
 
             return success_response(
                 data={
@@ -2398,15 +2525,14 @@ class EmployeeScorecardListView(APIView):
                 scorecard = EmployeeScorecard.objects.get(
                     employee=request.user,
                     month=month_date,
-                    status=ScorecardStatus.PUBLISHED.value
+                    status=ScorecardStatus.PUBLISHED.value,
                 )
                 serialized_data = EmployeeScorecardSerializer(scorecard).data
             except EmployeeScorecard.DoesNotExist:
                 serialized_data = None
 
             history = EmployeeScorecard.objects.filter(
-                employee=request.user,
-                status=ScorecardStatus.PUBLISHED.value
+                employee=request.user, status=ScorecardStatus.PUBLISHED.value
             ).order_by("month")[:6]
             history_data = [EmployeeScorecardSerializer(sc).data for sc in history]
 
@@ -2416,9 +2542,14 @@ class EmployeeScorecardListView(APIView):
                 team_scorecards = EmployeeScorecard.objects.filter(
                     month=month_date,
                     employee__created_by=leader,
-                    status=ScorecardStatus.PUBLISHED.value
+                    status=ScorecardStatus.PUBLISHED.value,
                 )
-                team_avg = team_scorecards.aggregate(Avg("overall_score"))["overall_score__avg"] or 0.0
+                team_avg = (
+                    team_scorecards.aggregate(Avg("overall_score"))[
+                        "overall_score__avg"
+                    ]
+                    or 0.0
+                )
 
             return success_response(
                 data={
@@ -2444,7 +2575,9 @@ class EmployeeScorecardSaveView(APIView):
             )
 
         try:
-            employee = User.objects.get(id=employee_id, role=UserRole.TEAM_MEMBER.value, created_by=request.user)
+            employee = User.objects.get(
+                id=employee_id, role=UserRole.TEAM_MEMBER.value, created_by=request.user
+            )
         except User.DoesNotExist:
             return error_response(
                 message="Invalid employee id",
@@ -2470,20 +2603,26 @@ class EmployeeScorecardSaveView(APIView):
             defaults={
                 "task_completion_rate": tcr,
                 "working_hours": wh,
-            }
+            },
         )
 
         if not created:
             scorecard.task_completion_rate = tcr
             scorecard.working_hours = wh
 
-        if scorecard.status in [ScorecardStatus.SUBMITTED.value, ScorecardStatus.APPROVED.value, ScorecardStatus.PUBLISHED.value]:
+        if scorecard.status in [
+            ScorecardStatus.SUBMITTED.value,
+            ScorecardStatus.APPROVED.value,
+            ScorecardStatus.PUBLISHED.value,
+        ]:
             return error_response(
                 message=f"Cannot edit scorecard in {scorecard.status} status.",
                 status_code=status.HTTP_400_BAD_REQUEST,
             )
 
-        serializer = EmployeeScorecardCreateUpdateSerializer(scorecard, data=request.data, partial=True)
+        serializer = EmployeeScorecardCreateUpdateSerializer(
+            scorecard, data=request.data, partial=True
+        )
         if not serializer.is_valid():
             return error_response(
                 message="Validation failed",
@@ -2512,7 +2651,11 @@ class EmployeeScorecardReviewView(APIView):
             )
 
         new_status = request.data.get("status")
-        if new_status not in [ScorecardStatus.APPROVED.value, ScorecardStatus.REJECTED.value, ScorecardStatus.PUBLISHED.value]:
+        if new_status not in [
+            ScorecardStatus.APPROVED.value,
+            ScorecardStatus.REJECTED.value,
+            ScorecardStatus.PUBLISHED.value,
+        ]:
             return error_response(
                 message="Invalid status for review",
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -2543,9 +2686,15 @@ class EmployeeScorecardDashboardView(APIView):
 
         try:
             if len(month_str) == 7:
-                month_date = datetime.datetime.strptime(month_str + "-01", "%Y-%m-%d").date()
+                month_date = datetime.datetime.strptime(
+                    month_str + "-01", "%Y-%m-%d"
+                ).date()
             else:
-                month_date = datetime.datetime.strptime(month_str, "%Y-%m-%d").date().replace(day=1)
+                month_date = (
+                    datetime.datetime.strptime(month_str, "%Y-%m-%d")
+                    .date()
+                    .replace(day=1)
+                )
         except Exception:
             return error_response(
                 message="Invalid month format",
@@ -2554,8 +2703,12 @@ class EmployeeScorecardDashboardView(APIView):
 
         if role == UserRole.SUPER_ADMIN.value:
             scorecards = EmployeeScorecard.objects.filter(month=month_date)
-            company_avg = scorecards.aggregate(Avg("overall_score"))["overall_score__avg"] or 0.0
-            pending_count = scorecards.filter(status=ScorecardStatus.SUBMITTED.value).count()
+            company_avg = (
+                scorecards.aggregate(Avg("overall_score"))["overall_score__avg"] or 0.0
+            )
+            pending_count = scorecards.filter(
+                status=ScorecardStatus.SUBMITTED.value
+            ).count()
             risk_count = scorecards.filter(
                 Q(overall_score__lt=70.0) | Q(task_completion_rate__lt=60.0)
             ).count()
@@ -2563,19 +2716,30 @@ class EmployeeScorecardDashboardView(APIView):
             admins = User.objects.filter(role=UserRole.ADMIN.value)
             team_comparison = []
             for admin in admins:
-                team_members = User.objects.filter(role=UserRole.TEAM_MEMBER.value, created_by=admin)
-                team_scorecards = EmployeeScorecard.objects.filter(month=month_date, employee__in=team_members)
-                team_avg = team_scorecards.aggregate(Avg("overall_score"))["overall_score__avg"] or 0.0
+                team_members = User.objects.filter(
+                    role=UserRole.TEAM_MEMBER.value, created_by=admin
+                )
+                team_scorecards = EmployeeScorecard.objects.filter(
+                    month=month_date, employee__in=team_members
+                )
+                team_avg = (
+                    team_scorecards.aggregate(Avg("overall_score"))[
+                        "overall_score__avg"
+                    ]
+                    or 0.0
+                )
                 team_risk = team_scorecards.filter(
                     Q(overall_score__lt=70.0) | Q(task_completion_rate__lt=60.0)
                 ).count()
-                team_comparison.append({
-                    "admin_id": admin.id,
-                    "admin_name": getattr(admin, "name", "") or admin.username,
-                    "member_count": team_members.count(),
-                    "team_average": round(team_avg, 2),
-                    "risk_alerts": team_risk,
-                })
+                team_comparison.append(
+                    {
+                        "admin_id": admin.id,
+                        "admin_name": getattr(admin, "name", "") or admin.username,
+                        "member_count": team_members.count(),
+                        "team_average": round(team_avg, 2),
+                        "risk_alerts": team_risk,
+                    }
+                )
 
             return success_response(
                 data={
@@ -2587,25 +2751,42 @@ class EmployeeScorecardDashboardView(APIView):
             )
 
         elif role == UserRole.ADMIN.value:
-            team_members = User.objects.filter(role=UserRole.TEAM_MEMBER.value, created_by=request.user)
-            scorecards = EmployeeScorecard.objects.filter(month=month_date, employee__in=team_members)
+            team_members = User.objects.filter(
+                role=UserRole.TEAM_MEMBER.value, created_by=request.user
+            )
+            scorecards = EmployeeScorecard.objects.filter(
+                month=month_date, employee__in=team_members
+            )
 
-            team_avg = scorecards.aggregate(Avg("overall_score"))["overall_score__avg"] or 0.0
-            pending_count = scorecards.filter(status=ScorecardStatus.DRAFT.value).count()
+            team_avg = (
+                scorecards.aggregate(Avg("overall_score"))["overall_score__avg"] or 0.0
+            )
+            pending_count = scorecards.filter(
+                status=ScorecardStatus.DRAFT.value
+            ).count()
             risk_count = scorecards.filter(
                 Q(overall_score__lt=70.0) | Q(task_completion_rate__lt=60.0)
             ).count()
 
             historical_averages = []
             for i in range(5, -1, -1):
-                past_date = month_date - datetime.timedelta(days=i*30)
+                past_date = month_date - datetime.timedelta(days=i * 30)
                 past_date = past_date.replace(day=1)
-                past_scorecards = EmployeeScorecard.objects.filter(month=past_date, employee__in=team_members)
-                past_avg = past_scorecards.aggregate(Avg("overall_score"))["overall_score__avg"] or 0.0
-                historical_averages.append({
-                    "month": past_date.strftime("%Y-%m"),
-                    "average": round(past_avg, 2),
-                })
+                past_scorecards = EmployeeScorecard.objects.filter(
+                    month=past_date, employee__in=team_members
+                )
+                past_avg = (
+                    past_scorecards.aggregate(Avg("overall_score"))[
+                        "overall_score__avg"
+                    ]
+                    or 0.0
+                )
+                historical_averages.append(
+                    {
+                        "month": past_date.strftime("%Y-%m"),
+                        "average": round(past_avg, 2),
+                    }
+                )
 
             return success_response(
                 data={
@@ -2630,7 +2811,11 @@ class EmployeeScorecardDrilldownView(APIView):
 
         if role == UserRole.ADMIN.value:
             try:
-                employee = User.objects.get(id=employee_id, role=UserRole.TEAM_MEMBER.value, created_by=request.user)
+                employee = User.objects.get(
+                    id=employee_id,
+                    role=UserRole.TEAM_MEMBER.value,
+                    created_by=request.user,
+                )
             except User.DoesNotExist:
                 return error_response(
                     message="Unauthorized or employee not found",
@@ -2638,7 +2823,9 @@ class EmployeeScorecardDrilldownView(APIView):
                 )
         elif role == UserRole.SUPER_ADMIN.value:
             try:
-                employee = User.objects.get(id=employee_id, role=UserRole.TEAM_MEMBER.value)
+                employee = User.objects.get(
+                    id=employee_id, role=UserRole.TEAM_MEMBER.value
+                )
             except User.DoesNotExist:
                 return error_response(
                     message="Employee not found",
@@ -2650,11 +2837,15 @@ class EmployeeScorecardDrilldownView(APIView):
                 status_code=status.HTTP_403_FORBIDDEN,
             )
 
-        scorecards = EmployeeScorecard.objects.filter(employee=employee).order_by("month")
+        scorecards = EmployeeScorecard.objects.filter(employee=employee).order_by(
+            "month"
+        )
         scorecards_data = EmployeeScorecardSerializer(scorecards, many=True).data
 
         total_tasks = Task.objects.filter(assignees=employee).count()
-        completed_tasks = Task.objects.filter(assignees=employee, status=TaskStatus.COMPLETED).count()
+        completed_tasks = Task.objects.filter(
+            assignees=employee, status=TaskStatus.COMPLETED
+        ).count()
 
         return success_response(
             data={
@@ -2668,8 +2859,14 @@ class EmployeeScorecardDrilldownView(APIView):
                 "task_metrics": {
                     "total_tasks": total_tasks,
                     "completed_tasks": completed_tasks,
-                    "completion_rate": round((completed_tasks / total_tasks * 100.0) if total_tasks > 0 else 100.0, 2),
-                }
+                    "completion_rate": round(
+                        (
+                            (completed_tasks / total_tasks * 100.0)
+                            if total_tasks > 0
+                            else 100.0
+                        ),
+                        2,
+                    ),
+                },
             }
         )
-
