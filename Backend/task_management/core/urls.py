@@ -167,5 +167,8 @@ urlpatterns = [
     path("scorecards/save/", EmployeeScorecardSaveView.as_view()),
     path("scorecards/<int:pk>/review/", EmployeeScorecardReviewView.as_view()),
     path("scorecards/dashboard/", EmployeeScorecardDashboardView.as_view()),
-    path("scorecards/drilldown/<int:employee_id>/", EmployeeScorecardDrilldownView.as_view()),
+    path(
+        "scorecards/drilldown/<int:employee_id>/",
+        EmployeeScorecardDrilldownView.as_view(),
+    ),
 ]
