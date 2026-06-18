@@ -1,6 +1,7 @@
+import React from 'react';
 import { getAvatarStyle } from '../utils/avatar';
 
-const TaskCard = ({ task, openEdit, isOverdue, COLUMNS, moveTask }) => {
+const TaskCard = React.memo(({ task, openEdit, isOverdue, COLUMNS, moveTask }) => {
     return (
         <div
             className="kanban-card"
@@ -58,7 +59,7 @@ const TaskCard = ({ task, openEdit, isOverdue, COLUMNS, moveTask }) => {
                                             src={a.profile_picture}
                                             alt="Avatar"
                                             className="ext-tasks-190"
-                                        />
+                                         />
                                     ) : (
                                         a.username?.charAt(0).toUpperCase()
                                     )}
@@ -123,6 +124,6 @@ const TaskCard = ({ task, openEdit, isOverdue, COLUMNS, moveTask }) => {
             </div>
         </div>
     );
-};
+});
 
 export default TaskCard;

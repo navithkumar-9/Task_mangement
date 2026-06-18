@@ -1348,7 +1348,7 @@ class TaskCommentListCreateView(APIView):
 
     def _get_task_or_403(self, request, task_id):
         try:
-            task = Task.objects.get(id=task_id)
+            task = Task.objects.select_related("assigned_by", "assigned_by__created_by").get(id=task_id)
         except Task.DoesNotExist:
             return None, error_response(
                 message="Task not found",
@@ -1380,7 +1380,8 @@ class TaskCommentListCreateView(APIView):
         if err:
             return err
 
-        comments = task.comments.select_related("user")
+        # Limit to last 200 comments to prevent huge payload fetches
+        comments = task.comments.select_related("user").order_by("created_at")[:200]
         serializer = TaskCommentSerializer(comments, many=True)
         return success_response(
             message="Comments fetched",
@@ -1408,7 +1409,12 @@ class TaskCommentListCreateView(APIView):
 
         # ── Create notifications for relevant users ──
         sender = request.user
-        assignee_ids = set(task.assignees.values_list("id", flat=True))
+        
+        # Combine assignee queries into one single values_list read
+        assignee_data = list(task.assignees.values_list("id", "created_by_id"))
+        assignee_ids = {item[0] for item in assignee_data}
+        assignee_managers = {item[1] for item in assignee_data if item[1]}
+        
         admin_id = task.assigned_by_id
 
         # Collect all recipient IDs (assignees + creator + managers), excluding the commenter
@@ -1416,12 +1422,6 @@ class TaskCommentListCreateView(APIView):
         if task.assigned_by and task.assigned_by.created_by_id:
             recipient_ids.add(task.assigned_by.created_by_id)
 
-        # Include the admin managers/leaders of all assignees
-        assignee_managers = set(
-            task.assignees.filter(created_by__isnull=False).values_list(
-                "created_by_id", flat=True
-            )
-        )
         recipient_ids.update(assignee_managers)
 
         recipient_ids.discard(sender.id)
@@ -1473,7 +1473,8 @@ class SubTaskListCreateView(APIView):
                 status_code=status.HTTP_404_NOT_FOUND,
             )
 
-        subtasks = task.subtasks.all()
+        # Limit to 100 subtasks to prevent large payload fetches
+        subtasks = task.subtasks.all()[:100]
         serializer = SubTaskSerializer(subtasks, many=True)
         return success_response(
             message="Subtasks fetched",
@@ -1603,7 +1604,7 @@ class NotificationListView(APIView):
         one_day_ago = timezone.now() - datetime.timedelta(days=1)
         queryset = Notification.objects.filter(
             recipient=request.user, created_at__gte=one_day_ago
-        ).select_related("sender", "task")
+        ).select_related("sender", "task", "comment")
 
         unread = request.GET.get("unread")
         if unread and unread.lower() in ("true", "1"):
@@ -1657,8 +1658,9 @@ class NotificationMarkReadView(APIView):
                 status_code=status.HTTP_404_NOT_FOUND,
             )
 
-        notification.is_read = True
-        notification.save()
+        if not notification.is_read:
+            notification.is_read = True
+            notification.save(update_fields=["is_read"])
 
         return success_response(
             message="Notification marked as read",
@@ -2713,31 +2715,40 @@ class EmployeeScorecardDashboardView(APIView):
                 Q(overall_score__lt=70.0) | Q(task_completion_rate__lt=60.0)
             ).count()
 
+            # Optimize the admin loop using bulk queries
+            stats = EmployeeScorecard.objects.filter(month=month_date).values(
+                'employee__created_by'
+            ).annotate(
+                avg_score=Avg('overall_score'),
+                risk_count=Count('id', filter=Q(overall_score__lt=70.0) | Q(task_completion_rate__lt=60.0)),
+                member_count=Count('employee', distinct=True)
+            )
+
+            # Map admin ID to scorecard aggregates
+            stats_map = {
+                item['employee__created_by']: item 
+                for item in stats 
+                if item['employee__created_by'] is not None
+            }
+
+            # Map active team member counts for all admins
+            admin_member_counts = User.objects.filter(
+                role=UserRole.TEAM_MEMBER.value,
+                created_by__isnull=False
+            ).values('created_by').annotate(count=Count('id'))
+            member_count_map = {item['created_by']: item['count'] for item in admin_member_counts}
+
             admins = User.objects.filter(role=UserRole.ADMIN.value)
             team_comparison = []
             for admin in admins:
-                team_members = User.objects.filter(
-                    role=UserRole.TEAM_MEMBER.value, created_by=admin
-                )
-                team_scorecards = EmployeeScorecard.objects.filter(
-                    month=month_date, employee__in=team_members
-                )
-                team_avg = (
-                    team_scorecards.aggregate(Avg("overall_score"))[
-                        "overall_score__avg"
-                    ]
-                    or 0.0
-                )
-                team_risk = team_scorecards.filter(
-                    Q(overall_score__lt=70.0) | Q(task_completion_rate__lt=60.0)
-                ).count()
+                admin_stats = stats_map.get(admin.id, {})
                 team_comparison.append(
                     {
                         "admin_id": admin.id,
                         "admin_name": getattr(admin, "name", "") or admin.username,
-                        "member_count": team_members.count(),
-                        "team_average": round(team_avg, 2),
-                        "risk_alerts": team_risk,
+                        "member_count": member_count_map.get(admin.id, 0),
+                        "team_average": round(admin_stats.get('avg_score') or 0.0, 2),
+                        "risk_alerts": admin_stats.get('risk_count') or 0,
                     }
                 )
 
@@ -2768,23 +2779,25 @@ class EmployeeScorecardDashboardView(APIView):
                 Q(overall_score__lt=70.0) | Q(task_completion_rate__lt=60.0)
             ).count()
 
-            historical_averages = []
+            # Optimize the historical trend loop using 1 bulk query
+            past_dates = []
             for i in range(5, -1, -1):
-                past_date = month_date - datetime.timedelta(days=i * 30)
-                past_date = past_date.replace(day=1)
-                past_scorecards = EmployeeScorecard.objects.filter(
-                    month=past_date, employee__in=team_members
-                )
-                past_avg = (
-                    past_scorecards.aggregate(Avg("overall_score"))[
-                        "overall_score__avg"
-                    ]
-                    or 0.0
-                )
+                d = month_date - datetime.timedelta(days=i * 30)
+                past_dates.append(d.replace(day=1))
+
+            past_stats = EmployeeScorecard.objects.filter(
+                month__in=past_dates, employee__in=team_members
+            ).values('month').annotate(avg_score=Avg('overall_score'))
+
+            past_stats_map = {item['month']: item['avg_score'] for item in past_stats}
+
+            historical_averages = []
+            for past_date in past_dates:
+                avg_val = past_stats_map.get(past_date) or 0.0
                 historical_averages.append(
                     {
                         "month": past_date.strftime("%Y-%m"),
-                        "average": round(past_avg, 2),
+                        "average": round(avg_val, 2),
                     }
                 )
 
@@ -2837,7 +2850,7 @@ class EmployeeScorecardDrilldownView(APIView):
                 status_code=status.HTTP_403_FORBIDDEN,
             )
 
-        scorecards = EmployeeScorecard.objects.filter(employee=employee).order_by(
+        scorecards = EmployeeScorecard.objects.filter(employee=employee).select_related("employee").order_by(
             "month"
         )
         scorecards_data = EmployeeScorecardSerializer(scorecards, many=True).data
@@ -2869,4 +2882,173 @@ class EmployeeScorecardDrilldownView(APIView):
                     ),
                 },
             }
+        )
+
+
+class GlobalSearchView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        query_str = request.GET.get("q", "").strip()
+        if not query_str:
+            return success_response(
+                message="Query is empty",
+                data={"results": []}
+            )
+
+        results = []
+
+        # 1. Define Role-Scoped Querysets for Security
+        if request.user.role == UserRole.SUPER_ADMIN.value:
+            tasks_qs = Task.objects.all()
+            announcements_qs = Announcement.objects.all()
+        elif request.user.role == UserRole.ADMIN.value:
+            tasks_qs = Task.objects.filter(
+                Q(assigned_by=request.user) | Q(assigned_by__created_by=request.user)
+            )
+            announcements_qs = Announcement.objects.filter(
+                Q(
+                    sender__role=UserRole.SUPER_ADMIN.value,
+                    audience__in=[
+                        AnnouncementAudience.ADMINS_ONLY.value,
+                        AnnouncementAudience.ALL.value,
+                    ],
+                )
+                | Q(sender=request.user)
+            )
+        else:
+            tasks_qs = Task.objects.filter(
+                Q(assigned_by=request.user) | Q(assignees=request.user)
+            )
+            admin_user = request.user.created_by
+            if admin_user:
+                announcements_qs = Announcement.objects.filter(
+                    Q(
+                        sender__role=UserRole.SUPER_ADMIN.value,
+                        audience=AnnouncementAudience.ALL.value,
+                    )
+                    | Q(sender=admin_user, audience=AnnouncementAudience.MY_TEAM.value)
+                )
+            else:
+                announcements_qs = Announcement.objects.filter(
+                    sender__role=UserRole.SUPER_ADMIN.value,
+                    audience=AnnouncementAudience.ALL.value,
+                )
+
+        comments_qs = TaskComment.objects.filter(task__in=tasks_qs)
+
+        # 2. Attempt Elasticsearch Query
+        es_query = {
+            "query": {
+                "multi_match": {
+                    "query": query_str,
+                    "fields": [
+                        "task_name^3",
+                        "project_name^2",
+                        "description",
+                        "title^3",
+                        "message",
+                        "content"
+                    ],
+                    "fuzziness": "AUTO"
+                }
+            },
+            "size": 30
+        }
+
+        es_results = search_index(["tasks", "comments", "announcements"], es_query)
+
+        if es_results and "hits" in es_results and "hits" in es_results["hits"]:
+            # Extract IDs from hits to perform localized security filter checks
+            hit_task_ids = []
+            hit_comment_ids = []
+            hit_announcement_ids = []
+            for hit in es_results["hits"]["hits"]:
+                source = hit["_source"]
+                doc_type = source.get("type")
+                doc_id = source.get("id")
+                if doc_type == "task" and doc_id:
+                    hit_task_ids.append(doc_id)
+                elif doc_type == "comment" and doc_id:
+                    hit_comment_ids.append(doc_id)
+                elif doc_type == "announcement" and doc_id:
+                    hit_announcement_ids.append(doc_id)
+
+            # Query database to check permissions on ONLY the returned Elasticsearch matches (max 30)
+            allowed_task_ids = set(tasks_qs.filter(id__in=hit_task_ids).values_list('id', flat=True)) if hit_task_ids else set()
+            allowed_comment_ids = set(comments_qs.filter(id__in=hit_comment_ids).values_list('id', flat=True)) if hit_comment_ids else set()
+            allowed_announcement_ids = set(announcements_qs.filter(id__in=hit_announcement_ids).values_list('id', flat=True)) if hit_announcement_ids else set()
+
+            # Parse and Filter Elasticsearch Hits
+            for hit in es_results["hits"]["hits"]:
+                source = hit["_source"]
+                doc_type = source.get("type", "unknown")
+                doc_id = source.get("id")
+
+                # Apply security boundaries to search results
+                if doc_type == "task" and doc_id not in allowed_task_ids:
+                    continue
+                if doc_type == "comment" and doc_id not in allowed_comment_ids:
+                    continue
+                if doc_type == "announcement" and doc_id not in allowed_announcement_ids:
+                    continue
+
+                results.append({
+                    "id": doc_id,
+                    "type": doc_type,
+                    "title": source.get("task_name") or source.get("title") or f"{doc_type} #{doc_id}",
+                    "subtitle": source.get("project_name") or source.get("sender") or source.get("username") or "",
+                    "description": source.get("description") or source.get("message") or source.get("content") or "",
+                    "score": hit["_score"]
+                })
+        else:
+            # 3. Secure Database Fallback
+            # Find matching Tasks
+            tasks = tasks_qs.filter(
+                Q(task_name__icontains=query_str) |
+                Q(project_name__icontains=query_str) |
+                Q(description__icontains=query_str)
+            ).distinct()[:10]
+            for t in tasks:
+                results.append({
+                    "id": t.id,
+                    "type": "task",
+                    "title": t.task_name,
+                    "subtitle": t.project_name,
+                    "description": t.description[:150] if t.description else "",
+                    "score": 1.0
+                })
+
+            # Find matching Announcements (select_related sender to prevent N+1 queries)
+            announcements = announcements_qs.select_related("sender").filter(
+                Q(title__icontains=query_str) |
+                Q(message__icontains=query_str)
+            ).distinct()[:10]
+            for a in announcements:
+                results.append({
+                    "id": a.id,
+                    "type": "announcement",
+                    "title": a.title,
+                    "subtitle": a.sender.username if a.sender else "",
+                    "description": a.message[:150] if a.message else "",
+                    "score": 1.0
+                })
+
+            # Find matching Comments (select_related task and user to prevent N+1 queries)
+            comments = comments_qs.select_related("task", "user").filter(
+                Q(content__icontains=query_str)
+            ).distinct()[:10]
+            for c in comments:
+                results.append({
+                    "id": c.id,
+                    "type": "comment",
+                    "title": f"Comment on {c.task.task_name}" if c.task else "Comment",
+                    "subtitle": c.user.username if c.user else "",
+                    "description": c.content[:150] if c.content else "",
+                    "score": 1.0
+                })
+
+        return success_response(
+            message="Search results retrieved successfully",
+            data={"results": results}
         )

@@ -30,6 +30,8 @@ class User_model(AbstractUser):
         ordering = ["-created_at"]
         indexes = [
             models.Index(fields=["email"]),
+            models.Index(fields=["role"]),
+            models.Index(fields=["created_by"]),
         ]
 
     def __str__(self) -> str:
@@ -93,6 +95,8 @@ class Task(models.Model):
             models.Index(fields=["created_at"]),
             models.Index(fields=["project_name"]),
             models.Index(fields=["task_name"]),
+            models.Index(fields=["status", "updated_at"]),
+            models.Index(fields=["status", "due_date"]),
         ]
 
     def __str__(self):
@@ -100,7 +104,7 @@ class Task(models.Model):
 
 
 class Timesheet(models.Model):
-    
+
     team_member = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
@@ -159,6 +163,7 @@ class Timesheet(models.Model):
 
 class TaskComment(models.Model):
     """Activity/comment on a task — both admins and assigned team members can post."""
+
     task = models.ForeignKey(
         Task,
         on_delete=models.CASCADE,
@@ -174,6 +179,11 @@ class TaskComment(models.Model):
 
     class Meta:
         ordering = ["created_at"]
+        indexes = [
+            models.Index(fields=["task"]),
+            models.Index(fields=["user"]),
+            models.Index(fields=["created_at"]),
+        ]
 
     def __str__(self):
         return f"{self.user.username} on {self.task.task_name}"
@@ -181,6 +191,7 @@ class TaskComment(models.Model):
 
 class SubTask(models.Model):
     """Lightweight checklist-style subtask."""
+
     task = models.ForeignKey(
         Task,
         on_delete=models.CASCADE,
@@ -197,10 +208,9 @@ class SubTask(models.Model):
         return self.title
 
 
-
-
 class Notification(models.Model):
     """In-app notification triggered by task activity (comments)."""
+
     recipient = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
@@ -251,7 +261,7 @@ class AnnouncementAudience(models.TextChoices):
     ADMINS_ONLY = "ADMINS_ONLY", "Admins Only"
     ALL = "ALL", "All Users"
     MY_TEAM = "MY_TEAM", "My Team"
-  
+
 
 class Announcement(models.Model):
     sender = models.ForeignKey(
@@ -271,6 +281,11 @@ class Announcement(models.Model):
 
     class Meta:
         ordering = ["-created_at"]
+        indexes = [
+            models.Index(fields=["audience"]),
+            models.Index(fields=["sender"]),
+            models.Index(fields=["created_at"]),
+        ]
 
     def __str__(self):
         return f"{self.title} by {self.sender.username}"
@@ -293,9 +308,9 @@ class EmployeeScorecard(models.Model):
     month = models.DateField()  # Store the first day of the month (e.g. 2026-06-01)
     task_completion_rate = models.FloatField(default=0.0)
     working_hours = models.FloatField(default=0.0)
-    quality_score = models.FloatField(default=0.0)      # Graded 1.0 to 5.0
-    attendance_score = models.FloatField(default=0.0)   # Graded 1.0 to 5.0
-    overall_score = models.FloatField(default=0.0)      # Graded 0.0 to 100.0
+    quality_score = models.FloatField(default=0.0)  # Graded 1.0 to 5.0
+    attendance_score = models.FloatField(default=0.0)  # Graded 1.0 to 5.0
+    overall_score = models.FloatField(default=0.0)  # Graded 0.0 to 100.0
     status = models.CharField(
         max_length=20,
         choices=ScorecardStatus.choices,
@@ -317,20 +332,26 @@ class EmployeeScorecard(models.Model):
     def save(self, *args, **kwargs):
         # Calculate overall score based on the weights
         # Task Completion: 40%, Hours: 30% (target 160h), Quality: 20%, Attendance: 10%
-        hours_compliance = min(100.0, (self.working_hours / 160.0) * 100.0) if self.working_hours > 0 else 0.0
-        quality_pct = (self.quality_score / 5.0) * 100.0 if self.quality_score > 0 else 0.0
-        attendance_pct = (self.attendance_score / 5.0) * 100.0 if self.attendance_score > 0 else 0.0
-        
+        hours_compliance = (
+            min(100.0, (self.working_hours / 160.0) * 100.0)
+            if self.working_hours > 0
+            else 0.0
+        )
+        quality_pct = (
+            (self.quality_score / 5.0) * 100.0 if self.quality_score > 0 else 0.0
+        )
+        attendance_pct = (
+            (self.attendance_score / 5.0) * 100.0 if self.attendance_score > 0 else 0.0
+        )
+
         self.overall_score = round(
-            (self.task_completion_rate * 0.40) +
-            (hours_compliance * 0.30) +
-            (quality_pct * 0.20) +
-            (attendance_pct * 0.10),
-            2
+            (self.task_completion_rate * 0.40)
+            + (hours_compliance * 0.30)
+            + (quality_pct * 0.20)
+            + (attendance_pct * 0.10),
+            2,
         )
         super().save(*args, **kwargs)
 
     def __str__(self):
         return f"Scorecard - {self.employee.username} - {self.month.strftime('%Y-%m')}"
-
-

@@ -16,7 +16,23 @@ const CompletedTasks = () => {
     // Filters
     const [dateFilter, setDateFilter] = useState('');
     const [projectFilter, setProjectFilter] = useState('');
+    const [debouncedProjectFilter, setDebouncedProjectFilter] = useState('');
     const [employeeFilter, setEmployeeFilter] = useState('');
+    const [debouncedEmployeeFilter, setDebouncedEmployeeFilter] = useState('');
+
+    useEffect(() => {
+        const handler = setTimeout(() => {
+            setDebouncedProjectFilter(projectFilter);
+        }, 300);
+        return () => clearTimeout(handler);
+    }, [projectFilter]);
+
+    useEffect(() => {
+        const handler = setTimeout(() => {
+            setDebouncedEmployeeFilter(employeeFilter);
+        }, 300);
+        return () => clearTimeout(handler);
+    }, [employeeFilter]);
 
     // Selected Task Modal
     const [selectedTask, setSelectedTask] = useState(null);
@@ -30,7 +46,7 @@ const CompletedTasks = () => {
         if (isAdmin) {
             fetchCompletedTasks();
         }
-    }, [dateFilter, projectFilter, employeeFilter, page, sortBy]);
+    }, [dateFilter, debouncedProjectFilter, debouncedEmployeeFilter, page, sortBy]);
 
     const handleSort = (field) => {
         setSortBy((prevSort) => {
@@ -90,10 +106,10 @@ const CompletedTasks = () => {
         try {
             let query = `completed=true&page=${page}&sort_by=${sortBy}`;
             if (dateFilter) query += `&date=${encodeURIComponent(dateFilter)}`;
-            if (projectFilter)
-                query += `&project=${encodeURIComponent(projectFilter)}`;
-            if (employeeFilter)
-                query += `&employee_name=${encodeURIComponent(employeeFilter)}`;
+            if (debouncedProjectFilter)
+                query += `&project=${encodeURIComponent(debouncedProjectFilter)}`;
+            if (debouncedEmployeeFilter)
+                query += `&employee_name=${encodeURIComponent(debouncedEmployeeFilter)}`;
 
             const res = await API.get(`/tasks/admin/?${query}`);
             let items = [];
@@ -270,7 +286,9 @@ const CompletedTasks = () => {
                             onClick={() => {
                                 setDateFilter('');
                                 setProjectFilter('');
+                                setDebouncedProjectFilter('');
                                 setEmployeeFilter('');
+                                setDebouncedEmployeeFilter('');
                                 setPage(1);
                             }}
                         >

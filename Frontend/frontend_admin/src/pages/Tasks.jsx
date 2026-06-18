@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 
 import API from '../api/axios';
@@ -147,13 +147,21 @@ const Tasks = () => {
             : { task_names: [] },
     );
     const [selectedTaskFilter, setSelectedTaskFilter] = useState('');
+    const [debouncedTaskFilter, setDebouncedTaskFilter] = useState('');
+
+    useEffect(() => {
+        const handler = setTimeout(() => {
+            setDebouncedTaskFilter(selectedTaskFilter);
+        }, 300);
+        return () => clearTimeout(handler);
+    }, [selectedTaskFilter]);
 
     useEffect(() => {
         if (!user) return;
         fetchFilterOptions();
     }, [user]);
 
-    const fetchFilterOptions = async () => {
+    const fetchFilterOptions = useCallback(async () => {
         try {
             const res = await API.get('/tasks/filter-options/');
             if (res.data.success) {
@@ -163,45 +171,21 @@ const Tasks = () => {
         } catch (err) {
             console.error('Failed to fetch filter options', err);
         }
-    };
+    }, []);
 
     const uniqueTasks = useMemo(() => {
         return (filterOptions.task_names || []).sort();
     }, [filterOptions.task_names]);
 
-    useEffect(() => {
-        if (!user) return;
-        fetchTasks();
-
-        if (canCrud) {
-            fetchTeamMembers();
-        }
-    }, [user, canCrud, selectedTaskFilter, sortBy]);
-
-    /* ── Auto-open task from notification (URL ?taskId=X) ── */
-    useEffect(() => {
-        const taskIdParam = searchParams.get('taskId');
-        if (taskIdParam && tasks.length > 0) {
-            const taskToOpen = tasks.find(
-                (t) => String(t.id) === String(taskIdParam),
-            );
-            if (taskToOpen) {
-                openEdit(taskToOpen);
-                /* Clear the query param so refreshing doesn't re-open */
-                setSearchParams({}, { replace: true });
-            }
-        }
-    }, [tasks, searchParams]);
-
-    const fetchTasks = async () => {
+    const fetchTasks = useCallback(async () => {
         if (!cachedTasksList || cachedUserId !== user?.id) {
             setLoading(true);
         }
 
         try {
             const endpoint = canCrud
-                ? `/tasks/admin/?page_size=100&sort_by=${sortBy}${selectedTaskFilter ? `&search=${encodeURIComponent(selectedTaskFilter)}` : ''}`
-                : `/tasks/my-tasks/?page_size=100&sort_by=${sortBy}${selectedTaskFilter ? `&search=${encodeURIComponent(selectedTaskFilter)}` : ''}`;
+                ? `/tasks/admin/?page_size=100&sort_by=${sortBy}${debouncedTaskFilter ? `&search=${encodeURIComponent(debouncedTaskFilter)}` : ''}`
+                : `/tasks/my-tasks/?page_size=100&sort_by=${sortBy}${debouncedTaskFilter ? `&search=${encodeURIComponent(debouncedTaskFilter)}` : ''}`;
 
             const res = await API.get(endpoint);
 
@@ -226,9 +210,9 @@ const Tasks = () => {
         } finally {
             setLoading(false);
         }
-    };
+    }, [canCrud, sortBy, debouncedTaskFilter, user?.id]);
 
-    const fetchTeamMembers = async () => {
+    const fetchTeamMembers = useCallback(async () => {
         try {
             const res = await API.get('/admin/team-members/?page_size=100');
 
@@ -245,11 +229,20 @@ const Tasks = () => {
         } catch (err) {
             console.error('Failed to fetch team members', err);
         }
-    };
+    }, []);
+
+    useEffect(() => {
+        if (!user) return;
+        fetchTasks();
+
+        if (canCrud) {
+            fetchTeamMembers();
+        }
+    }, [user, canCrud, fetchTasks, fetchTeamMembers]);
 
     // ─── Comments API ───
 
-    const fetchComments = async (taskId) => {
+    const fetchComments = useCallback(async (taskId) => {
         setLoadingComments(true);
 
         try {
@@ -265,9 +258,70 @@ const Tasks = () => {
         } finally {
             setLoadingComments(false);
         }
-    };
+    }, []);
 
-    const postComment = async () => {
+    // ─── Subtasks API ───
+
+    const fetchSubtasks = useCallback(async (taskId) => {
+        try {
+            const res = await API.get(`/tasks/${taskId}/subtasks/`);
+
+            const data = res.data.data || res.data.results || res.data || [];
+
+            setSubtasks(Array.isArray(data) ? data : []);
+        } catch (err) {
+            console.error('Failed to fetch subtasks', err);
+
+            setSubtasks([]);
+        }
+    }, []);
+
+    const openEdit = useCallback((task) => {
+        setError(null);
+
+        setEditTask(task);
+
+        setForm({
+            task_name: task.task_name,
+
+            project_name: task.project_name,
+
+            description: task.description,
+
+            priority: task.priority,
+
+            status: task.status,
+
+            assignee_ids: task.assignees ? task.assignees.map((a) => a.id) : [],
+
+            due_date: task.due_date,
+
+            revised_due_date: task.revised_due_date || '',
+        });
+
+        setShowModal(true);
+
+        fetchComments(task.id);
+
+        fetchSubtasks(task.id);
+    }, [fetchComments, fetchSubtasks]);
+
+    /* ── Auto-open task from notification (URL ?taskId=X) ── */
+    useEffect(() => {
+        const taskIdParam = searchParams.get('taskId');
+        if (taskIdParam && tasks.length > 0) {
+            const taskToOpen = tasks.find(
+                (t) => String(t.id) === String(taskIdParam),
+            );
+            if (taskToOpen) {
+                openEdit(taskToOpen);
+                /* Clear the query param so refreshing doesn't re-open */
+                setSearchParams({}, { replace: true });
+            }
+        }
+    }, [tasks, searchParams, openEdit, setSearchParams]);
+
+    const postComment = useCallback(async () => {
         if (!commentText.trim() || !editTask) return;
 
         setPostingComment(true);
@@ -295,25 +349,9 @@ const Tasks = () => {
         } finally {
             setPostingComment(false);
         }
-    };
+    }, [commentText, editTask]);
 
-    // ─── Subtasks API ───
-
-    const fetchSubtasks = async (taskId) => {
-        try {
-            const res = await API.get(`/tasks/${taskId}/subtasks/`);
-
-            const data = res.data.data || res.data.results || res.data || [];
-
-            setSubtasks(Array.isArray(data) ? data : []);
-        } catch (err) {
-            console.error('Failed to fetch subtasks', err);
-
-            setSubtasks([]);
-        }
-    };
-
-    const addSubtask = async () => {
+    const addSubtask = useCallback(async () => {
         if (!newSubtaskTitle.trim() || !editTask) return;
 
         try {
@@ -331,9 +369,9 @@ const Tasks = () => {
         } catch (err) {
             console.error('Failed to add subtask', err);
         }
-    };
+    }, [newSubtaskTitle, editTask]);
 
-    const toggleSubtask = async (subtaskId, currentState) => {
+    const toggleSubtask = useCallback(async (subtaskId, currentState) => {
         if (!editTask) return;
 
         try {
@@ -351,9 +389,9 @@ const Tasks = () => {
         } catch (err) {
             console.error('Failed to toggle subtask', err);
         }
-    };
+    }, [editTask]);
 
-    const deleteSubtask = async (subtaskId) => {
+    const deleteSubtask = useCallback(async (subtaskId) => {
         if (!editTask) return;
 
         try {
@@ -363,11 +401,11 @@ const Tasks = () => {
         } catch (err) {
             console.error('Failed to delete subtask', err);
         }
-    };
+    }, [editTask]);
 
     // ─── Modal open/close ───
 
-    const openCreate = (status = 'PENDING') => {
+    const openCreate = useCallback((status = 'PENDING') => {
         if (!canCrud) return;
 
         setError(null);
@@ -397,39 +435,9 @@ const Tasks = () => {
         });
 
         setShowModal(true);
-    };
+    }, [canCrud]);
 
-    const openEdit = (task) => {
-        setError(null);
-
-        setEditTask(task);
-
-        setForm({
-            task_name: task.task_name,
-
-            project_name: task.project_name,
-
-            description: task.description,
-
-            priority: task.priority,
-
-            status: task.status,
-
-            assignee_ids: task.assignees ? task.assignees.map((a) => a.id) : [],
-
-            due_date: task.due_date,
-
-            revised_due_date: task.revised_due_date || '',
-        });
-
-        setShowModal(true);
-
-        fetchComments(task.id);
-
-        fetchSubtasks(task.id);
-    };
-
-    const handleSubmit = async (e) => {
+    const handleSubmit = useCallback(async (e) => {
         e.preventDefault();
 
         if (!canEditOrDelete) return;
@@ -464,9 +472,9 @@ const Tasks = () => {
 
             console.error('Task save error', err);
         }
-    };
+    }, [canEditOrDelete, form, editTask, fetchTasks]);
 
-    const deleteTask = async () => {
+    const deleteTask = useCallback(async () => {
         if (!canEditOrDelete || !editTask) return;
 
         if (!window.confirm('Are you sure you want to delete this task?'))
@@ -483,15 +491,15 @@ const Tasks = () => {
 
             console.error('Task delete error', err);
         }
-    };
+    }, [canEditOrDelete, editTask, fetchTasks]);
 
-    const moveTask = async (id, newStatus, e) => {
+    const moveTask = useCallback(async (id, newStatus, e) => {
         if (e) e.stopPropagation();
 
         const previousTasks = [...tasks];
 
-        setTasks(
-            tasks.map((t) => (t.id === id ? { ...t, status: newStatus } : t)),
+        setTasks((currentTasks) =>
+            currentTasks.map((t) => (t.id === id ? { ...t, status: newStatus } : t)),
         );
 
         try {
@@ -511,9 +519,9 @@ const Tasks = () => {
 
             setTasks(previousTasks);
         }
-    };
+    }, [tasks, isAdmin, user?.id, user?.username, user?.can_crud_tasks]);
 
-    const toggleAssignee = (memberId) => {
+    const toggleAssignee = useCallback((memberId) => {
         setForm((prev) => {
             const ids = prev.assignee_ids.includes(memberId)
                 ? prev.assignee_ids.filter((id) => id !== memberId)
@@ -521,9 +529,9 @@ const Tasks = () => {
 
             return { ...prev, assignee_ids: ids };
         });
-    };
+    }, []);
 
-    const isOverdue = (task) => {
+    const isOverdue = useCallback((task) => {
         const effectiveDue = task.revised_due_date || task.due_date;
 
         return (
@@ -531,7 +539,7 @@ const Tasks = () => {
             new Date(effectiveDue) < new Date(new Date().toDateString()) &&
             task.status !== 'COMPLETED'
         );
-    };
+    }, []);
 
     const todayStr = getTodayStr();
     const completedSubtasks = subtasks.filter((s) => s.is_completed).length;
@@ -558,23 +566,16 @@ const Tasks = () => {
                             gap: '8px',
                         }}
                     >
-                        <select
+                        <input
+                            type="text"
+                            placeholder="Search tasks by name..."
                             value={selectedTaskFilter}
                             onChange={(e) =>
                                 setSelectedTaskFilter(e.target.value)
                             }
-                            className="filter-select"
+                            className="filter-input"
                             style={{ minWidth: '180px' }}
-                        >
-                            <option value="">All Tasks</option>
-                            {uniqueTasks.map((name) => (
-                                <option key={name} value={name} title={name}>
-                                    {name.length > 25
-                                        ? name.substring(0, 25) + '...'
-                                        : name}
-                                </option>
-                            ))}
-                        </select>
+                        />
                         <select
                             value={sortBy}
                             onChange={(e) => setSortBy(e.target.value)}
@@ -601,7 +602,10 @@ const Tasks = () => {
                         {selectedTaskFilter && (
                             <button
                                 className="btn-clear-filter"
-                                onClick={() => setSelectedTaskFilter('')}
+                                onClick={() => {
+                                    setSelectedTaskFilter('');
+                                    setDebouncedTaskFilter('');
+                                }}
                                 style={{ padding: '8px 12px' }}
                             >
                                 <svg

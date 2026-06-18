@@ -71,6 +71,7 @@ const getTodayLocal = () => {
 /* ─── Task Detail Modal ─── */
 const TaskDetailModal = ({ tasks, date, onClose }) => {
     if (!tasks || tasks.length === 0) return null;
+    const todayLocal = getTodayLocal();
 
     const dateStr = date.toLocaleDateString('en-US', {
         weekday: 'long',
@@ -95,12 +96,8 @@ const TaskDetailModal = ({ tasks, date, onClose }) => {
             >
                 <div className="ext-calendar-38">
                     <div>
-                        <h2 className="ext-calendar-39">
-                            Tasks Due
-                        </h2>
-                        <p className="ext-calendar-40">
-                            {dateStr}
-                        </p>
+                        <h2 className="ext-calendar-39">Tasks Due</h2>
+                        <p className="ext-calendar-40">{dateStr}</p>
                     </div>
                     <button onClick={onClose} className="ext-calendar-41">
                         &times;
@@ -118,7 +115,7 @@ const TaskDetailModal = ({ tasks, date, onClose }) => {
                         const isOverdue =
                             task.status !== 'COMPLETED' &&
                             effectiveDue &&
-                            parseLocalDate(effectiveDue) < getTodayLocal();
+                            parseLocalDate(effectiveDue) < todayLocal;
 
                         return (
                             <div
@@ -220,6 +217,7 @@ const TaskDetailModal = ({ tasks, date, onClose }) => {
 
 /* ─── Main Calendar Component ─── */
 const Calendar = () => {
+    const todayLocal = useMemo(() => getTodayLocal(), []);
     const today = new Date();
     const [currentMonth, setCurrentMonth] = useState(today.getMonth());
     const [currentYear, setCurrentYear] = useState(today.getFullYear());
@@ -242,10 +240,16 @@ const Calendar = () => {
                 const day = String(d.getDate()).padStart(2, '0');
                 return `${year}-${month}-${day}`;
             };
-            const startStr = formatDateStr(new Date(currentYear, currentMonth - 1, 1));
-            const endStr = formatDateStr(new Date(currentYear, currentMonth + 2, 0));
+            const startStr = formatDateStr(
+                new Date(currentYear, currentMonth - 1, 1),
+            );
+            const endStr = formatDateStr(
+                new Date(currentYear, currentMonth + 2, 0),
+            );
 
-            const res = await API.get(`/tasks/progress/?page_size=500&start_date=${startStr}&end_date=${endStr}`);
+            const res = await API.get(
+                `/tasks/progress/?page_size=500&start_date=${startStr}&end_date=${endStr}`,
+            );
             let items = [];
             if (res.data.results && res.data.results.data)
                 items = res.data.results.data;
@@ -345,7 +349,7 @@ const Calendar = () => {
             return (
                 t.status !== 'COMPLETED' &&
                 activeDate &&
-                parseLocalDate(activeDate) < getTodayLocal()
+                parseLocalDate(activeDate) < todayLocal
             );
         });
         const completed = monthTasks.filter((t) => t.status === 'COMPLETED');
@@ -354,7 +358,7 @@ const Calendar = () => {
             return (
                 t.status !== 'COMPLETED' &&
                 activeDate &&
-                parseLocalDate(activeDate) >= getTodayLocal()
+                parseLocalDate(activeDate) >= todayLocal
             );
         });
         return {
@@ -363,7 +367,7 @@ const Calendar = () => {
             completed: completed.length,
             upcoming: upcoming.length,
         };
-    }, [filteredTasks, currentMonth, currentYear]);
+    }, [filteredTasks, currentMonth, currentYear, todayLocal]);
 
     const navigateMonth = (dir) => {
         let m = currentMonth + dir,
@@ -418,7 +422,15 @@ const Calendar = () => {
             </div>
 
             {teamMembers.length > 0 && (
-                <div className="filter-bar" style={{ marginBottom: '24px', background: 'var(--bg-white)', borderRadius: 'var(--radius)', border: '1px solid var(--border-color)' }}>
+                <div
+                    className="filter-bar"
+                    style={{
+                        marginBottom: '24px',
+                        background: 'var(--bg-white)',
+                        borderRadius: 'var(--radius)',
+                        border: '1px solid var(--border-color)',
+                    }}
+                >
                     <div className="filter-group">
                         <label className="form-label">Team Member</label>
                         <select
@@ -439,7 +451,14 @@ const Calendar = () => {
                             onClick={() => setMemberFilter('')}
                             className="btn-clear-filter"
                         >
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                            <svg
+                                width="14"
+                                height="14"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="2.5"
+                            >
                                 <line x1="18" y1="6" x2="6" y2="18"></line>
                                 <line x1="6" y1="6" x2="18" y2="18"></line>
                             </svg>
@@ -508,9 +527,7 @@ const Calendar = () => {
                             >
                                 {stat.value}
                             </div>
-                            <div className="ext-calendar-59">
-                                {stat.label}
-                            </div>
+                            <div className="ext-calendar-59">{stat.label}</div>
                         </div>
                     </div>
                 ))}
@@ -584,9 +601,7 @@ const Calendar = () => {
 
                 {/* Legend */}
                 <div className="ext-calendar-65">
-                    <span className="ext-calendar-66">
-                        PRIORITY:
-                    </span>
+                    <span className="ext-calendar-66">PRIORITY:</span>
                     {[
                         { label: 'High', color: '#ff6b6b' },
                         { label: 'Medium', color: '#ffb946' },
@@ -609,11 +624,13 @@ const Calendar = () => {
                 </div>
 
                 {loading ? (
-                        <div className="page-loader ext-calendar-69">
-                            <div className="page-loader-spinner"></div>
-                            <div className="page-loader-text">Loading calendar...</div>
+                    <div className="page-loader ext-calendar-69">
+                        <div className="page-loader-spinner"></div>
+                        <div className="page-loader-text">
+                            Loading calendar...
                         </div>
-                    ) : (
+                    </div>
+                ) : (
                     <div className="ext-calendar-70">
                         {/* Day Headers */}
                         <div className="ext-calendar-71">
@@ -649,7 +666,7 @@ const Calendar = () => {
                                         t.status !== 'COMPLETED' &&
                                         parseLocalDate(
                                             t.revised_due_date || t.due_date,
-                                        ) < getTodayLocal(),
+                                        ) < todayLocal,
                                 );
 
                                 return (
@@ -750,7 +767,7 @@ const Calendar = () => {
                                                     parseLocalDate(
                                                         task.revised_due_date ||
                                                             task.due_date,
-                                                    ) < getTodayLocal();
+                                                    ) < todayLocal;
                                                 return (
                                                     <div
                                                         key={task.id || tIdx}
@@ -767,11 +784,14 @@ const Calendar = () => {
                                                                     ? 'rgba(255,107,107,0.1)'
                                                                     : pColor.bg,
                                                             marginBottom: '2px',
-                                                            whiteSpace: 'nowrap',
+                                                            whiteSpace:
+                                                                'nowrap',
                                                             overflow: 'hidden',
-                                                            textOverflow: 'ellipsis',
+                                                            textOverflow:
+                                                                'ellipsis',
                                                             maxWidth: '100%',
-                                                            boxSizing: 'border-box',
+                                                            boxSizing:
+                                                                'border-box',
                                                             borderLeft: `2px solid ${taskOverdue ? '#ff6b6b' : pColor.color}`,
                                                             textDecoration:
                                                                 task.status ===
@@ -804,9 +824,7 @@ const Calendar = () => {
 
             {/* Upcoming Deadlines */}
             <div className="ext-calendar-75">
-                <div className="ext-calendar-76">
-                    Upcoming Deadlines
-                </div>
+                <div className="ext-calendar-76">Upcoming Deadlines</div>
                 <div className="ext-calendar-77">
                     {filteredTasks
                         .filter(
@@ -815,7 +833,7 @@ const Calendar = () => {
                                 (t.revised_due_date || t.due_date) &&
                                 parseLocalDate(
                                     t.revised_due_date || t.due_date,
-                                ) >= getTodayLocal(),
+                                ) >= todayLocal,
                         )
                         .sort(
                             (a, b) =>
@@ -838,8 +856,7 @@ const Calendar = () => {
                                 task.revised_due_date || task.due_date,
                             );
                             const diffDays = Math.round(
-                                (dueDate - getTodayLocal()) /
-                                    (1000 * 60 * 60 * 24),
+                                (dueDate - todayLocal) / (1000 * 60 * 60 * 24),
                             );
                             return (
                                 <div key={task.id} className="ext-calendar-78">
@@ -907,7 +924,7 @@ const Calendar = () => {
                             t.status !== 'COMPLETED' &&
                             (t.revised_due_date || t.due_date) &&
                             parseLocalDate(t.revised_due_date || t.due_date) >=
-                                getTodayLocal(),
+                                todayLocal,
                     ).length === 0 && (
                         <div className="ext-calendar-84">
                             No upcoming deadlines
@@ -921,7 +938,7 @@ const Calendar = () => {
                 <TaskDetailModal
                     tasks={selectedTasks}
                     date={selectedDate}
-                    onClose={() => {    
+                    onClose={() => {
                         setSelectedDate(null);
                         setSelectedTasks([]);
                     }}

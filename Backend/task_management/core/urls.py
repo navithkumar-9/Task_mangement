@@ -43,6 +43,7 @@ from .views import (
     EmployeeScorecardReviewView,
     EmployeeScorecardDashboardView,
     EmployeeScorecardDrilldownView,
+    GlobalSearchView,
 )
 
 urlpatterns = [
@@ -173,4 +174,5 @@ urlpatterns = [
         "scorecards/drilldown/<int:employee_id>/",
         EmployeeScorecardDrilldownView.as_view(),
     ),
+    path("search/", GlobalSearchView.as_view()),
 ]

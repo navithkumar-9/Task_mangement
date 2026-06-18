@@ -73,6 +73,7 @@ const getTodayLocal = () => {
 /* ─── Task Detail Modal ─── */
 const TaskDetailModal = ({ tasks, date, onClose }) => {
     if (!tasks || tasks.length === 0) return null;
+    const todayLocal = getTodayLocal();
 
     const dateStr = date.toLocaleDateString('en-US', {
         weekday: 'long',
@@ -122,7 +123,7 @@ const TaskDetailModal = ({ tasks, date, onClose }) => {
                         const isOverdue =
                             task.status !== 'COMPLETED' &&
                             effectiveDue &&
-                            parseLocalDate(effectiveDue) < getTodayLocal();
+                            parseLocalDate(effectiveDue) < todayLocal;
 
                         return (
                             <div
@@ -215,6 +216,7 @@ const TaskDetailModal = ({ tasks, date, onClose }) => {
 const Calendar = () => {
     const { user } = useAuth();
     const isAdmin = user?.role === 'ADMIN';
+    const todayLocal = useMemo(() => getTodayLocal(), []);
 
     const today = new Date();
     const [currentMonth, setCurrentMonth] = useState(today.getMonth());
@@ -349,12 +351,12 @@ const Calendar = () => {
         });
         const overdue = monthTasks.filter((t) => {
             const activeDate = t.revised_due_date || t.due_date;
-            return t.status !== 'COMPLETED' && activeDate && parseLocalDate(activeDate) < getTodayLocal();
+            return t.status !== 'COMPLETED' && activeDate && parseLocalDate(activeDate) < todayLocal;
         });
         const completed = monthTasks.filter((t) => t.status === 'COMPLETED');
         const upcoming = monthTasks.filter((t) => {
             const activeDate = t.revised_due_date || t.due_date;
-            return t.status !== 'COMPLETED' && activeDate && parseLocalDate(activeDate) >= getTodayLocal();
+            return t.status !== 'COMPLETED' && activeDate && parseLocalDate(activeDate) >= todayLocal;
         });
         return {
             total: monthTasks.length,
@@ -362,7 +364,7 @@ const Calendar = () => {
             completed: completed.length,
             upcoming: upcoming.length,
         };
-    }, [filteredTasks, currentMonth, currentYear]);
+    }, [filteredTasks, currentMonth, currentYear, todayLocal]);
 
     const navigateMonth = (dir) => {
         let newMonth = currentMonth + dir;
@@ -662,7 +664,7 @@ const Calendar = () => {
                                     (t) =>
                                         t.status !== 'COMPLETED' &&
                                         parseLocalDate(t.revised_due_date || t.due_date) <
-                                            getTodayLocal(),
+                                            todayLocal,
                                 );
 
                                 return (
@@ -708,7 +710,7 @@ const Calendar = () => {
                                                     task.status !==
                                                         'COMPLETED' &&
                                                     parseLocalDate(task.revised_due_date || task.due_date) <
-                                                        getTodayLocal();
+                                                        todayLocal;
 
                                                 return (
                                                     <div
@@ -764,7 +766,7 @@ const Calendar = () => {
                                 t.status !== 'COMPLETED' &&
                                 (t.revised_due_date || t.due_date) &&
                                 parseLocalDate(t.revised_due_date || t.due_date) >=
-                                    getTodayLocal(),
+                                    todayLocal,
                         )
                         .sort(
                             (a, b) =>
@@ -780,7 +782,7 @@ const Calendar = () => {
                                 statusColors.PENDING;
                             const dueDate = parseLocalDate(task.revised_due_date || task.due_date);
                             const diffDays = Math.round(
-                                (dueDate - getTodayLocal()) /
+                                (dueDate - todayLocal) /
                                     (1000 * 60 * 60 * 24),
                             );
 
@@ -851,7 +853,7 @@ const Calendar = () => {
                             t.status !== 'COMPLETED' &&
                             (t.revised_due_date || t.due_date) &&
                             parseLocalDate(t.revised_due_date || t.due_date) >=
-                                getTodayLocal(),
+                                todayLocal,
                     ).length === 0 && (
                         <div className="ext-calendar-83">
                             No upcoming deadlines

@@ -38,6 +38,7 @@ const NotificationPopup = () => {
     useEffect(() => {
         if (!user) return;
         const fetchCount = () => {
+            if (document.hidden) return; // Skip polling if the tab is inactive/backgrounded
             API.get('/notifications/unread-count/')
                 .then((res) => {
                     if (res.data?.success) setUnreadCount(res.data.data.count);

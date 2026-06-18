@@ -26,6 +26,6 @@ def home(request):
 
 urlpatterns = [
     path("", home),
-    path("admin/", admin.site.urls),
+    # path("admin/", admin.site.urls),  # Commented out as admin panel is not used
     path("api/", include("core.urls")),
 ]

@@ -212,13 +212,14 @@ class TaskCreateSerializer(serializers.ModelSerializer):
         if request.user.role == UserRole.TEAM_MEMBER.value:
             leader = request.user.created_by
 
-        for uid in value:
-            try:
-                User.objects.get(
-                    id=uid, role=UserRole.TEAM_MEMBER.value, created_by=leader
-                )
-            except User.DoesNotExist:
-                raise serializers.ValidationError(f"Invalid team member with id {uid}")
+        # Retrieve valid IDs using a single bulk query
+        valid_ids = set(User.objects.filter(
+            id__in=value, role=UserRole.TEAM_MEMBER.value, created_by=leader
+        ).values_list('id', flat=True))
+        
+        invalid_ids = set(value) - valid_ids
+        if invalid_ids:
+            raise serializers.ValidationError(f"Invalid team member IDs: {list(invalid_ids)}")
 
         return value
 
@@ -322,7 +323,7 @@ class TimesheetCreateSerializer(serializers.ModelSerializer):
         request = self.context["request"]
 
         try:
-            Task.objects.get(id=value, assignees=request.user)
+            self._task_obj = Task.objects.get(id=value, assignees=request.user)
         except Task.DoesNotExist:
             raise serializers.ValidationError("Invalid assigned task")
 
@@ -342,9 +343,13 @@ class TimesheetCreateSerializer(serializers.ModelSerializer):
 
         request = self.context["request"]
 
-        task_id = validated_data.pop("task_id")
+        validated_data.pop("task_id")
 
-        task = Task.objects.get(id=task_id)
+        # Reuse the already fetched task object to avoid a redundant DB query
+        task = getattr(self, "_task_obj", None)
+        if not task:
+            # Fallback if validation wasn't run for some reason
+            task = Task.objects.get(id=self.initial_data.get("task_id"))
 
         timesheet = Timesheet.objects.create(
             task=task, team_member=request.user, **validated_data

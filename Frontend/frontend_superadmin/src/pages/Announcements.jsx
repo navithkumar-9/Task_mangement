@@ -29,6 +29,7 @@ const Announcements = () => {
     const [announcements, setAnnouncements] = useState([]);
     const [loading, setLoading] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
+    const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
     const [sortBy, setSortBy] = useState('-created_at');
     const [page, setPage] = useState(1);
     const [pageSize, setPageSize] = useState(5);
@@ -55,15 +56,22 @@ const Announcements = () => {
     };
 
     useEffect(() => {
+        const handler = setTimeout(() => {
+            setDebouncedSearchQuery(searchQuery);
+        }, 300);
+        return () => clearTimeout(handler);
+    }, [searchQuery]);
+
+    useEffect(() => {
         fetchAnnouncements();
-    }, [page, searchQuery, sortBy, pageSize]);
+    }, [page, debouncedSearchQuery, sortBy, pageSize]);
 
     const fetchAnnouncements = async () => {
         setLoading(true);
         try {
             let endpoint = `/announcements/super-admin/?page=${page}&sort_by=${sortBy}&page_size=${pageSize}`;
-            if (searchQuery) {
-                endpoint += `&title=${encodeURIComponent(searchQuery)}`;
+            if (debouncedSearchQuery) {
+                endpoint += `&title=${encodeURIComponent(debouncedSearchQuery)}`;
             }
             const res = await API.get(endpoint);
             const count = res.data.count || 0;
