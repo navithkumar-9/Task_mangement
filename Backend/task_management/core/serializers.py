@@ -230,9 +230,10 @@ class TaskCreateSerializer(serializers.ModelSerializer):
 
         task = Task.objects.create(assigned_by=request.user, **validated_data)
 
-        # Retrieve selected assignees and include the creator by default if not already added
+        # Retrieve selected assignees
         assignees_list = list(User.objects.filter(id__in=assignee_ids))
-        if request.user not in assignees_list:
+        # Only auto-add creator as assignee for TEAM_MEMBER (not for ADMIN)
+        if request.user.role == UserRole.TEAM_MEMBER.value and request.user not in assignees_list:
             assignees_list.append(request.user)
 
         task.assignees.set(assignees_list)

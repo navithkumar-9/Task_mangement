@@ -51,6 +51,7 @@ const TaskModal = ({
     postingComment,
     commentsEndRef,
     canCrud,
+    isAdmin,
 }) => {
     if (!showModal) return null;
 

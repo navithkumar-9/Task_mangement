@@ -761,6 +761,7 @@ const Tasks = () => {
                 postingComment={postingComment}
                 commentsEndRef={commentsEndRef}
                 canCrud={canCrud}
+                isAdmin={isAdmin}
             />
         </div>
     );
