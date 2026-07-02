@@ -1,88 +1,182 @@
-from django.db.models.signals import post_save, post_delete, m2m_changed
+from django.db.models.signals import post_save, post_delete, pre_delete, m2m_changed
 from django.dispatch import receiver
+from django.db import transaction
 import threading
+
 from .models import Task, Timesheet, TaskComment, Announcement
-from .cache_utils import invalidate_task_cache, invalidate_timesheet_cache
+from .cache_utils import (
+    invalidate_task_cache,
+    invalidate_timesheet_cache,
+    clear_user_cache,
+    clear_superadmin_cache,
+)
 from .elasticsearch_client import index_document, delete_document
 
+
 def run_async(func, *args, **kwargs):
+    """Run a function in a daemon thread for non-blocking I/O (e.g. Elasticsearch)."""
     thread = threading.Thread(target=func, args=args, kwargs=kwargs)
     thread.daemon = True
     thread.start()
 
-def sync_task_to_es(task):
-    try:
-        doc = {
-            "id": task.id,
-            "type": "task",
-            "task_name": task.task_name,
-            "project_name": task.project_name,
-            "description": task.description or "",
-            "status": task.status,
-            "priority": task.priority,
-            "due_date": task.due_date.isoformat() if task.due_date else None,
-            "assignees": [a.username for a in task.assignees.all()],
-            "assigned_by": task.assigned_by.username if task.assigned_by else None,
-        }
-        run_async(index_document, "tasks", task.id, doc)
-    except Exception:
-        pass
+
+def _sync_task_to_es(task):
+    """Build ES document from committed task state and index asynchronously.
+    Performs database queries fully inside the background thread to avoid blocking main thread.
+    """
+    task_id = task.id
+    def run_sync():
+        try:
+            # Query inside the background thread with prefetch/select related to keep it optimized
+            t = Task.objects.prefetch_related("assignees").select_related("assigned_by").get(id=task_id)
+            doc = {
+                "id": t.id,
+                "type": "task",
+                "task_name": t.task_name,
+                "project_name": t.project_name,
+                "description": t.description or "",
+                "status": t.status,
+                "priority": t.priority,
+                "due_date": t.due_date.isoformat() if t.due_date else None,
+                "assignees": [a.username for a in t.assignees.all()],
+                "assigned_by": t.assigned_by.username if t.assigned_by else None,
+            }
+            index_document("tasks", t.id, doc)
+        except Exception:
+            pass
+
+    run_async(run_sync)
+
+
+# ─── Task Signals ───
+
 
 @receiver(post_save, sender=Task)
 def task_save_handler(sender, instance, **kwargs):
-    run_async(invalidate_task_cache, instance)
-    sync_task_to_es(instance)
+    """Invalidate caches and sync to ES after the transaction commits."""
+    transaction.on_commit(lambda: invalidate_task_cache(instance))
+    transaction.on_commit(lambda: _sync_task_to_es(instance))
 
-@receiver(post_delete, sender=Task)
-def task_delete_handler(sender, instance, **kwargs):
-    run_async(invalidate_task_cache, instance)
-    run_async(delete_document, "tasks", instance.id)
+
+@receiver(pre_delete, sender=Task)
+def task_pre_delete_handler(sender, instance, **kwargs):
+    """
+    Capture relationship IDs before deletion (M2M through-table entries are
+    cascade-deleted before post_delete fires, so we must read them here).
+    Cache invalidation and ES cleanup are deferred until after commit.
+    """
+    # Capture IDs while M2M relations still exist in the database
+    try:
+        assignee_ids = list(instance.assignees.values_list("id", flat=True))
+    except Exception:
+        assignee_ids = []
+
+    assigned_by_id = instance.assigned_by_id
+    leader_id = None
+    if assigned_by_id:
+        try:
+            leader_id = instance.assigned_by.created_by_id
+        except Exception:
+            pass
+    task_id = instance.id
+
+    def on_commit():
+        for uid in assignee_ids:
+            clear_user_cache(uid)
+        if assigned_by_id:
+            clear_user_cache(assigned_by_id)
+        if leader_id:
+            clear_user_cache(leader_id)
+        clear_superadmin_cache()
+        run_async(delete_document, "tasks", task_id)
+
+    transaction.on_commit(on_commit)
+
 
 @receiver(m2m_changed, sender=Task.assignees.through)
 def task_assignees_changed_handler(sender, instance, action, **kwargs):
-    if action in ["post_add", "post_remove", "post_clear"]:
-        run_async(invalidate_task_cache, instance)
-        sync_task_to_es(instance)
+    """Invalidate caches and sync to ES when assignees are added/removed."""
+    if action in ("post_add", "post_remove", "post_clear"):
+        transaction.on_commit(lambda: invalidate_task_cache(instance))
+        transaction.on_commit(lambda: _sync_task_to_es(instance))
+
+
+# ─── Timesheet Signals ───
+
 
 @receiver(post_save, sender=Timesheet)
 @receiver(post_delete, sender=Timesheet)
 def timesheet_change_handler(sender, instance, **kwargs):
-    run_async(invalidate_timesheet_cache, instance)
+    """Invalidate timesheet caches after the transaction commits.
+    FK values (team_member_id, task_id) remain on the Python instance
+    even after deletion, and the referenced rows still exist in the DB.
+    """
+    transaction.on_commit(lambda: invalidate_timesheet_cache(instance))
+
+
+# ─── Comment Signals ───
+
 
 @receiver(post_save, sender=TaskComment)
 def comment_save_handler(sender, instance, **kwargs):
-    try:
-        doc = {
-            "id": instance.id,
-            "type": "comment",
-            "task_id": instance.task.id if instance.task else None,
-            "task_name": instance.task.task_name if instance.task else "",
-            "username": instance.user.username if instance.user else "",
-            "content": instance.content,
-        }
-        run_async(index_document, "comments", instance.id, doc)
-    except Exception:
-        pass
+    """Index comment in Elasticsearch after commit.
+    Performs database queries fully inside the background thread to avoid blocking main thread.
+    """
+    comment_id = instance.id
+    def run_sync():
+        try:
+            c = TaskComment.objects.select_related("task", "user").get(id=comment_id)
+            doc = {
+                "id": c.id,
+                "type": "comment",
+                "task_id": c.task.id if c.task else None,
+                "task_name": c.task.task_name if c.task else "",
+                "username": c.user.username if c.user else "",
+                "content": c.content,
+            }
+            index_document("comments", c.id, doc)
+        except Exception:
+            pass
+
+    transaction.on_commit(lambda: run_async(run_sync))
+
 
 @receiver(post_delete, sender=TaskComment)
 def comment_delete_handler(sender, instance, **kwargs):
-    run_async(delete_document, "comments", instance.id)
+    """Remove comment from Elasticsearch after commit."""
+    comment_id = instance.id
+    transaction.on_commit(lambda: run_async(delete_document, "comments", comment_id))
+
+
+# ─── Announcement Signals ───
+
 
 @receiver(post_save, sender=Announcement)
 def announcement_save_handler(sender, instance, **kwargs):
-    try:
-        doc = {
-            "id": instance.id,
-            "type": "announcement",
-            "title": instance.title,
-            "message": instance.message,
-            "audience": instance.audience,
-            "sender": instance.sender.username if instance.sender else "",
-        }
-        run_async(index_document, "announcements", instance.id, doc)
-    except Exception:
-        pass
+    """Index announcement in Elasticsearch after commit.
+    Performs database queries fully inside the background thread to avoid blocking main thread.
+    """
+    announcement_id = instance.id
+    def run_sync():
+        try:
+            a = Announcement.objects.select_related("sender").get(id=announcement_id)
+            doc = {
+                "id": a.id,
+                "type": "announcement",
+                "title": a.title,
+                "message": a.message,
+                "audience": a.audience,
+                "sender": a.sender.username if a.sender else "",
+            }
+            index_document("announcements", a.id, doc)
+        except Exception:
+            pass
+
+    transaction.on_commit(lambda: run_async(run_sync))
+
 
 @receiver(post_delete, sender=Announcement)
 def announcement_delete_handler(sender, instance, **kwargs):
-    run_async(delete_document, "announcements", instance.id)
+    """Remove announcement from Elasticsearch after commit."""
+    ann_id = instance.id
+    transaction.on_commit(lambda: run_async(delete_document, "announcements", ann_id))
