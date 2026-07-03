@@ -615,6 +615,7 @@ class CreateTaskView(APIView):
             )
 
         task = serializer.save()
+        task = Task.objects.prefetch_related("assignees").select_related("assigned_by", "assigned_by__created_by").get(id=task.id)
 
         return success_response(
             message="Task created successfully",
@@ -762,6 +763,7 @@ class AdminTaskDetailView(APIView):
             )
 
         updated_task = serializer.save()
+        updated_task = Task.objects.prefetch_related("assignees").select_related("assigned_by", "assigned_by__created_by").get(id=updated_task.id)
 
         return success_response(
             message="Task updated successfully",
@@ -997,6 +999,7 @@ class CreateTimesheetView(APIView):
             )
 
         timesheet = serializer.save()
+        timesheet = Timesheet.objects.select_related("task__assigned_by__created_by", "team_member").get(id=timesheet.id)
 
         return success_response(
             message="Timesheet created successfully",
@@ -1321,7 +1324,7 @@ class TaskFullDetailView(APIView):
                 )
             )
         )
-        is_assignee = task.assignees.filter(id=request.user.id).exists()
+        is_assignee = any(a.id == request.user.id for a in task.assignees.all())
         is_super = request.user.role == UserRole.SUPER_ADMIN.value
 
         if not (is_admin_owner or is_assignee or is_super):
@@ -1348,7 +1351,7 @@ class TaskCommentListCreateView(APIView):
 
     def _get_task_or_403(self, request, task_id):
         try:
-            task = Task.objects.select_related("assigned_by", "assigned_by__created_by").get(id=task_id)
+            task = Task.objects.select_related("assigned_by", "assigned_by__created_by").prefetch_related("assignees").get(id=task_id)
         except Task.DoesNotExist:
             return None, error_response(
                 message="Task not found",
@@ -1365,7 +1368,7 @@ class TaskCommentListCreateView(APIView):
                 )
             )
         )
-        is_assignee = task.assignees.filter(id=request.user.id).exists()
+        is_assignee = any(a.id == request.user.id for a in task.assignees.all())
         is_super = request.user.role == UserRole.SUPER_ADMIN.value
 
         if not (is_admin_owner or is_assignee or is_super):
@@ -1671,7 +1674,7 @@ class SubTaskUpdateDeleteView(APIView):
             )
 
         try:
-            subtask = SubTask.objects.get(id=subtask_id, task_id=task_id)
+            subtask = SubTask.objects.select_related("task__assigned_by__created_by").get(id=subtask_id, task_id=task_id)
             task = subtask.task
             if request.user.role == UserRole.ADMIN.value:
                 if (
@@ -1753,7 +1756,7 @@ class NotificationMarkReadView(APIView):
 
     def patch(self, request, notification_id):
         try:
-            notification = Notification.objects.get(
+            notification = Notification.objects.select_related("sender", "task", "comment").get(
                 id=notification_id, recipient=request.user
             )
         except Notification.DoesNotExist:
@@ -1820,17 +1823,17 @@ class CreateAnnouncementView(APIView):
         sender = request.user
         recipients = []
         if announcement.audience == "ADMINS_ONLY":
-            recipients = User.objects.filter(role=UserRole.ADMIN.value).exclude(
+            recipients = list(User.objects.filter(role=UserRole.ADMIN.value).exclude(
                 id=sender.id
-            )
+            ))
         elif announcement.audience == "ALL":
-            recipients = User.objects.filter(
+            recipients = list(User.objects.filter(
                 role__in=[UserRole.ADMIN.value, UserRole.TEAM_MEMBER.value]
-            ).exclude(id=sender.id)
+            ).exclude(id=sender.id))
         elif announcement.audience == "MY_TEAM":
-            recipients = User.objects.filter(
+            recipients = list(User.objects.filter(
                 role=UserRole.TEAM_MEMBER.value, created_by=sender
-            )
+            ))
 
         notifications = [
             Notification(
@@ -1925,7 +1928,7 @@ class AnnouncementDetailView(APIView):
 
     def put(self, request, announcement_id):
         try:
-            announcement = Announcement.objects.get(id=announcement_id)
+            announcement = Announcement.objects.select_related("sender").get(id=announcement_id)
         except Announcement.DoesNotExist:
             return error_response(
                 message="Announcement not found",
@@ -1956,7 +1959,7 @@ class AnnouncementDetailView(APIView):
 
     def delete(self, request, announcement_id):
         try:
-            announcement = Announcement.objects.get(id=announcement_id)
+            announcement = Announcement.objects.select_related("sender").get(id=announcement_id)
         except Announcement.DoesNotExist:
             return error_response(
                 message="Announcement not found",
@@ -2185,35 +2188,32 @@ class DashboardStatsView(APIView):
             else:
                 timesheets_qs = Timesheet.objects.filter(team_member=user)
 
-        total_count = tasks_qs.count()
-        completed_count = tasks_qs.filter(status=TaskStatus.COMPLETED).count()
-        active_count = total_count - completed_count
-
         today = timezone.localdate()
-        overdue_count = (
-            tasks_qs.exclude(status__in=[TaskStatus.COMPLETED, TaskStatus.HOLD])
-            .filter(due_date__lt=today)
-            .count()
+        agg = tasks_qs.aggregate(
+            total=Count('id'),
+            completed=Count('id', filter=Q(status=TaskStatus.COMPLETED)),
+            overdue=Count('id', filter=~Q(status__in=[TaskStatus.COMPLETED, TaskStatus.HOLD]) & Q(due_date__lt=today)),
+            pending=Count('id', filter=Q(status=TaskStatus.PENDING)),
+            in_progress=Count('id', filter=Q(status=TaskStatus.IN_PROGRESS)),
+            in_review=Count('id', filter=Q(status=TaskStatus.IN_REVIEW)),
+            hold=Count('id', filter=Q(status=TaskStatus.HOLD))
         )
+        total_count = agg["total"] or 0
+        completed_count = agg["completed"] or 0
+        active_count = total_count - completed_count
+        overdue_count = agg["overdue"] or 0
 
         progress = (
             round((completed_count / total_count) * 100) if total_count > 0 else 0
         )
 
-        status_counts = tasks_qs.values("status").annotate(count=Count("id"))
         status_map = {
-            "PENDING": 0,
-            "IN_PROGRESS": 0,
-            "IN_REVIEW": 0,
-            "HOLD": 0,
-            "COMPLETED": 0,
+            "PENDING": agg["pending"] or 0,
+            "IN_PROGRESS": agg["in_progress"] or 0,
+            "IN_REVIEW": agg["in_review"] or 0,
+            "HOLD": agg["hold"] or 0,
+            "COMPLETED": completed_count,
         }
-        for item in status_counts:
-            stat = item["status"]
-            if stat in status_map:
-                status_map[stat] = item["count"]
-            else:
-                status_map[stat] = item["count"]
 
         active_tasks = tasks_qs.exclude(status=TaskStatus.COMPLETED)
         workload_query = active_tasks.values("assignees__username").annotate(
@@ -2302,7 +2302,7 @@ class DashboardStatsView(APIView):
                     "type": "TASK",
                     "date": t.created_at.isoformat(),
                     "title": f"Task Created: {t.task_name}",
-                    "desc": f"{', '.join(['@' + u.username for u in t.assignees.all()]) if t.assignees.exists() else 'Someone'} was assigned to {t.project_name}",
+                    "desc": f"{', '.join(['@' + u.username for u in t.assignees.all()]) if t.assignees.all() else 'Someone'} was assigned to {t.project_name}",
                     "user": t.assigned_by.username if t.assigned_by else "Admin",
                 }
             )
@@ -3004,10 +3004,12 @@ class EmployeeScorecardDrilldownView(APIView):
         scorecards_data = EmployeeScorecardSerializer(scorecards, many=True).data
 
         # Lifetime metrics
-        lifetime_total = Task.objects.filter(assignees=employee).exclude(status=TaskStatus.HOLD).count()
-        lifetime_completed = Task.objects.filter(
-            assignees=employee, status=TaskStatus.COMPLETED
-        ).count()
+        lifetime_agg = Task.objects.filter(assignees=employee).aggregate(
+            total=Count("id", filter=~Q(status=TaskStatus.HOLD)),
+            completed=Count("id", filter=Q(status=TaskStatus.COMPLETED))
+        )
+        lifetime_total = lifetime_agg["total"] or 0
+        lifetime_completed = lifetime_agg["completed"] or 0
 
         # Monthly metrics (if month param provided)
         month_str = request.GET.get("month")
@@ -3033,14 +3035,14 @@ class EmployeeScorecardDrilldownView(APIView):
                 pass
 
         if start_date and end_date:
-            monthly_total = Task.objects.filter(
+            monthly_agg = Task.objects.filter(
                 assignees=employee, due_date__range=(start_date, end_date)
-            ).exclude(status=TaskStatus.HOLD).count()
-            monthly_completed = Task.objects.filter(
-                assignees=employee,
-                status=TaskStatus.COMPLETED,
-                due_date__range=(start_date, end_date)
-            ).count()
+            ).aggregate(
+                total=Count("id", filter=~Q(status=TaskStatus.HOLD)),
+                completed=Count("id", filter=Q(status=TaskStatus.COMPLETED))
+            )
+            monthly_total = monthly_agg["total"] or 0
+            monthly_completed = monthly_agg["completed"] or 0
         else:
             monthly_total = lifetime_total
             monthly_completed = lifetime_completed

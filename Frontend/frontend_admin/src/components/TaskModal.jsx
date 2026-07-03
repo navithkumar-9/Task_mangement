@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { getAvatarStyle } from '../utils/avatar';
 
 const PRIORITIES = ['LOW', 'MEDIUM', 'HIGH'];
@@ -949,4 +949,4 @@ const TaskModal = ({
     );
 };
 
-export default TaskModal;
+export default React.memo(TaskModal);

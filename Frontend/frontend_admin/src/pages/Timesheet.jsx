@@ -1,5 +1,18 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useCallback } from 'react';
 import API from '../api/axios';
+
+function useDebounce(value, delay) {
+    const [debouncedValue, setDebouncedValue] = useState(value);
+    useEffect(() => {
+        const handler = setTimeout(() => {
+            setDebouncedValue(value);
+        }, delay);
+        return () => {
+            clearTimeout(handler);
+        };
+    }, [value, delay]);
+    return debouncedValue;
+}
 import { useAuth } from '../context/AuthContext';
 import { getAvatarStyle } from '../utils/avatar';
 
@@ -139,26 +152,27 @@ const Timesheet = () => {
         return (filterOptions.task_names || []).sort();
     }, [filterOptions.task_names]);
 
-    useEffect(() => {
-        fetchTimesheets();
-        if (!isAdmin) {
-            fetchMyTasks();
+    const debouncedTaskName = useDebounce(taskNameFilter, 500);
+    const debouncedProjectName = useDebounce(projectNameFilter, 500);
+    const debouncedEmployee = useDebounce(employeeFilter, 500);
+
+    const fetchMyTasks = useCallback(async () => {
+        try {
+            const res = await API.get('/tasks/my-tasks/?page_size=1000');
+            let items = [];
+            if (res.data.results && res.data.results.data)
+                items = res.data.results.data;
+            else if (res.data.data) items = res.data.data;
+            else if (res.data.results) items = res.data.results;
+            else items = res.data;
+
+            setMyTasks(Array.isArray(items) ? items : []);
+        } catch (err) {
+            console.error('Failed to fetch my tasks', err);
         }
-    }, [
-        isAdmin,
-        dateFilter,
-        taskNameFilter,
-        projectNameFilter,
-        employeeFilter,
-        page,
-        sortBy,
-    ]);
+    }, []);
 
-    useEffect(() => {
-        setPage(1);
-    }, [dateFilter, taskNameFilter, projectNameFilter, employeeFilter]);
-
-    const fetchTimesheets = async () => {
+    const fetchTimesheets = useCallback(async () => {
         setLoading(true);
         try {
             const endpointBase = isAdmin
@@ -172,12 +186,12 @@ const Timesheet = () => {
                 const endUTC = endDate.toISOString();
                 query += `&start_date=${encodeURIComponent(startUTC)}&end_date=${encodeURIComponent(endUTC)}`;
             }
-            if (taskNameFilter)
-                query += `&task_name=${encodeURIComponent(taskNameFilter)}`;
-            if (projectNameFilter)
-                query += `&project_name=${encodeURIComponent(projectNameFilter)}`;
-            if (employeeFilter)
-                query += `&employee_name=${encodeURIComponent(employeeFilter)}`;
+            if (debouncedTaskName)
+                query += `&task_name=${encodeURIComponent(debouncedTaskName)}`;
+            if (debouncedProjectName)
+                query += `&project_name=${encodeURIComponent(debouncedProjectName)}`;
+            if (debouncedEmployee)
+                query += `&employee_name=${encodeURIComponent(debouncedEmployee)}`;
             const endpoint = `${endpointBase}?${query}`;
             const res = await API.get(endpoint);
             let items = [];
@@ -196,36 +210,33 @@ const Timesheet = () => {
         } finally {
             setLoading(false);
         }
-    };
+    }, [isAdmin, page, sortBy, dateFilter, debouncedTaskName, debouncedProjectName, debouncedEmployee]);
 
-    const fetchMyTasks = async () => {
-        try {
-            const res = await API.get('/tasks/my-tasks/?page_size=1000');
-            let items = [];
-            if (res.data.results && res.data.results.data)
-                items = res.data.results.data;
-            else if (res.data.data) items = res.data.data;
-            else if (res.data.results) items = res.data.results;
-            else items = res.data;
+    useEffect(() => {
+        fetchTimesheets();
+    }, [fetchTimesheets]);
 
-            setMyTasks(Array.isArray(items) ? items : []);
-        } catch (err) {
-            console.error('Failed to fetch my tasks', err);
-        }
-    };
+    useEffect(() => {
+        if (!isAdmin) fetchMyTasks();
+    }, [isAdmin, fetchMyTasks]);
 
-    const handleTaskChange = (e) => {
+    useEffect(() => {
+        setPage(1);
+    }, [dateFilter, debouncedTaskName, debouncedProjectName, debouncedEmployee]);
+
+
+    const handleTaskChange = useCallback((e) => {
         const taskId = e.target.value;
         const selectedTask = myTasks.find((t) => t.id.toString() === taskId);
-        setForm({
-            ...form,
+        setForm((prev) => ({
+            ...prev,
             task_id: taskId,
             priority: selectedTask ? selectedTask.priority : 'MEDIUM',
             status: selectedTask ? selectedTask.status : 'PENDING',
-        });
-    };
+        }));
+    }, [myTasks]);
 
-    const handleSubmit = async (e) => {
+    const handleSubmit = useCallback(async (e) => {
         e.preventDefault();
         setFormError('');
         try {
@@ -250,7 +261,7 @@ const Timesheet = () => {
                 err.response?.data?.message || 'Failed to submit timesheet',
             );
         }
-    };
+    }, [form, fetchTimesheets]);
 
     const getStatusBadge = (status) => {
         const colorMap = {

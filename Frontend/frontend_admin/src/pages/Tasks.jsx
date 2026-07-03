@@ -91,13 +91,16 @@ const Tasks = () => {
     const [showModal, setShowModal] = useState(false);
 
     const [editTask, setEditTask] = useState(null);
-    const canEditOrDelete =
-        isAdmin ||
-        (!editTask
-            ? user?.can_crud_tasks
-            : user?.can_crud_tasks &&
-              (editTask.assigned_by?.id === user.id ||
-                  editTask.assigned_by?.username === user.username));
+    const canEditOrDelete = useMemo(() => {
+        return (
+            isAdmin ||
+            (!editTask
+                ? user?.can_crud_tasks
+                : user?.can_crud_tasks &&
+                  (editTask.assigned_by?.id === user.id ||
+                      editTask.assigned_by?.username === user.username))
+        );
+    }, [isAdmin, editTask, user]);
 
     const [loading, setLoading] = useState(false);
 
@@ -567,10 +570,20 @@ const Tasks = () => {
         );
     }, []);
 
-    const todayStr = getTodayStr();
-    const completedSubtasks = subtasks.filter((s) => s.is_completed).length;
-
+    const todayStr = useMemo(() => getTodayStr(), []);
+    const completedSubtasks = useMemo(() => subtasks.filter((s) => s.is_completed).length, [subtasks]);
     const totalSubtasks = subtasks.length;
+    
+    const tasksByStatus = useMemo(() => {
+        const grouped = {};
+        COLUMNS.forEach((c) => { grouped[c.id] = []; });
+        tasks.forEach((t) => {
+            if (grouped[t.status]) {
+                grouped[t.status].push(t);
+            }
+        });
+        return grouped;
+    }, [tasks]);
 
     return (
         <div className="page tasks-page">
@@ -683,9 +696,7 @@ const Tasks = () => {
             ) : (
                 <div className="kanban-board">
                     {COLUMNS.map((col) => {
-                        const colTasks = tasks.filter(
-                            (t) => t.status === col.id,
-                        );
+                        const colTasks = tasksByStatus[col.id] || [];
 
                         return (
                             <div className="kanban-column" key={col.id}>

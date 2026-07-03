@@ -213,9 +213,11 @@ class TaskCreateSerializer(serializers.ModelSerializer):
             leader = request.user.created_by
 
         # Retrieve valid IDs using a single bulk query
-        valid_ids = set(User.objects.filter(
+        valid_users = list(User.objects.filter(
             id__in=value, role=UserRole.TEAM_MEMBER.value, created_by=leader
-        ).values_list('id', flat=True))
+        ))
+        self._cached_assignees = valid_users
+        valid_ids = {u.id for u in valid_users}
         
         invalid_ids = set(value) - valid_ids
         if invalid_ids:
@@ -231,7 +233,9 @@ class TaskCreateSerializer(serializers.ModelSerializer):
         task = Task.objects.create(assigned_by=request.user, **validated_data)
 
         # Retrieve selected assignees
-        assignees_list = list(User.objects.filter(id__in=assignee_ids))
+        assignees_list = getattr(self, "_cached_assignees", None)
+        if assignees_list is None:
+            assignees_list = list(User.objects.filter(id__in=assignee_ids))
         # Only auto-add creator as assignee for TEAM_MEMBER (not for ADMIN)
         if request.user.role == UserRole.TEAM_MEMBER.value and request.user not in assignees_list:
             assignees_list.append(request.user)
@@ -268,7 +272,7 @@ class TaskListSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Task
-        fields = "__all__"
+        exclude = ["description"]
 
     def get_assignees(self, obj):
 
@@ -397,7 +401,7 @@ class TimesheetListSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Timesheet
-        fields = "__all__"
+        exclude = ["description"]
 
     def get_task(self, obj):
 

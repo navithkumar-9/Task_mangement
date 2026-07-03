@@ -72,15 +72,7 @@ def clear_user_cache(user_id):
     try:
         cache.incr(version_key)
     except Exception:
-        # Fallback if increment fails (e.g. key does not exist or backend is LocMemCache)
-        try:
-            val = cache.get(version_key)
-            if val is None:
-                cache.set(version_key, 1, timeout=None)
-            else:
-                cache.set(version_key, int(val) + 1, timeout=None)
-        except Exception:
-            cache.set(version_key, 1, timeout=None)
+        cache.set(version_key, 1, timeout=None)
 
 def clear_superadmin_cache():
     """Clear all caches for superadmins by atomically incrementing their version (O(1) invalidation)."""
@@ -88,40 +80,37 @@ def clear_superadmin_cache():
     try:
         cache.incr(version_key)
     except Exception:
-        try:
-            val = cache.get(version_key)
-            if val is None:
-                cache.set(version_key, 1, timeout=None)
-            else:
-                cache.set(version_key, int(val) + 1, timeout=None)
-        except Exception:
-            cache.set(version_key, 1, timeout=None)
+        cache.set(version_key, 1, timeout=None)
 
-def invalidate_task_cache(task):
+def invalidate_task_cache(task, assignee_ids=None, leader_id=None):
     """Clear caches for all assignees, creator, and superadmins."""
     if task:
-        try:
-            for assignee_id in task.assignees.values_list('id', flat=True):
-                clear_user_cache(assignee_id)
-        except Exception:
-            pass
+        if assignee_ids is None:
+            try:
+                assignee_ids = list(task.assignees.values_list('id', flat=True))
+            except Exception:
+                assignee_ids = []
+        for assignee_id in assignee_ids:
+            clear_user_cache(assignee_id)
+            
         if task.assigned_by_id:
             clear_user_cache(task.assigned_by_id)
-            try:
-                leader_id = task.assigned_by.created_by_id
-                if leader_id:
-                    clear_user_cache(leader_id)
-            except Exception:
-                pass
+            if leader_id is None:
+                try:
+                    leader_id = task.assigned_by.created_by_id
+                except Exception:
+                    pass
+            if leader_id:
+                clear_user_cache(leader_id)
         clear_superadmin_cache()
 
-def invalidate_timesheet_cache(timesheet):
+def invalidate_timesheet_cache(timesheet, team_leader_id=None, task_assignee_ids=None, task_leader_id=None):
     """Clear caches for timesheet creator, creator's leader, related task, and superadmins."""
     if timesheet:
-        if timesheet.team_member:
-            clear_user_cache(timesheet.team_member.id)
-            if timesheet.team_member.created_by:
-                clear_user_cache(timesheet.team_member.created_by.id)
-        if timesheet.task:
-            invalidate_task_cache(timesheet.task)
+        if timesheet.team_member_id:
+            clear_user_cache(timesheet.team_member_id)
+            if team_leader_id:
+                clear_user_cache(team_leader_id)
+        if timesheet.task_id:
+            invalidate_task_cache(timesheet.task, assignee_ids=task_assignee_ids, leader_id=task_leader_id)
         clear_superadmin_cache()

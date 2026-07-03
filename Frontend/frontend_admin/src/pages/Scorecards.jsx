@@ -2,6 +2,51 @@ import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
 import API from '../api/axios';
 
+const ScorecardInfoTooltip = () => {
+    const [isHovered, setIsHovered] = useState(false);
+
+    return (
+        <div 
+            style={{ position: 'relative', display: 'flex', alignItems: 'center' }}
+            onMouseEnter={() => setIsHovered(true)}
+            onMouseLeave={() => setIsHovered(false)}
+        >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--text-muted)', cursor: 'help' }}>
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="12" y1="16" x2="12" y2="12"></line>
+                <line x1="12" y1="8" x2="12.01" y2="8"></line>
+            </svg>
+            
+            {isHovered && (
+                <div style={{
+                    position: 'absolute',
+                    top: '100%',
+                    left: '0',
+                    marginTop: '8px',
+                    width: '320px',
+                    background: 'var(--card-bg, #fff)',
+                    border: '1px solid var(--border-color)',
+                    borderRadius: '8px',
+                    padding: '16px',
+                    boxShadow: '0 10px 25px rgba(0,0,0,0.1)',
+                    zIndex: 100,
+                    fontSize: '13px',
+                    color: 'var(--text-color)'
+                }}>
+                    <h4 style={{ margin: '0 0 12px 0', fontSize: '14px', fontWeight: '600' }}>Scorecard Calculation</h4>
+                    <ul style={{ paddingLeft: '20px', margin: 0, display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        <li><strong>Performance (35%):</strong> Quality score (out of 5) assigned by admin, scaled to 100.</li>
+                        <li><strong>Completion (25%):</strong> Task completion rate (completed vs total tasks).</li>
+                        <li><strong>Discipline (25%):</strong> Average of Attendance score (out of 5) and Timesheet Compliance (logged hours vs expected).</li>
+                        <li><strong>Learning (15%):</strong> Learning rate score (out of 5) assigned by admin.</li>
+                    </ul>
+                </div>
+            )}
+        </div>
+    );
+};
+
+
 const Scorecards = () => {
     const { user } = useAuth();
     const isAdmin = user?.role === 'ADMIN';
@@ -167,8 +212,11 @@ const Scorecards = () => {
             <div className="page">
                 <div className="page-header" style={{ marginBottom: '24px' }}>
                     <div>
-                        <h1 className="page-title">Employee Scorecards</h1>
-                        <p className="page-subtitle">Evaluate your team performance and submit monthly ratings</p>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <h1 className="page-title" style={{ margin: 0 }}>Employee Scorecards</h1>
+                            <ScorecardInfoTooltip />
+                        </div>
+                        <p className="page-subtitle" style={{ marginTop: '4px' }}>Evaluate your team performance and submit monthly ratings</p>
                     </div>
                     <div className="filter-bar" style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
                         <label className="text-muted" style={{ fontSize: '14px', fontWeight: '500' }}>Select Month:</label>
@@ -610,8 +658,11 @@ const Scorecards = () => {
             <div className="page">
                 <div className="page-header" style={{ marginBottom: '24px' }}>
                     <div>
-                        <h1 className="page-title">My Performance Scorecard</h1>
-                        <p className="page-subtitle">Track your monthly scores, breakdown, and trends</p>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <h1 className="page-title" style={{ margin: 0 }}>My Performance Scorecard</h1>
+                            <ScorecardInfoTooltip />
+                        </div>
+                        <p className="page-subtitle" style={{ marginTop: '4px' }}>Track your monthly scores, breakdown, and trends</p>
                     </div>
                     <div className="filter-bar" style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
                         <label className="text-muted" style={{ fontSize: '14px', fontWeight: '500' }}>Select Month:</label>

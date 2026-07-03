@@ -97,6 +97,7 @@ class Task(models.Model):
             models.Index(fields=["task_name"]),
             models.Index(fields=["status", "updated_at"]),
             models.Index(fields=["status", "due_date"]),
+            models.Index(fields=["revised_due_date"]),
         ]
 
     def __str__(self):
@@ -147,11 +148,13 @@ class Timesheet(models.Model):
             models.Index(fields=["task"]),
             models.Index(fields=["status"]),
             models.Index(fields=["start_time"]),
+            models.Index(fields=["end_time"]),
             models.Index(fields=["created_at"]),
         ]
 
     def save(self, *args, **kwargs):
-        self.priority = self.task.priority
+        if not self.priority and getattr(self, "task_id", None):
+            self.priority = self.task.priority
         if self.start_time and self.end_time:
             total_seconds = (self.end_time - self.start_time).total_seconds()
             self.working_hours = round(total_seconds / 3600, 2)
@@ -250,6 +253,7 @@ class Notification(models.Model):
         ordering = ["-created_at"]
         indexes = [
             models.Index(fields=["recipient", "is_read"]),
+            models.Index(fields=["recipient", "created_at"]),
             models.Index(fields=["created_at"]),
         ]
 
@@ -332,6 +336,12 @@ class EmployeeScorecard(models.Model):
         ]
 
     def save(self, *args, **kwargs):
+        score_fields = {"quality_score", "attendance_score", "learning_rate_score", "timesheet_compliance", "task_completion_rate", "working_hours"}
+        update_fields = kwargs.get("update_fields", frozenset())
+        if update_fields and not any(f in score_fields for f in update_fields):
+            super().save(*args, **kwargs)
+            return
+
         # Calculate overall score based on the updated weights:
         # Performance (35%): Quality score scaled to 100
         # Completion (25%): Task completion rate

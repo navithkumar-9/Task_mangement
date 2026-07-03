@@ -55,7 +55,20 @@ def _sync_task_to_es(task):
 @receiver(post_save, sender=Task)
 def task_save_handler(sender, instance, **kwargs):
     """Invalidate caches and sync to ES after the transaction commits."""
-    transaction.on_commit(lambda: invalidate_task_cache(instance))
+    # Capture IDs to avoid querying in on_commit
+    try:
+        assignee_ids = list(instance.assignees.values_list("id", flat=True))
+    except Exception:
+        assignee_ids = []
+    
+    leader_id = None
+    if instance.assigned_by_id:
+        try:
+            leader_id = instance.assigned_by.created_by_id
+        except Exception:
+            pass
+            
+    transaction.on_commit(lambda: invalidate_task_cache(instance, assignee_ids=assignee_ids, leader_id=leader_id))
     transaction.on_commit(lambda: _sync_task_to_es(instance))
 
 
@@ -98,7 +111,17 @@ def task_pre_delete_handler(sender, instance, **kwargs):
 def task_assignees_changed_handler(sender, instance, action, **kwargs):
     """Invalidate caches and sync to ES when assignees are added/removed."""
     if action in ("post_add", "post_remove", "post_clear"):
-        transaction.on_commit(lambda: invalidate_task_cache(instance))
+        try:
+            assignee_ids = list(instance.assignees.values_list("id", flat=True))
+        except Exception:
+            assignee_ids = []
+        leader_id = None
+        if instance.assigned_by_id:
+            try:
+                leader_id = instance.assigned_by.created_by_id
+            except Exception:
+                pass
+        transaction.on_commit(lambda: invalidate_task_cache(instance, assignee_ids=assignee_ids, leader_id=leader_id))
         transaction.on_commit(lambda: _sync_task_to_es(instance))
 
 
@@ -108,11 +131,31 @@ def task_assignees_changed_handler(sender, instance, action, **kwargs):
 @receiver(post_save, sender=Timesheet)
 @receiver(post_delete, sender=Timesheet)
 def timesheet_change_handler(sender, instance, **kwargs):
-    """Invalidate timesheet caches after the transaction commits.
-    FK values (team_member_id, task_id) remain on the Python instance
-    even after deletion, and the referenced rows still exist in the DB.
-    """
-    transaction.on_commit(lambda: invalidate_timesheet_cache(instance))
+    """Invalidate timesheet caches after the transaction commits."""
+    team_leader_id = None
+    if instance.team_member_id:
+        try:
+            team_leader_id = User.objects.filter(id=instance.team_member_id).values_list("created_by_id", flat=True).first()
+        except Exception:
+            pass
+            
+    task_assignee_ids = []
+    task_leader_id = None
+    if instance.task_id:
+        try:
+            task_assignee_ids = list(Task.assignees.through.objects.filter(task_id=instance.task_id).values_list("user_id", flat=True))
+            assigned_by_id = Task.objects.filter(id=instance.task_id).values_list("assigned_by_id", flat=True).first()
+            if assigned_by_id:
+                task_leader_id = User.objects.filter(id=assigned_by_id).values_list("created_by_id", flat=True).first()
+        except Exception:
+            pass
+
+    transaction.on_commit(lambda: invalidate_timesheet_cache(
+        instance, 
+        team_leader_id=team_leader_id, 
+        task_assignee_ids=task_assignee_ids, 
+        task_leader_id=task_leader_id
+    ))
 
 
 # ─── Comment Signals ───

@@ -282,19 +282,31 @@ const Calendar = () => {
         );
     }, [tasks, memberFilter]);
 
-    // Group tasks by revised_due_date or due_date
     const tasksByDate = useMemo(() => {
         const map = {};
         filteredTasks.forEach((task) => {
             const activeDate = task.revised_due_date || task.due_date;
             if (activeDate) {
                 const key = activeDate; // "YYYY-MM-DD"
-                if (!map[key]) map[key] = [];
-                map[key].push(task);
+                if (!map[key]) {
+                    map[key] = { tasks: [], highestPriority: null, hasOverdue: false };
+                }
+                const dayData = map[key];
+                dayData.tasks.push(task);
+                
+                if (task.priority === 'HIGH') dayData.highestPriority = 'HIGH';
+                else if (task.priority === 'MEDIUM' && dayData.highestPriority !== 'HIGH') dayData.highestPriority = 'MEDIUM';
+                else if (!dayData.highestPriority) dayData.highestPriority = 'LOW';
+                
+                if (!dayData.hasOverdue && task.status !== 'COMPLETED' && task.status !== 'HOLD') {
+                    if (parseLocalDate(activeDate) < todayLocal) {
+                        dayData.hasOverdue = true;
+                    }
+                }
             }
         });
         return map;
-    }, [filteredTasks]);
+    }, [filteredTasks, todayLocal]);
 
     // Calendar grid calculation
     const calendarDays = useMemo(() => {
@@ -642,31 +654,13 @@ const Calendar = () => {
                         <div className="ext-calendar-72">
                             {calendarDays.map((dayObj, idx) => {
                                 const dateKey = getDateKey(dayObj);
-                                const dayTasks = tasksByDate[dateKey] || [];
+                                const dayData = tasksByDate[dateKey] || { tasks: [], highestPriority: null, hasOverdue: false };
+                                const dayTasks = dayData.tasks;
                                 const hasTasks = dayTasks.length > 0;
                                 const todayClass = isToday(dayObj);
 
-                                // Get highest priority for the dot color
-                                const highestPriority = dayTasks.reduce(
-                                    (acc, t) => {
-                                        if (t.priority === 'HIGH')
-                                            return 'HIGH';
-                                        if (
-                                            t.priority === 'MEDIUM' &&
-                                            acc !== 'HIGH'
-                                        )
-                                            return 'MEDIUM';
-                                        return acc || 'LOW';
-                                    },
-                                    null,
-                                );
-
-                                const hasOverdue = dayTasks.some(
-                                    (t) =>
-                                        t.status !== 'COMPLETED' &&
-                                        parseLocalDate(t.revised_due_date || t.due_date) <
-                                            todayLocal,
-                                );
+                                const highestPriority = dayData.highestPriority;
+                                const hasOverdue = dayData.hasOverdue;
 
                                 return (
                                     <div
