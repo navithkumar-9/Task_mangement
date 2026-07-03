@@ -21,6 +21,15 @@ from .emails import send_task_notification_email_async
 User = get_user_model()
 
 
+def get_profile_picture_summary(user):
+    if hasattr(user, "get_deferred_fields") and "profile_picture" in user.get_deferred_fields():
+        return ""
+    picture = getattr(user, "profile_picture", "") or ""
+    if picture.startswith("data:image/") or len(picture) > 2048:
+        return ""
+    return picture
+
+
 def serialize_team_leader(assigned_by):
     if not assigned_by:
         return None
@@ -36,7 +45,7 @@ def serialize_team_leader(assigned_by):
             "id": leader.id,
             "username": leader.username,
             "name": getattr(leader, "name", "") or "",
-            "profile_picture": getattr(leader, "profile_picture", "") or "",
+            "profile_picture": get_profile_picture_summary(leader),
             "role": leader.role,
         }
     return None
@@ -282,7 +291,7 @@ class TaskListSerializer(serializers.ModelSerializer):
                 "username": user.username,
                 "email": user.email,
                 "name": getattr(user, "name", "") or "",
-                "profile_picture": getattr(user, "profile_picture", "") or "",
+                "profile_picture": get_profile_picture_summary(user),
             }
             for user in obj.assignees.all()
         ]
@@ -294,7 +303,7 @@ class TaskListSerializer(serializers.ModelSerializer):
             "username": obj.assigned_by.username,
             "email": obj.assigned_by.email,
             "name": getattr(obj.assigned_by, "name", "") or "",
-            "profile_picture": getattr(obj.assigned_by, "profile_picture", "") or "",
+            "profile_picture": get_profile_picture_summary(obj.assigned_by),
         }
 
     def get_team_leader(self, obj):
@@ -414,8 +423,7 @@ class TimesheetListSerializer(serializers.ModelSerializer):
                 "id": obj.task.assigned_by.id,
                 "username": obj.task.assigned_by.username,
                 "name": getattr(obj.task.assigned_by, "name", "") or "",
-                "profile_picture": getattr(obj.task.assigned_by, "profile_picture", "")
-                or "",
+                "profile_picture": get_profile_picture_summary(obj.task.assigned_by),
             },
             "assignees": [
                 {
@@ -423,7 +431,7 @@ class TimesheetListSerializer(serializers.ModelSerializer):
                     "username": user.username,
                     "email": user.email,
                     "name": getattr(user, "name", "") or "",
-                    "profile_picture": getattr(user, "profile_picture", "") or "",
+                    "profile_picture": get_profile_picture_summary(user),
                 }
                 for user in obj.task.assignees.all()
             ],
@@ -437,7 +445,7 @@ class TimesheetListSerializer(serializers.ModelSerializer):
             "username": obj.team_member.username,
             "email": obj.team_member.email,
             "name": getattr(obj.team_member, "name", "") or "",
-            "profile_picture": getattr(obj.team_member, "profile_picture", "") or "",
+            "profile_picture": get_profile_picture_summary(obj.team_member),
         }
 
     def get_team_leader(self, obj):
@@ -460,7 +468,7 @@ class TaskCommentSerializer(serializers.ModelSerializer):
             "id": obj.user.id,
             "username": obj.user.username,
             "name": getattr(obj.user, "name", "") or "",
-            "profile_picture": getattr(obj.user, "profile_picture", "") or "",
+            "profile_picture": get_profile_picture_summary(obj.user),
         }
 
 
@@ -495,7 +503,7 @@ class TaskDetailSerializer(serializers.ModelSerializer):
                 "username": user.username,
                 "email": user.email,
                 "name": getattr(user, "name", "") or "",
-                "profile_picture": getattr(user, "profile_picture", "") or "",
+                "profile_picture": get_profile_picture_summary(user),
             }
             for user in obj.assignees.all()
         ]
@@ -506,7 +514,7 @@ class TaskDetailSerializer(serializers.ModelSerializer):
             "username": obj.assigned_by.username,
             "email": obj.assigned_by.email,
             "name": getattr(obj.assigned_by, "name", "") or "",
-            "profile_picture": getattr(obj.assigned_by, "profile_picture", "") or "",
+            "profile_picture": get_profile_picture_summary(obj.assigned_by),
         }
 
     def get_team_leader(self, obj):
@@ -546,7 +554,7 @@ class NotificationSerializer(serializers.ModelSerializer):
             "id": obj.sender.id,
             "username": obj.sender.username,
             "name": getattr(obj.sender, "name", "") or "",
-            "profile_picture": getattr(obj.sender, "profile_picture", "") or "",
+            "profile_picture": get_profile_picture_summary(obj.sender),
         }
 
     def get_task_info(self, obj):
@@ -620,7 +628,7 @@ class AnnouncementListSerializer(serializers.ModelSerializer):
             "id": obj.sender.id,
             "username": obj.sender.username,
             "name": getattr(obj.sender, "name", "") or "",
-            "profile_picture": getattr(obj.sender, "profile_picture", "") or "",
+            "profile_picture": get_profile_picture_summary(obj.sender),
             "role": obj.sender.role,
         }
 
@@ -653,7 +661,7 @@ class EmployeeScorecardSerializer(serializers.ModelSerializer):
             "id": obj.employee.id,
             "username": obj.employee.username,
             "name": getattr(obj.employee, "name", "") or "",
-            "profile_picture": getattr(obj.employee, "profile_picture", "") or "",
+            "profile_picture": get_profile_picture_summary(obj.employee),
         }
 
 

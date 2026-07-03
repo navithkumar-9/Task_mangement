@@ -5,13 +5,14 @@ from dotenv import load_dotenv
 from django.contrib.auth import get_user_model
 from django.utils import timezone
 from django.core.cache import cache
-from django.db.models import Q, Count, Avg, F, Sum
+from django.db.models import Q, Count, Avg, F, Sum, Prefetch
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework_simplejwt.tokens import RefreshToken
 from core.cache_utils import make_cache_key
+from core.elasticsearch_client import search_index
 from .serializers import (
     LoginSerializer,
     CreateAdminSerializer,
@@ -33,6 +34,7 @@ from .serializers import (
     AnnouncementListSerializer,
     EmployeeScorecardSerializer,
     EmployeeScorecardCreateUpdateSerializer,
+    get_profile_picture_summary,
 )
 from .permissions import IsAdmin, IsSuperAdmin, CanCrudTasks
 from .roles import UserRole
@@ -54,6 +56,10 @@ from .models import (
 load_dotenv()
 
 User = get_user_model()
+
+
+def user_summary_queryset():
+    return User.objects.only("id", "username", "email", "name", "role", "created_by_id")
 
 
 def get_tokens(user):
@@ -459,17 +465,29 @@ class TeamMemberListForAdminView(APIView):
             sort_by = "-id"
 
         if request.user.role == UserRole.ADMIN.value:
-            queryset = User.objects.filter(
-                role=UserRole.TEAM_MEMBER.value, created_by=request.user
-            ).order_by(sort_by)
+            queryset = (
+                User.objects.filter(
+                    role=UserRole.TEAM_MEMBER.value, created_by=request.user
+                )
+                .defer("profile_picture")
+                .order_by(sort_by)
+            )
         else:
             leader = request.user.created_by
             if leader:
-                queryset = User.objects.filter(
-                    role=UserRole.TEAM_MEMBER.value, created_by=leader
-                ).order_by(sort_by)
+                queryset = (
+                    User.objects.filter(
+                        role=UserRole.TEAM_MEMBER.value, created_by=leader
+                    )
+                    .defer("profile_picture")
+                    .order_by(sort_by)
+                )
             else:
-                queryset = User.objects.filter(id=request.user.id).order_by(sort_by)
+                queryset = (
+                    User.objects.filter(id=request.user.id)
+                    .defer("profile_picture")
+                    .order_by(sort_by)
+                )
 
         if search:
             queryset = queryset.filter(
@@ -491,7 +509,7 @@ class TeamMemberListForAdminView(APIView):
                 "role": user.role,
                 "name": getattr(user, "name", "") or "",
                 "employee_id": getattr(user, "employee_id", "") or "",
-                "profile_picture": getattr(user, "profile_picture", "") or "",
+                "profile_picture": get_profile_picture_summary(user),
             }
             for user in paginated_queryset
         ]
@@ -615,7 +633,12 @@ class CreateTaskView(APIView):
             )
 
         task = serializer.save()
-        task = Task.objects.prefetch_related("assignees").select_related("assigned_by", "assigned_by__created_by").get(id=task.id)
+        task = (
+            Task.objects.select_related("assigned_by", "assigned_by__created_by")
+            .defer("assigned_by__profile_picture", "assigned_by__created_by__profile_picture")
+            .prefetch_related(Prefetch("assignees", queryset=user_summary_queryset()))
+            .get(id=task.id)
+        )
 
         return success_response(
             message="Task created successfully",
@@ -630,7 +653,7 @@ class AdminTaskListView(APIView):
 
     def get(self, request):
 
-        cache_key = make_cache_key(f"user:{request.user.id}:tasks", request)
+        cache_key = make_cache_key(f"user:{request.user.id}:tasks:slim-v1", request)
         cached_data = cache.get(cache_key)
         if cached_data:
             return Response(cached_data)
@@ -646,9 +669,12 @@ class AdminTaskListView(APIView):
                 Q(assigned_by=request.user) | Q(assignees=request.user)
             )
 
-        queryset = queryset.prefetch_related("assignees").select_related(
-            "assigned_by", "assigned_by__created_by"
-        ).distinct()
+        queryset = (
+            queryset.select_related("assigned_by", "assigned_by__created_by")
+            .defer("assigned_by__profile_picture", "assigned_by__created_by__profile_picture")
+            .prefetch_related(Prefetch("assignees", queryset=user_summary_queryset()))
+            .distinct()
+        )
 
         # Filters
         completed_param = request.GET.get("completed")
@@ -763,7 +789,12 @@ class AdminTaskDetailView(APIView):
             )
 
         updated_task = serializer.save()
-        updated_task = Task.objects.prefetch_related("assignees").select_related("assigned_by", "assigned_by__created_by").get(id=updated_task.id)
+        updated_task = (
+            Task.objects.select_related("assigned_by", "assigned_by__created_by")
+            .defer("assigned_by__profile_picture", "assigned_by__created_by__profile_picture")
+            .prefetch_related(Prefetch("assignees", queryset=user_summary_queryset()))
+            .get(id=updated_task.id)
+        )
 
         return success_response(
             message="Task updated successfully",
@@ -806,7 +837,7 @@ class TeamMemberTaskListView(APIView):
 
     def get(self, request):
 
-        cache_key = make_cache_key(f"user:{request.user.id}:tasks", request)
+        cache_key = make_cache_key(f"user:{request.user.id}:tasks:slim-v1", request)
         cached_data = cache.get(cache_key)
         if cached_data:
             return Response(cached_data)
@@ -817,8 +848,9 @@ class TeamMemberTaskListView(APIView):
 
         queryset = (
             Task.objects.filter(assignees=request.user)
-            .prefetch_related("assignees")
             .select_related("assigned_by", "assigned_by__created_by")
+            .defer("assigned_by__profile_picture", "assigned_by__created_by__profile_picture")
+            .prefetch_related(Prefetch("assignees", queryset=user_summary_queryset()))
             .distinct()
         )
 
@@ -910,7 +942,7 @@ class SuperAdminTaskProgressView(APIView):
 
     def get(self, request):
 
-        cache_key = make_cache_key("superadmin:task_progress", request)
+        cache_key = make_cache_key("superadmin:task_progress:slim-v1", request)
         cached_data = cache.get(cache_key)
         if cached_data:
             return Response(cached_data)
@@ -923,8 +955,10 @@ class SuperAdminTaskProgressView(APIView):
         start_date = request.GET.get("start_date")
         end_date = request.GET.get("end_date")
 
-        queryset = Task.objects.prefetch_related("assignees").select_related(
-            "assigned_by", "assigned_by__created_by"
+        queryset = (
+            Task.objects.select_related("assigned_by", "assigned_by__created_by")
+            .defer("assigned_by__profile_picture", "assigned_by__created_by__profile_picture")
+            .prefetch_related(Prefetch("assignees", queryset=user_summary_queryset()))
         )
 
         # Dropdown Filters
@@ -999,7 +1033,21 @@ class CreateTimesheetView(APIView):
             )
 
         timesheet = serializer.save()
-        timesheet = Timesheet.objects.select_related("task__assigned_by__created_by", "team_member").get(id=timesheet.id)
+        timesheet = (
+            Timesheet.objects.select_related(
+                "task",
+                "task__assigned_by",
+                "task__assigned_by__created_by",
+                "team_member",
+            )
+            .defer(
+                "team_member__profile_picture",
+                "task__assigned_by__profile_picture",
+                "task__assigned_by__created_by__profile_picture",
+            )
+            .prefetch_related(Prefetch("task__assignees", queryset=user_summary_queryset()))
+            .get(id=timesheet.id)
+        )
 
         return success_response(
             message="Timesheet created successfully",
@@ -1061,7 +1109,7 @@ class AdminTimesheetListView(APIView):
 
     def get(self, request):
 
-        cache_key = make_cache_key(f"user:{request.user.id}:timesheets", request)
+        cache_key = make_cache_key(f"user:{request.user.id}:timesheets:slim-v1", request)
         cached_data = cache.get(cache_key)
         if cached_data:
             return Response(cached_data)
@@ -1076,7 +1124,12 @@ class AdminTimesheetListView(APIView):
                 "task__assigned_by",
                 "task__assigned_by__created_by",
             )
-            .prefetch_related("task__assignees")
+            .defer(
+                "team_member__profile_picture",
+                "task__assigned_by__profile_picture",
+                "task__assigned_by__created_by__profile_picture",
+            )
+            .prefetch_related(Prefetch("task__assignees", queryset=user_summary_queryset()))
         )
 
         start_date = request.GET.get("start_date")
@@ -1141,7 +1194,7 @@ class SuperAdminTimesheetListView(APIView):
 
     def get(self, request):
 
-        cache_key = make_cache_key("superadmin:timesheets", request)
+        cache_key = make_cache_key("superadmin:timesheets:slim-v1", request)
         cached_data = cache.get(cache_key)
         if cached_data:
             return Response(cached_data)
@@ -1153,7 +1206,11 @@ class SuperAdminTimesheetListView(APIView):
             "team_member",
             "task__assigned_by",
             "task__assigned_by__created_by",
-        ).prefetch_related("task__assignees")
+        ).defer(
+            "team_member__profile_picture",
+            "task__assigned_by__profile_picture",
+            "task__assigned_by__created_by__profile_picture",
+        ).prefetch_related(Prefetch("task__assignees", queryset=user_summary_queryset()))
 
         start_date = request.GET.get("start_date")
         end_date = request.GET.get("end_date")
@@ -1217,7 +1274,7 @@ class TeamMemberTimesheetListView(APIView):
 
     def get(self, request):
 
-        cache_key = make_cache_key(f"user:{request.user.id}:timesheets", request)
+        cache_key = make_cache_key(f"user:{request.user.id}:timesheets:slim-v1", request)
         cached_data = cache.get(cache_key)
         if cached_data:
             return Response(cached_data)
@@ -1236,7 +1293,11 @@ class TeamMemberTimesheetListView(APIView):
             "team_member",
             "task__assigned_by",
             "task__assigned_by__created_by",
-        ).prefetch_related("task__assignees")
+        ).defer(
+            "team_member__profile_picture",
+            "task__assigned_by__profile_picture",
+            "task__assigned_by__created_by__profile_picture",
+        ).prefetch_related(Prefetch("task__assignees", queryset=user_summary_queryset()))
 
         start_date = request.GET.get("start_date")
         end_date = request.GET.get("end_date")
@@ -1304,8 +1365,18 @@ class TaskFullDetailView(APIView):
     def get(self, request, task_id):
         try:
             task = (
-                Task.objects.prefetch_related("assignees", "comments__user", "subtasks")
-                .select_related("assigned_by", "assigned_by__created_by")
+                Task.objects.select_related("assigned_by", "assigned_by__created_by")
+                .defer("assigned_by__profile_picture", "assigned_by__created_by__profile_picture")
+                .prefetch_related(
+                    Prefetch("assignees", queryset=user_summary_queryset()),
+                    Prefetch(
+                        "comments",
+                        queryset=TaskComment.objects.select_related("user").defer(
+                            "user__profile_picture"
+                        ),
+                    ),
+                    "subtasks",
+                )
                 .get(id=task_id)
             )
         except Task.DoesNotExist:
@@ -1351,7 +1422,12 @@ class TaskCommentListCreateView(APIView):
 
     def _get_task_or_403(self, request, task_id):
         try:
-            task = Task.objects.select_related("assigned_by", "assigned_by__created_by").prefetch_related("assignees").get(id=task_id)
+            task = (
+                Task.objects.select_related("assigned_by", "assigned_by__created_by")
+                .defer("assigned_by__profile_picture", "assigned_by__created_by__profile_picture")
+                .prefetch_related(Prefetch("assignees", queryset=user_summary_queryset()))
+                .get(id=task_id)
+            )
         except Task.DoesNotExist:
             return None, error_response(
                 message="Task not found",
@@ -1398,7 +1474,11 @@ class TaskCommentListCreateView(APIView):
             )
 
         # Limit to last 200 comments to prevent huge payload fetches
-        comments = task.comments.select_related("user").order_by("created_at")[:200]
+        comments = (
+            task.comments.select_related("user")
+            .defer("user__profile_picture")
+            .order_by("created_at")[:200]
+        )
         serializer = TaskCommentSerializer(comments, many=True)
 
         try:
@@ -1711,7 +1791,7 @@ class NotificationListView(APIView):
         one_day_ago = timezone.now() - datetime.timedelta(days=1)
         queryset = Notification.objects.filter(
             recipient=request.user, created_at__gte=one_day_ago
-        ).select_related("sender", "task", "comment")
+        ).select_related("sender", "task", "comment").defer("sender__profile_picture")
 
         unread = request.GET.get("unread")
         if unread and unread.lower() in ("true", "1"):
@@ -1756,8 +1836,10 @@ class NotificationMarkReadView(APIView):
 
     def patch(self, request, notification_id):
         try:
-            notification = Notification.objects.select_related("sender", "task", "comment").get(
-                id=notification_id, recipient=request.user
+            notification = (
+                Notification.objects.select_related("sender", "task", "comment")
+                .defer("sender__profile_picture")
+                .get(id=notification_id, recipient=request.user)
             )
         except Notification.DoesNotExist:
             return error_response(
@@ -1869,7 +1951,7 @@ class AnnouncementListView(APIView):
 
         # Redirect super admins to super admin list endpoint logic
         if user.role == UserRole.SUPER_ADMIN.value:
-            queryset = Announcement.objects.all().select_related("sender")
+            queryset = Announcement.objects.all().select_related("sender").defer("sender__profile_picture")
         elif user.role == UserRole.ADMIN.value:
             # Admins see Super Admin announcements sent to ADMINS_ONLY or ALL, and their own announcements
             queryset = Announcement.objects.filter(
@@ -1881,7 +1963,7 @@ class AnnouncementListView(APIView):
                     ],
                 )
                 | Q(sender=user)
-            ).select_related("sender")
+            ).select_related("sender").defer("sender__profile_picture")
         else:
             # Team Members see Super Admin announcements sent to ALL, and their own admin's announcements (sender=created_by, audience=MY_TEAM)
             admin_user = user.created_by
@@ -1892,12 +1974,12 @@ class AnnouncementListView(APIView):
                         audience=AnnouncementAudience.ALL.value,
                     )
                     | Q(sender=admin_user, audience=AnnouncementAudience.MY_TEAM.value)
-                ).select_related("sender")
+                ).select_related("sender").defer("sender__profile_picture")
             else:
                 queryset = Announcement.objects.filter(
                     sender__role=UserRole.SUPER_ADMIN.value,
                     audience=AnnouncementAudience.ALL.value,
-                ).select_related("sender")
+                ).select_related("sender").defer("sender__profile_picture")
 
         # Optional search by title
         title_query = request.GET.get("title")
@@ -1985,7 +2067,7 @@ class SuperAdminAnnouncementListView(APIView):
     permission_classes = [IsSuperAdmin]
 
     def get(self, request):
-        queryset = Announcement.objects.all().select_related("sender")
+        queryset = Announcement.objects.all().select_related("sender").defer("sender__profile_picture")
 
         # Optional search by title
         title_query = request.GET.get("title")
@@ -2235,9 +2317,11 @@ class DashboardStatsView(APIView):
         workload_data.sort(key=lambda x: x["tasks"], reverse=True)
 
         active_list = list(
-            active_tasks.prefetch_related("assignees").select_related(
+            active_tasks.select_related(
                 "assigned_by", "assigned_by__created_by"
-            )[:100]
+            )
+            .defer("assigned_by__profile_picture", "assigned_by__created_by__profile_picture")
+            .prefetch_related(Prefetch("assignees", queryset=user_summary_queryset()))[:100]
         )
         p_weight = {"HIGH": 3, "MEDIUM": 2, "LOW": 1}
 
@@ -2287,12 +2371,13 @@ class DashboardStatsView(APIView):
 
         recent_tasks = (
             tasks_qs.order_by("-created_at")
-            .prefetch_related("assignees")
-            .select_related("assigned_by", "assigned_by__created_by")[:10]
+            .select_related("assigned_by", "assigned_by__created_by")
+            .defer("assigned_by__profile_picture", "assigned_by__created_by__profile_picture")
+            .prefetch_related(Prefetch("assignees", queryset=user_summary_queryset()))[:10]
         )
         recent_timesheets = timesheets_qs.order_by("-created_at").select_related(
             "task", "team_member"
-        )[:10]
+        ).defer("team_member__profile_picture")[:10]
 
         activities = []
         for t in recent_tasks:
@@ -2553,8 +2638,8 @@ class EmployeeScorecardListView(APIView):
         if role == UserRole.SUPER_ADMIN.value:
             scorecards = EmployeeScorecard.objects.filter(
                 month=month_date
-            ).select_related("employee")
-            team_members = User.objects.filter(role=UserRole.TEAM_MEMBER.value)
+            ).select_related("employee").defer("employee__profile_picture")
+            team_members = User.objects.filter(role=UserRole.TEAM_MEMBER.value).defer("profile_picture")
             scorecard_map = {sc.employee.id: sc for sc in scorecards}
 
             missing_members = [tm for tm in team_members if tm.id not in scorecard_map]
@@ -2577,8 +2662,7 @@ class EmployeeScorecardListView(APIView):
                                 "id": tm.id,
                                 "username": tm.username,
                                 "name": getattr(tm, "name", "") or tm.username,
-                                "profile_picture": getattr(tm, "profile_picture", "")
-                                or "",
+                                "profile_picture": get_profile_picture_summary(tm),
                             },
                             "month": month_date.strftime("%Y-%m-%d"),
                             "task_completion_rate": tcr,
@@ -2611,10 +2695,10 @@ class EmployeeScorecardListView(APIView):
         elif role == UserRole.ADMIN.value:
             team_members = User.objects.filter(
                 role=UserRole.TEAM_MEMBER.value, created_by=request.user
-            )
+            ).defer("profile_picture")
             scorecards = EmployeeScorecard.objects.filter(
                 month=month_date, employee__in=team_members
-            ).select_related("employee")
+            ).select_related("employee").defer("employee__profile_picture")
             scorecard_map = {sc.employee.id: sc for sc in scorecards}
 
             missing_members = [tm for tm in team_members if tm.id not in scorecard_map]
@@ -2637,8 +2721,7 @@ class EmployeeScorecardListView(APIView):
                                 "id": tm.id,
                                 "username": tm.username,
                                 "name": getattr(tm, "name", "") or tm.username,
-                                "profile_picture": getattr(tm, "profile_picture", "")
-                                or "",
+                                "profile_picture": get_profile_picture_summary(tm),
                             },
                             "month": month_date.strftime("%Y-%m-%d"),
                             "task_completion_rate": tcr,
@@ -2670,7 +2753,9 @@ class EmployeeScorecardListView(APIView):
 
         elif role == UserRole.TEAM_MEMBER.value:
             try:
-                scorecard = EmployeeScorecard.objects.get(
+                scorecard = EmployeeScorecard.objects.select_related("employee").defer(
+                    "employee__profile_picture"
+                ).get(
                     employee=request.user,
                     month=month_date,
                     status=ScorecardStatus.PUBLISHED.value,
@@ -2681,7 +2766,7 @@ class EmployeeScorecardListView(APIView):
 
             history = EmployeeScorecard.objects.filter(
                 employee=request.user, status=ScorecardStatus.PUBLISHED.value
-            ).order_by("month")[:6]
+            ).select_related("employee").defer("employee__profile_picture").order_by("month")[:6]
             history_data = [EmployeeScorecardSerializer(sc).data for sc in history]
 
             leader = request.user.created_by
@@ -2998,8 +3083,11 @@ class EmployeeScorecardDrilldownView(APIView):
                 status_code=status.HTTP_403_FORBIDDEN,
             )
 
-        scorecards = EmployeeScorecard.objects.filter(employee=employee).select_related("employee").order_by(
-            "month"
+        scorecards = (
+            EmployeeScorecard.objects.filter(employee=employee)
+            .select_related("employee")
+            .defer("employee__profile_picture")
+            .order_by("month")
         )
         scorecards_data = EmployeeScorecardSerializer(scorecards, many=True).data
 
@@ -3053,7 +3141,7 @@ class EmployeeScorecardDrilldownView(APIView):
                     "id": employee.id,
                     "username": employee.username,
                     "name": getattr(employee, "name", "") or employee.username,
-                    "profile_picture": getattr(employee, "profile_picture", "") or "",
+                    "profile_picture": get_profile_picture_summary(employee),
                 },
                 "scorecards": scorecards_data,
                 "task_metrics": {
@@ -3093,6 +3181,14 @@ class GlobalSearchView(APIView):
             return success_response(
                 message="Query is empty",
                 data={"results": []}
+            )
+
+        cache_key = make_cache_key(f"user:{request.user.id}:search:v1", request)
+        cached_data = cache.get(cache_key)
+        if cached_data:
+            return success_response(
+                message="Search results retrieved successfully (cached)",
+                data=cached_data,
             )
 
         results = []
@@ -3219,7 +3315,7 @@ class GlobalSearchView(APIView):
                 })
 
             # Find matching Announcements (select_related sender to prevent N+1 queries)
-            announcements = announcements_qs.select_related("sender").filter(
+            announcements = announcements_qs.select_related("sender").defer("sender__profile_picture").filter(
                 Q(title__icontains=query_str) |
                 Q(message__icontains=query_str)
             ).distinct()[:10]
@@ -3234,7 +3330,7 @@ class GlobalSearchView(APIView):
                 })
 
             # Find matching Comments (select_related task and user to prevent N+1 queries)
-            comments = comments_qs.select_related("task", "user").filter(
+            comments = comments_qs.select_related("task", "user").defer("user__profile_picture").filter(
                 Q(content__icontains=query_str)
             ).distinct()[:10]
             for c in comments:
@@ -3247,7 +3343,10 @@ class GlobalSearchView(APIView):
                     "score": 1.0
                 })
 
+        response_data = {"results": results}
+        cache.set(cache_key, response_data, timeout=60)
+
         return success_response(
             message="Search results retrieved successfully",
-            data={"results": results}
+            data=response_data
         )

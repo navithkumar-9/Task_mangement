@@ -125,10 +125,6 @@ const Timesheet = () => {
         assignees: [],
     });
 
-    useEffect(() => {
-        fetchFilterOptions();
-    }, [isAdmin]);
-
     const fetchFilterOptions = async () => {
         try {
             const res = await API.get('/tasks/filter-options/');
@@ -139,6 +135,10 @@ const Timesheet = () => {
             console.error('Failed to fetch filter options', err);
         }
     };
+
+    useEffect(() => {
+        fetchFilterOptions();
+    }, [isAdmin]);
 
     const uniqueEmployees = useMemo(() => {
         return (filterOptions.assignees || []).sort();
