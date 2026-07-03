@@ -4,28 +4,15 @@ const API = axios.create({
     baseURL: import.meta.env.VITE_API_BASE_URL || '/api',
 });
 
-let cachedToken = null;
-
-// Retrieve access token from memory cache or fallback to localStorage
+// Retrieve access token from localStorage
 const getAccessToken = () => {
-    if (cachedToken) return cachedToken;
     try {
         const tokens = JSON.parse(localStorage.getItem('admin_tokens'));
-        cachedToken = tokens?.access || null;
+        return tokens?.access || null;
     } catch (e) {
-        cachedToken = null;
+        return null;
     }
-    return cachedToken;
 };
-
-// Invalidate token cache when storage changes in another window/tab
-if (typeof window !== 'undefined') {
-    window.addEventListener('storage', (e) => {
-        if (e.key === 'admin_tokens') {
-            cachedToken = null;
-        }
-    });
-}
 
 API.interceptors.request.use((config) => {
     const token = getAccessToken();
@@ -85,7 +72,6 @@ API.interceptors.response.use(
                             'admin_tokens',
                             JSON.stringify(newTokens),
                         );
-                        cachedToken = res.data.access; // Cache the new token
 
                         API.defaults.headers.common['Authorization'] =
                             `Bearer ${res.data.access}`;
@@ -99,7 +85,6 @@ API.interceptors.response.use(
                 processQueue(refreshError, null);
                 localStorage.removeItem('admin_tokens');
                 localStorage.removeItem('admin_user');
-                cachedToken = null; // Clear token cache
                 window.location.href = '/login';
                 return Promise.reject(refreshError);
             } finally {
@@ -108,7 +93,6 @@ API.interceptors.response.use(
 
             localStorage.removeItem('admin_tokens');
             localStorage.removeItem('admin_user');
-            cachedToken = null; // Clear token cache
             window.location.href = '/login';
         }
         return Promise.reject(error);

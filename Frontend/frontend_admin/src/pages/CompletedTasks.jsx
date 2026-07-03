@@ -3,6 +3,14 @@ import API from '../api/axios';
 import { useAuth } from '../context/AuthContext';
 import { getAvatarStyle } from '../utils/avatar';
 
+const isCommentEditAllowed = (createdAt) => {
+    if (!createdAt) return false;
+    const createdTime = new Date(createdAt).getTime();
+    const now = new Date().getTime();
+    const diffInMinutes = (now - createdTime) / 1000 / 60;
+    return diffInMinutes <= 15;
+};
+
 const CompletedTasks = () => {
     const { user } = useAuth();
     const isAdmin = user?.role === 'ADMIN';
@@ -40,6 +48,8 @@ const CompletedTasks = () => {
     const [commentText, setCommentText] = useState('');
     const [subtasks, setSubtasks] = useState([]);
     const [postingComment, setPostingComment] = useState(false);
+    const [editingCommentId, setEditingCommentId] = useState(null);
+    const [editingText, setEditingText] = useState('');
     const commentsEndRef = useRef(null);
 
     useEffect(() => {
@@ -198,6 +208,34 @@ const CompletedTasks = () => {
             console.error('Failed to add comment', err);
         } finally {
             setPostingComment(false);
+        }
+    };
+
+    const handleUpdateComment = async (commentId, newContent) => {
+        if (!newContent.trim() || !selectedTask) return;
+        try {
+            const res = await API.put(`/tasks/${selectedTask.id}/comments/${commentId}/`, {
+                content: newContent.trim(),
+            });
+            if (res.data.success && res.data.data) {
+                setComments((prev) =>
+                    prev.map((c) => (c.id === commentId ? { ...c, content: res.data.data.content } : c))
+                );
+            }
+        } catch (err) {
+            console.error('Failed to update comment', err);
+        }
+    };
+
+    const handleDeleteComment = async (commentId) => {
+        if (!selectedTask) return;
+        try {
+            const res = await API.delete(`/tasks/${selectedTask.id}/comments/${commentId}/`);
+            if (res.data.success) {
+                setComments((prev) => prev.filter((c) => c.id !== commentId));
+            }
+        } catch (err) {
+            console.error('Failed to delete comment', err);
         }
     };
 
@@ -826,21 +864,116 @@ const CompletedTasks = () => {
                                                     <div className="modern-comment-content-area">
                                                         <div className="modern-comment-header">
                                                             <span className="modern-comment-username">
-                                                                @
-                                                                {
-                                                                    comment.user
-                                                                        .username
-                                                                }
+                                                                @{comment.user.username}
                                                             </span>
                                                             <span className="modern-comment-time">
-                                                                {new Date(
-                                                                    comment.created_at,
-                                                                ).toLocaleDateString()}
+                                                                {new Date(comment.created_at).toLocaleDateString()}
                                                             </span>
+                                                            {comment.user?.id === user?.id && isCommentEditAllowed(comment.created_at) && (
+                                                                <div style={{ display: 'flex', gap: '8px', marginLeft: 'auto', fontSize: '0.75rem' }}>
+                                                                    <button
+                                                                        onClick={() => {
+                                                                            setEditingCommentId(comment.id);
+                                                                            setEditingText(comment.content);
+                                                                        }}
+                                                                        style={{
+                                                                            background: 'none',
+                                                                            border: 'none',
+                                                                            color: 'var(--text-secondary, #64748b)',
+                                                                            cursor: 'pointer',
+                                                                            padding: '0 2px',
+                                                                            transition: 'color 0.2s',
+                                                                        }}
+                                                                        onMouseEnter={(e) => e.target.style.color = '#3b82f6'}
+                                                                        onMouseLeave={(e) => e.target.style.color = 'var(--text-secondary, #64748b)'}
+                                                                    >
+                                                                        Edit
+                                                                    </button>
+                                                                    <button
+                                                                        onClick={() => {
+                                                                            if (window.confirm("Are you sure you want to delete this comment?")) {
+                                                                                handleDeleteComment(comment.id);
+                                                                            }
+                                                                        }}
+                                                                        style={{
+                                                                            background: 'none',
+                                                                            border: 'none',
+                                                                            color: 'var(--text-secondary, #64748b)',
+                                                                            cursor: 'pointer',
+                                                                            padding: '0 2px',
+                                                                            transition: 'color 0.2s',
+                                                                        }}
+                                                                        onMouseEnter={(e) => e.target.style.color = '#ef4444'}
+                                                                        onMouseLeave={(e) => e.target.style.color = 'var(--text-secondary, #64748b)'}
+                                                                    >
+                                                                        Delete
+                                                                    </button>
+                                                                </div>
+                                                            )}
                                                         </div>
-                                                        <div className="modern-comment-bubble">
-                                                            {comment.content}
-                                                        </div>
+                                                        {editingCommentId === comment.id ? (
+                                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', width: '100%', marginTop: '4px' }}>
+                                                                <textarea
+                                                                    value={editingText}
+                                                                    onChange={(e) => setEditingText(e.target.value)}
+                                                                    style={{
+                                                                        width: '100%',
+                                                                        padding: '8px',
+                                                                        borderRadius: '6px',
+                                                                        border: '1px solid #3b82f6',
+                                                                        outline: 'none',
+                                                                        fontSize: '0.85rem',
+                                                                        minHeight: '60px',
+                                                                        resize: 'vertical',
+                                                                        backgroundColor: 'var(--bg-primary, #ffffff)',
+                                                                        color: 'var(--text-primary, #1e293b)'
+                                                                    }}
+                                                                />
+                                                                <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                                                                    <button
+                                                                        onClick={() => {
+                                                                            setEditingCommentId(null);
+                                                                            setEditingText('');
+                                                                        }}
+                                                                        style={{
+                                                                            padding: '4px 10px',
+                                                                            borderRadius: '4px',
+                                                                            border: '1px solid #cbd5e1',
+                                                                            background: 'none',
+                                                                            fontSize: '0.75rem',
+                                                                            cursor: 'pointer',
+                                                                            color: 'var(--text-secondary, #64748b)'
+                                                                        }}
+                                                                    >
+                                                                        Cancel
+                                                                    </button>
+                                                                    <button
+                                                                        onClick={async () => {
+                                                                            if (!editingText.trim()) return;
+                                                                            await handleUpdateComment(comment.id, editingText);
+                                                                            setEditingCommentId(null);
+                                                                            setEditingText('');
+                                                                        }}
+                                                                        style={{
+                                                                            padding: '4px 10px',
+                                                                            borderRadius: '4px',
+                                                                            border: 'none',
+                                                                            background: '#3b82f6',
+                                                                            color: '#ffffff',
+                                                                            fontSize: '0.75rem',
+                                                                            cursor: 'pointer',
+                                                                            fontWeight: '500'
+                                                                        }}
+                                                                    >
+                                                                        Save
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+                                                        ) : (
+                                                            <div className="modern-comment-bubble">
+                                                                {comment.content}
+                                                            </div>
+                                                        )}
                                                     </div>
                                                 </div>
                                             );

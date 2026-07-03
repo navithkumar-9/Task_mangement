@@ -308,8 +308,10 @@ class EmployeeScorecard(models.Model):
     month = models.DateField()  # Store the first day of the month (e.g. 2026-06-01)
     task_completion_rate = models.FloatField(default=0.0)
     working_hours = models.FloatField(default=0.0)
+    timesheet_compliance = models.FloatField(default=0.0)  # Percentage of days with logged timesheets
     quality_score = models.FloatField(default=0.0)  # Graded 1.0 to 5.0
     attendance_score = models.FloatField(default=0.0)  # Graded 1.0 to 5.0
+    learning_rate_score = models.FloatField(default=0.0)  # Graded 1.0 to 5.0
     overall_score = models.FloatField(default=0.0)  # Graded 0.0 to 100.0
     status = models.CharField(
         max_length=20,
@@ -330,25 +332,33 @@ class EmployeeScorecard(models.Model):
         ]
 
     def save(self, *args, **kwargs):
-        # Calculate overall score based on the weights
-        # Task Completion: 40%, Hours: 30% (target 160h), Quality: 20%, Attendance: 10%
-        hours_compliance = (
-            min(100.0, (self.working_hours / 160.0) * 100.0)
-            if self.working_hours > 0
-            else 0.0
-        )
+        # Calculate overall score based on the updated weights:
+        # Performance (35%): Quality score scaled to 100
+        # Completion (25%): Task completion rate
+        # Discipline (25%): Average of Attendance score (scaled to 100) and Timesheet Compliance
+        # Learning (15%): Learning rate score scaled to 100
         quality_pct = (
             (self.quality_score / 5.0) * 100.0 if self.quality_score > 0 else 0.0
         )
         attendance_pct = (
             (self.attendance_score / 5.0) * 100.0 if self.attendance_score > 0 else 0.0
         )
+        learning_pct = (
+            (self.learning_rate_score / 5.0) * 100.0 if self.learning_rate_score > 0 else 0.0
+        )
+        
+        # Discipline is average of attendance and timesheet compliance (or fallback to hours compliance if compliance is 0 and hours exist)
+        if self.timesheet_compliance == 0.0 and self.working_hours > 0.0:
+            hours_compliance = min(100.0, (self.working_hours / 160.0) * 100.0)
+            discipline_pct = (attendance_pct + hours_compliance) / 2.0
+        else:
+            discipline_pct = (attendance_pct + self.timesheet_compliance) / 2.0
 
         self.overall_score = round(
-            (self.task_completion_rate * 0.40)
-            + (hours_compliance * 0.30)
-            + (quality_pct * 0.20)
-            + (attendance_pct * 0.10),
+            (quality_pct * 0.35)
+            + (self.task_completion_rate * 0.25)
+            + (discipline_pct * 0.25)
+            + (learning_pct * 0.15),
             2,
         )
         super().save(*args, **kwargs)

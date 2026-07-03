@@ -632,8 +632,10 @@ class EmployeeScorecardSerializer(serializers.ModelSerializer):
             "month",
             "task_completion_rate",
             "working_hours",
+            "timesheet_compliance",
             "quality_score",
             "attendance_score",
+            "learning_rate_score",
             "overall_score",
             "status",
             "admin_comments",
@@ -659,8 +661,10 @@ class EmployeeScorecardCreateUpdateSerializer(serializers.ModelSerializer):
             "month",
             "task_completion_rate",
             "working_hours",
+            "timesheet_compliance",
             "quality_score",
             "attendance_score",
+            "learning_rate_score",
             "status",
             "admin_comments",
             "superadmin_comments",
@@ -668,6 +672,7 @@ class EmployeeScorecardCreateUpdateSerializer(serializers.ModelSerializer):
         extra_kwargs = {
             "task_completion_rate": {"required": False},
             "working_hours": {"required": False},
+            "timesheet_compliance": {"required": False},
         }
 
     def validate_quality_score(self, value):
@@ -679,5 +684,12 @@ class EmployeeScorecardCreateUpdateSerializer(serializers.ModelSerializer):
         if value < 0 or value > 5:
             raise serializers.ValidationError(
                 "Attendance score must be between 0 and 5."
+            )
+        return value
+
+    def validate_learning_rate_score(self, value):
+        if value < 0 or value > 5:
+            raise serializers.ValidationError(
+                "Learning rate score must be between 0 and 5."
             )
         return value

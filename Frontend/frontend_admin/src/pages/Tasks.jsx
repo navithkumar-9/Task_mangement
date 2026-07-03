@@ -351,6 +351,31 @@ const Tasks = () => {
         }
     }, [commentText, editTask]);
 
+    const updateComment = useCallback(async (commentId, newContent) => {
+        if (!newContent.trim() || !editTask) return;
+        try {
+            const res = await API.put(`/tasks/${editTask.id}/comments/${commentId}/`, {
+                content: newContent.trim(),
+            });
+            const updatedComment = res.data.data || res.data;
+            setComments((prev) =>
+                prev.map((c) => (c.id === commentId ? { ...c, content: updatedComment.content } : c))
+            );
+        } catch (err) {
+            console.error('Failed to update comment', err);
+        }
+    }, [editTask]);
+
+    const deleteComment = useCallback(async (commentId) => {
+        if (!editTask) return;
+        try {
+            await API.delete(`/tasks/${editTask.id}/comments/${commentId}/`);
+            setComments((prev) => prev.filter((c) => c.id !== commentId));
+        } catch (err) {
+            console.error('Failed to delete comment', err);
+        }
+    }, [editTask]);
+
     const addSubtask = useCallback(async () => {
         if (!newSubtaskTitle.trim() || !editTask) return;
 
@@ -537,7 +562,8 @@ const Tasks = () => {
         return (
             effectiveDue &&
             new Date(effectiveDue) < new Date(new Date().toDateString()) &&
-            task.status !== 'COMPLETED'
+            task.status !== 'COMPLETED' &&
+            task.status !== 'HOLD'
         );
     }, []);
 
@@ -760,6 +786,8 @@ const Tasks = () => {
                 postComment={postComment}
                 postingComment={postingComment}
                 commentsEndRef={commentsEndRef}
+                updateComment={updateComment}
+                deleteComment={deleteComment}
                 canCrud={canCrud}
                 isAdmin={isAdmin}
             />

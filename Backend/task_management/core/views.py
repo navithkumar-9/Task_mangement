@@ -1380,9 +1380,29 @@ class TaskCommentListCreateView(APIView):
         if err:
             return err
 
+        # Load from cache first
+        cache_key = f"task:{task_id}:comments"
+        try:
+            cached_data = cache.get(cache_key)
+        except Exception:
+            cached_data = None
+
+        if cached_data is not None:
+            return success_response(
+                message="Comments fetched (cached)",
+                data=cached_data,
+                status_code=status.HTTP_200_OK,
+            )
+
         # Limit to last 200 comments to prevent huge payload fetches
         comments = task.comments.select_related("user").order_by("created_at")[:200]
         serializer = TaskCommentSerializer(comments, many=True)
+
+        try:
+            cache.set(cache_key, serializer.data, timeout=86400)
+        except Exception:
+            pass
+
         return success_response(
             message="Comments fetched",
             data=serializer.data,
@@ -1406,6 +1426,12 @@ class TaskCommentListCreateView(APIView):
             user=request.user,
             content=content,
         )
+
+        # Invalidate comments list cache for this task
+        try:
+            cache.delete(f"task:{task_id}:comments")
+        except Exception:
+            pass
 
         # ── Create notifications for relevant users ──
         sender = request.user
@@ -1453,6 +1479,84 @@ class TaskCommentListCreateView(APIView):
             message="Comment added",
             data=serializer.data,
             status_code=status.HTTP_201_CREATED,
+        )
+
+
+class TaskCommentUpdateDeleteView(APIView):
+    """PUT/PATCH edit a comment, DELETE delete a comment. Restricted to comment owner only."""
+
+    permission_classes = [IsAuthenticated]
+
+    def _get_comment_and_check_owner(self, request, task_id, comment_id):
+        try:
+            comment = TaskComment.objects.select_related("task").get(id=comment_id, task_id=task_id)
+        except TaskComment.DoesNotExist:
+            return None, error_response(
+                message="Comment not found",
+                status_code=status.HTTP_404_NOT_FOUND,
+            )
+
+        if comment.user != request.user:
+            return None, error_response(
+                message="You do not have permission to edit or delete this comment",
+                status_code=status.HTTP_403_FORBIDDEN,
+            )
+
+        # Restrict edits and deletes to a 15-minute window from creation time
+        now = timezone.now()
+        if now - comment.created_at > datetime.timedelta(minutes=15):
+            return None, error_response(
+                message="Comments can only be edited or deleted within 15 minutes of posting",
+                status_code=status.HTTP_400_BAD_REQUEST,
+            )
+
+        return comment, None
+
+    def put(self, request, task_id, comment_id):
+        comment, err = self._get_comment_and_check_owner(request, task_id, comment_id)
+        if err:
+            return err
+
+        content = request.data.get("content", "").strip()
+        if not content:
+            return error_response(
+                message="Comment content is required",
+                status_code=status.HTTP_400_BAD_REQUEST,
+            )
+
+        comment.content = content
+        comment.save()
+
+        # Invalidate task comments cache
+        try:
+            cache.delete(f"task:{task_id}:comments")
+        except Exception:
+            pass
+
+        serializer = TaskCommentSerializer(comment)
+        return success_response(
+            message="Comment updated",
+            data=serializer.data,
+            status_code=status.HTTP_200_OK,
+        )
+
+    def delete(self, request, task_id, comment_id):
+        comment, err = self._get_comment_and_check_owner(request, task_id, comment_id)
+        if err:
+            return err
+
+        comment.delete()
+
+        # Invalidate task comments cache
+        try:
+            cache.delete(f"task:{task_id}:comments")
+        except Exception:
+            pass
+
+        return success_response(
+            message="Comment deleted",
+            data={},
+            status_code=status.HTTP_200_OK,
         )
 
 
@@ -2087,7 +2191,7 @@ class DashboardStatsView(APIView):
 
         today = timezone.localdate()
         overdue_count = (
-            tasks_qs.exclude(status=TaskStatus.COMPLETED)
+            tasks_qs.exclude(status__in=[TaskStatus.COMPLETED, TaskStatus.HOLD])
             .filter(due_date__lt=today)
             .count()
         )
@@ -2282,10 +2386,10 @@ def calculate_monthly_metrics(employee, year, month):
 
 
 
-    # Total tasks due in this month
+    # Total tasks due in this month (excluding HOLD tasks)
     tasks = Task.objects.filter(
         assignees=employee, due_date__range=(start_date, end_date)
-    )
+    ).exclude(status=TaskStatus.HOLD)
 
     total_tasks = tasks.count()
     if total_tasks > 0:
@@ -2314,7 +2418,21 @@ def calculate_monthly_metrics(employee, year, month):
     )
     working_hours = timesheets.aggregate(total=Sum("working_hours"))["total"] or 0.0
 
-    return round(task_completion_rate, 2), round(float(working_hours), 2)
+    import calendar
+    cal = calendar.Calendar()
+    total_working_days = sum(
+        1 for day in cal.itermonthdays2(year, month)
+        if day[0] != 0 and day[1] < 5
+    )
+
+    distinct_days_logged = timesheets.values("start_time__date").distinct().count()
+    timesheet_compliance = min(100.0, (distinct_days_logged / total_working_days) * 100.0) if total_working_days > 0 else 100.0
+
+    return (
+        round(task_completion_rate, 2),
+        round(float(working_hours), 2),
+        round(timesheet_compliance, 2),
+    )
 
 
 def get_bulk_monthly_metrics(team_members, year, month):
@@ -2326,11 +2444,12 @@ def get_bulk_monthly_metrics(team_members, year, month):
 
 
 
-    # Bulk count tasks for all team members in a single query
+    # Bulk count tasks for all team members in a single query (excluding HOLD tasks)
     task_counts = (
         Task.objects.filter(
             assignees__in=team_members, due_date__range=(start_date, end_date)
         )
+        .exclude(status=TaskStatus.HOLD)
         .values("assignees")
         .annotate(
             total=Count("id"),
@@ -2365,6 +2484,26 @@ def get_bulk_monthly_metrics(team_members, year, month):
         item["team_member"]: item["total_hours"] for item in timesheet_hours
     }
 
+    # Bulk fetch logged days per employee in this month
+    timesheet_days = (
+        Timesheet.objects.filter(
+            team_member__in=team_members, start_time__year=year, start_time__month=month
+        )
+        .values("team_member", "start_time__date")
+        .distinct()
+    )
+    logged_days_map = {}
+    for item in timesheet_days:
+        uid = item["team_member"]
+        logged_days_map[uid] = logged_days_map.get(uid, 0) + 1
+
+    import calendar
+    cal = calendar.Calendar()
+    total_working_days = sum(
+        1 for day in cal.itermonthdays2(year, month)
+        if day[0] != 0 and day[1] < 5
+    )
+
     metrics = {}
     for tm in team_members:
         task_stats = task_metrics_map.get(tm.id, {"total": 0, "completed_on_time": 0})
@@ -2375,7 +2514,12 @@ def get_bulk_monthly_metrics(team_members, year, month):
 
         wh = float(timesheet_metrics_map.get(tm.id, 0.0) or 0.0)
         wh = round(wh, 2)
-        metrics[tm.id] = (tcr, wh)
+
+        distinct_days = logged_days_map.get(tm.id, 0)
+        tc = min(100.0, (distinct_days / total_working_days) * 100.0) if total_working_days > 0 else 100.0
+        tc = round(tc, 2)
+
+        metrics[tm.id] = (tcr, wh, tc)
 
     return metrics
 
@@ -2425,8 +2569,7 @@ class EmployeeScorecardListView(APIView):
                 if tm.id in scorecard_map:
                     data.append(EmployeeScorecardSerializer(scorecard_map[tm.id]).data)
                 else:
-                    tcr, wh = bulk_metrics.get(tm.id, (100.0, 0.0))
-                    hours_comp = min(100.0, (wh / 160.0) * 100.0) if wh > 0 else 0.0
+                    tcr, wh, tc = bulk_metrics.get(tm.id, (100.0, 0.0, 100.0))
                     data.append(
                         {
                             "id": None,
@@ -2440,10 +2583,12 @@ class EmployeeScorecardListView(APIView):
                             "month": month_date.strftime("%Y-%m-%d"),
                             "task_completion_rate": tcr,
                             "working_hours": wh,
+                            "timesheet_compliance": tc,
                             "quality_score": 0.0,
                             "attendance_score": 0.0,
+                            "learning_rate_score": 0.0,
                             "overall_score": round(
-                                (tcr * 0.40) + (hours_comp * 0.30), 2
+                                (tcr * 0.25) + ((tc / 2.0) * 0.25), 2
                             ),
                             "status": "NOT_CREATED",
                             "admin_comments": "",
@@ -2484,8 +2629,7 @@ class EmployeeScorecardListView(APIView):
                 if tm.id in scorecard_map:
                     data.append(EmployeeScorecardSerializer(scorecard_map[tm.id]).data)
                 else:
-                    tcr, wh = bulk_metrics.get(tm.id, (100.0, 0.0))
-                    hours_comp = min(100.0, (wh / 160.0) * 100.0) if wh > 0 else 0.0
+                    tcr, wh, tc = bulk_metrics.get(tm.id, (100.0, 0.0, 100.0))
                     data.append(
                         {
                             "id": None,
@@ -2499,10 +2643,12 @@ class EmployeeScorecardListView(APIView):
                             "month": month_date.strftime("%Y-%m-%d"),
                             "task_completion_rate": tcr,
                             "working_hours": wh,
+                            "timesheet_compliance": tc,
                             "quality_score": 0.0,
                             "attendance_score": 0.0,
+                            "learning_rate_score": 0.0,
                             "overall_score": round(
-                                (tcr * 0.40) + (hours_comp * 0.30), 2
+                                (tcr * 0.25) + ((tc / 2.0) * 0.25), 2
                             ),
                             "status": "NOT_CREATED",
                             "admin_comments": "",
@@ -2597,7 +2743,7 @@ class EmployeeScorecardSaveView(APIView):
                 status_code=status.HTTP_400_BAD_REQUEST,
             )
 
-        tcr, wh = calculate_monthly_metrics(employee, year, month)
+        tcr, wh, tc = calculate_monthly_metrics(employee, year, month)
 
         scorecard, created = EmployeeScorecard.objects.get_or_create(
             employee=employee,
@@ -2605,12 +2751,14 @@ class EmployeeScorecardSaveView(APIView):
             defaults={
                 "task_completion_rate": tcr,
                 "working_hours": wh,
+                "timesheet_compliance": tc,
             },
         )
 
         if not created:
             scorecard.task_completion_rate = tcr
             scorecard.working_hours = wh
+            scorecard.timesheet_compliance = tc
 
         if scorecard.status in [
             ScorecardStatus.SUBMITTED.value,
@@ -2855,10 +3003,47 @@ class EmployeeScorecardDrilldownView(APIView):
         )
         scorecards_data = EmployeeScorecardSerializer(scorecards, many=True).data
 
-        total_tasks = Task.objects.filter(assignees=employee).count()
-        completed_tasks = Task.objects.filter(
+        # Lifetime metrics
+        lifetime_total = Task.objects.filter(assignees=employee).exclude(status=TaskStatus.HOLD).count()
+        lifetime_completed = Task.objects.filter(
             assignees=employee, status=TaskStatus.COMPLETED
         ).count()
+
+        # Monthly metrics (if month param provided)
+        month_str = request.GET.get("month")
+        start_date = None
+        end_date = None
+        if month_str:
+            try:
+                # Handle YYYY-MM or YYYY-MM-DD
+                if len(month_str) == 7:
+                    year = int(month_str[:4])
+                    month = int(month_str[5:7])
+                else:
+                    month_date = datetime.datetime.strptime(month_str, "%Y-%m-%d").date()
+                    year = month_date.year
+                    month = month_date.month
+                
+                start_date = datetime.date(year, month, 1)
+                if month == 12:
+                    end_date = datetime.date(year + 1, 1, 1) - datetime.timedelta(days=1)
+                else:
+                    end_date = datetime.date(year, month + 1, 1) - datetime.timedelta(days=1)
+            except Exception:
+                pass
+
+        if start_date and end_date:
+            monthly_total = Task.objects.filter(
+                assignees=employee, due_date__range=(start_date, end_date)
+            ).exclude(status=TaskStatus.HOLD).count()
+            monthly_completed = Task.objects.filter(
+                assignees=employee,
+                status=TaskStatus.COMPLETED,
+                due_date__range=(start_date, end_date)
+            ).count()
+        else:
+            monthly_total = lifetime_total
+            monthly_completed = lifetime_completed
 
         return success_response(
             data={
@@ -2870,12 +3055,24 @@ class EmployeeScorecardDrilldownView(APIView):
                 },
                 "scorecards": scorecards_data,
                 "task_metrics": {
-                    "total_tasks": total_tasks,
-                    "completed_tasks": completed_tasks,
+                    "total_tasks": monthly_total,
+                    "completed_tasks": monthly_completed,
                     "completion_rate": round(
                         (
-                            (completed_tasks / total_tasks * 100.0)
-                            if total_tasks > 0
+                            (monthly_completed / monthly_total * 100.0)
+                            if monthly_total > 0
+                            else 100.0
+                        ),
+                        2,
+                    ),
+                },
+                "lifetime_metrics": {
+                    "total_tasks": lifetime_total,
+                    "completed_tasks": lifetime_completed,
+                    "completion_rate": round(
+                        (
+                            (lifetime_completed / lifetime_total * 100.0)
+                            if lifetime_total > 0
                             else 100.0
                         ),
                         2,
@@ -2958,7 +3155,7 @@ class GlobalSearchView(APIView):
 
         es_results = search_index(["tasks", "comments", "announcements"], es_query)
 
-        if es_results and "hits" in es_results and "hits" in es_results["hits"]:
+        if es_results and es_results.get("hits", {}).get("hits"):
             # Extract IDs from hits to perform localized security filter checks
             hit_task_ids = []
             hit_comment_ids = []

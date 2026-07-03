@@ -122,6 +122,7 @@ const TaskDetailModal = ({ tasks, date, onClose }) => {
                         const effectiveDue = task.revised_due_date || task.due_date;
                         const isOverdue =
                             task.status !== 'COMPLETED' &&
+                            task.status !== 'HOLD' &&
                             effectiveDue &&
                             parseLocalDate(effectiveDue) < todayLocal;
 

@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { getAvatarStyle } from '../utils/avatar';
 
 const PRIORITIES = ['LOW', 'MEDIUM', 'HIGH'];
@@ -15,6 +16,14 @@ const timeAgo = (dateStr) => {
         day: 'numeric',
         year: 'numeric',
     });
+};
+
+const isCommentEditAllowed = (createdAt) => {
+    if (!createdAt) return false;
+    const createdTime = new Date(createdAt).getTime();
+    const now = new Date().getTime();
+    const diffInMinutes = (now - createdTime) / 1000 / 60;
+    return diffInMinutes <= 15;
 };
 
 const TaskModal = ({
@@ -50,9 +59,14 @@ const TaskModal = ({
     postComment,
     postingComment,
     commentsEndRef,
+    updateComment,
+    deleteComment,
     canCrud,
     isAdmin,
 }) => {
+    const [editingCommentId, setEditingCommentId] = useState(null);
+    const [editingText, setEditingText] = useState('');
+
     if (!showModal) return null;
 
     return (
@@ -734,10 +748,111 @@ const TaskModal = ({
                                                                 comment.created_at,
                                                             )}
                                                         </span>
+                                                        {comment.user?.id === user?.id && isCommentEditAllowed(comment.created_at) && (
+                                                            <div style={{ display: 'flex', gap: '8px', marginLeft: 'auto', fontSize: '0.75rem' }}>
+                                                                <button
+                                                                    onClick={() => {
+                                                                        setEditingCommentId(comment.id);
+                                                                        setEditingText(comment.content);
+                                                                    }}
+                                                                    style={{
+                                                                        background: 'none',
+                                                                        border: 'none',
+                                                                        color: 'var(--text-secondary, #64748b)',
+                                                                        cursor: 'pointer',
+                                                                        padding: '0 2px',
+                                                                        transition: 'color 0.2s',
+                                                                    }}
+                                                                    onMouseEnter={(e) => e.target.style.color = '#3b82f6'}
+                                                                    onMouseLeave={(e) => e.target.style.color = 'var(--text-secondary, #64748b)'}
+                                                                >
+                                                                    Edit
+                                                                </button>
+                                                                <button
+                                                                    onClick={() => {
+                                                                        if (window.confirm("Are you sure you want to delete this comment?")) {
+                                                                            deleteComment(comment.id);
+                                                                        }
+                                                                    }}
+                                                                    style={{
+                                                                        background: 'none',
+                                                                        border: 'none',
+                                                                        color: 'var(--text-secondary, #64748b)',
+                                                                        cursor: 'pointer',
+                                                                        padding: '0 2px',
+                                                                        transition: 'color 0.2s',
+                                                                    }}
+                                                                    onMouseEnter={(e) => e.target.style.color = '#ef4444'}
+                                                                    onMouseLeave={(e) => e.target.style.color = 'var(--text-secondary, #64748b)'}
+                                                                >
+                                                                    Delete
+                                                                </button>
+                                                            </div>
+                                                        )}
                                                     </div>
-                                                    <div className="modern-comment-bubble">
-                                                        {comment.content}
-                                                    </div>
+                                                    {editingCommentId === comment.id ? (
+                                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', width: '100%', marginTop: '4px' }}>
+                                                            <textarea
+                                                                value={editingText}
+                                                                onChange={(e) => setEditingText(e.target.value)}
+                                                                style={{
+                                                                    width: '100%',
+                                                                    padding: '8px',
+                                                                    borderRadius: '6px',
+                                                                    border: '1px solid #3b82f6',
+                                                                    outline: 'none',
+                                                                    fontSize: '0.85rem',
+                                                                    minHeight: '60px',
+                                                                    resize: 'vertical',
+                                                                    backgroundColor: 'var(--bg-primary, #ffffff)',
+                                                                    color: 'var(--text-primary, #1e293b)'
+                                                                }}
+                                                            />
+                                                            <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                                                                <button
+                                                                    onClick={() => {
+                                                                        setEditingCommentId(null);
+                                                                        setEditingText('');
+                                                                    }}
+                                                                    style={{
+                                                                        padding: '4px 10px',
+                                                                        borderRadius: '4px',
+                                                                        border: '1px solid #cbd5e1',
+                                                                        background: 'none',
+                                                                        fontSize: '0.75rem',
+                                                                        cursor: 'pointer',
+                                                                        color: 'var(--text-secondary, #64748b)'
+                                                                    }}
+                                                                >
+                                                                    Cancel
+                                                                </button>
+                                                                <button
+                                                                    onClick={async () => {
+                                                                        if (!editingText.trim()) return;
+                                                                        await updateComment(comment.id, editingText);
+                                                                        setEditingCommentId(null);
+                                                                        setEditingText('');
+                                                                    }}
+                                                                    style={{
+                                                                        padding: '4px 10px',
+                                                                        borderRadius: '4px',
+                                                                        border: 'none',
+                                                                        background: '#3b82f6',
+                                                                        color: '#ffffff',
+                                                                        fontSize: '0.75rem',
+                                                                        cursor: 'pointer',
+                                                                        fontWeight: '500'
+                                                                    }}
+                                                                >
+                                                                    Save
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    ) : (
+                                                        <div className="modern-comment-bubble">
+                                                            {comment.content}
+                                                        </div>
+                                                    )}
                                                 </div>
                                             </div>
                                         );

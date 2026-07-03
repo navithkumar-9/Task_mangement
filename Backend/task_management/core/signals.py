@@ -10,6 +10,7 @@ from .cache_utils import (
     clear_user_cache,
     clear_superadmin_cache,
 )
+from django.core.cache import cache
 from .elasticsearch_client import index_document, delete_document
 
 
@@ -119,9 +120,12 @@ def timesheet_change_handler(sender, instance, **kwargs):
 
 @receiver(post_save, sender=TaskComment)
 def comment_save_handler(sender, instance, **kwargs):
-    """Index comment in Elasticsearch after commit.
+    """Index comment in Elasticsearch after commit and clear comments cache.
     Performs database queries fully inside the background thread to avoid blocking main thread.
     """
+    if instance.task_id:
+        transaction.on_commit(lambda: cache.delete(f"task:{instance.task_id}:comments"))
+
     comment_id = instance.id
     def run_sync():
         try:
@@ -143,7 +147,10 @@ def comment_save_handler(sender, instance, **kwargs):
 
 @receiver(post_delete, sender=TaskComment)
 def comment_delete_handler(sender, instance, **kwargs):
-    """Remove comment from Elasticsearch after commit."""
+    """Remove comment from Elasticsearch after commit and clear comments cache."""
+    if instance.task_id:
+        transaction.on_commit(lambda: cache.delete(f"task:{instance.task_id}:comments"))
+
     comment_id = instance.id
     transaction.on_commit(lambda: run_async(delete_document, "comments", comment_id))
 

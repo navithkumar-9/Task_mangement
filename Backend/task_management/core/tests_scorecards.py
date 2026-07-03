@@ -111,8 +111,8 @@ class ScorecardTestCase(APITestCase):
         # Hours compliance: min(100.0, 40 / 160 * 100) = 25% * 0.30 = 7.5
         # Quality: (4.5 / 5) * 100 = 90% * 0.20 = 18.0
         # Attendance: (4.0 / 5) * 100 = 80% * 0.10 = 8.0
-        # Expected overall = 40 + 7.5 + 18 + 8 = 73.5
-        self.assertAlmostEqual(scorecard.overall_score, 73.5, places=1)
+        # Expected overall = 100 * 0.25 (Completion) + (4.5/5 * 100) * 0.35 (Performance) + ((80 + 4.35) / 2) * 0.25 (Discipline) + 0 * 0.15 (Learning) = 67.04
+        self.assertAlmostEqual(scorecard.overall_score, 67.04, places=2)
 
         # 2. Submit for Review
         payload["status"] = ScorecardStatus.SUBMITTED.value

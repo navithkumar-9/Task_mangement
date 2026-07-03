@@ -30,6 +30,7 @@ export const AuthProvider = ({ children }) => {
                             employee_id: profileData.employee_id,
                             profile_picture: profileData.profile_picture,
                         };
+                        localStorage.setItem('admin_user', JSON.stringify(updated));
                         return updated;
                     });
                 }

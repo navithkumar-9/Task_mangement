@@ -25,6 +25,7 @@ from .views import (
     TeamMemberTimesheetListView,
     TaskFullDetailView,
     TaskCommentListCreateView,
+    TaskCommentUpdateDeleteView,
     SubTaskListCreateView,
     SubTaskUpdateDeleteView,
     NotificationListView,
@@ -132,9 +133,13 @@ urlpatterns = [
         TaskFullDetailView.as_view(),
     ),
     path(
-        "tasks/<int:task_id>/comments/",
-        TaskCommentListCreateView.as_view(),
-    ),
+         "tasks/<int:task_id>/comments/",
+         TaskCommentListCreateView.as_view(),
+     ),
+     path(
+         "tasks/<int:task_id>/comments/<int:comment_id>/",
+         TaskCommentUpdateDeleteView.as_view(),
+     ),
     path(
         "tasks/<int:task_id>/subtasks/",
         SubTaskListCreateView.as_view(),

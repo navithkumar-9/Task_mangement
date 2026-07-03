@@ -26,6 +26,7 @@ const Scorecards = () => {
     // Form inputs for grading
     const [qualityScore, setQualityScore] = useState(0);
     const [attendanceScore, setAttendanceScore] = useState(0);
+    const [learningRateScore, setLearningRateScore] = useState(0);
     const [adminComments, setAdminComments] = useState('');
     const [submitting, setSubmitting] = useState(false);
     const [errorMsg, setErrorMsg] = useState('');
@@ -87,12 +88,13 @@ const Scorecards = () => {
         setActiveTab('eval');
         setQualityScore(member.quality_score || 0);
         setAttendanceScore(member.attendance_score || 0);
+        setLearningRateScore(member.learning_rate_score || 0);
         setAdminComments(member.admin_comments || '');
         setErrorMsg('');
         setSuccessMsg('');
 
         try {
-            const res = await API.get(`/scorecards/drilldown/${member.employee.id}/`);
+            const res = await API.get(`/scorecards/drilldown/${member.employee.id}/?month=${selectedMonth}-01`);
             if (res.data.success) {
                 setDrilldownData(res.data.data);
             }
@@ -114,6 +116,7 @@ const Scorecards = () => {
                 month: `${selectedMonth}-01`,
                 quality_score: qualityScore,
                 attendance_score: attendanceScore,
+                learning_rate_score: learningRateScore,
                 admin_comments: adminComments,
                 status: statusVal,
             };
@@ -342,14 +345,18 @@ const Scorecards = () => {
                                 {activeTab === 'eval' && (
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                                         {/* Auto Metrics Display */}
-                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', padding: '16px', background: 'var(--border-light)', borderRadius: 'var(--radius)' }}>
+                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px', padding: '16px', background: 'var(--border-light)', borderRadius: 'var(--radius)' }}>
                                             <div>
-                                                <div className="text-muted" style={{ fontSize: '12px', fontWeight: '600' }}>Task Completion Rate</div>
-                                                <div style={{ fontSize: '20px', fontWeight: '700', color: 'var(--text-primary)' }}>{selectedMember.task_completion_rate}%</div>
+                                                <div className="text-muted" style={{ fontSize: '11px', fontWeight: '600' }}>Task Completion</div>
+                                                <div style={{ fontSize: '16px', fontWeight: '700', color: 'var(--text-primary)' }}>{selectedMember.task_completion_rate}%</div>
                                             </div>
                                             <div>
-                                                <div className="text-muted" style={{ fontSize: '12px', fontWeight: '600' }}>Hours Logged (Timesheet)</div>
-                                                <div style={{ fontSize: '20px', fontWeight: '700', color: 'var(--text-primary)' }}>{selectedMember.working_hours} hrs</div>
+                                                <div className="text-muted" style={{ fontSize: '11px', fontWeight: '600' }}>Logged Hours</div>
+                                                <div style={{ fontSize: '16px', fontWeight: '700', color: 'var(--text-primary)' }}>{selectedMember.working_hours} hrs</div>
+                                            </div>
+                                            <div>
+                                                <div className="text-muted" style={{ fontSize: '11px', fontWeight: '600' }}>Timesheet Compliance</div>
+                                                <div style={{ fontSize: '16px', fontWeight: '700', color: 'var(--text-primary)' }}>{selectedMember.timesheet_compliance || 0}%</div>
                                             </div>
                                         </div>
 
@@ -392,6 +399,29 @@ const Scorecards = () => {
                                                             fontSize: '28px',
                                                             cursor: (selectedMember.status === 'NOT_CREATED' || selectedMember.status === 'DRAFT' || selectedMember.status === 'REJECTED') ? 'pointer' : 'default',
                                                             color: star <= attendanceScore ? '#f59e0b' : '#d1d5db'
+                                                        }}
+                                                    >
+                                                        ★
+                                                    </span>
+                                                ))}
+                                            </div>
+                                        </div>
+
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                                            <label style={{ fontWeight: '600', fontSize: '14px' }}>Learning Rate Score (1-5 Stars)</label>
+                                            <div style={{ display: 'flex', gap: '8px' }}>
+                                                {[1, 2, 3, 4, 5].map((star) => (
+                                                    <span
+                                                        key={star}
+                                                        onClick={() => {
+                                                            if (selectedMember.status === 'NOT_CREATED' || selectedMember.status === 'DRAFT' || selectedMember.status === 'REJECTED') {
+                                                                setLearningRateScore(star);
+                                                            }
+                                                        }}
+                                                        style={{
+                                                            fontSize: '28px',
+                                                            cursor: (selectedMember.status === 'NOT_CREATED' || selectedMember.status === 'DRAFT' || selectedMember.status === 'REJECTED') ? 'pointer' : 'default',
+                                                            color: star <= learningRateScore ? '#f59e0b' : '#d1d5db'
                                                         }}
                                                     >
                                                         ★
@@ -506,25 +536,53 @@ const Scorecards = () => {
                                 )}
 
                                 {activeTab === 'tasks' && (
-                                    <div>
-                                        <h4 style={{ fontSize: '14px', fontWeight: '600', marginBottom: '16px' }}>Lifetime System Metrics</h4>
-                                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px' }}>
-                                            <div style={{ padding: '16px', background: 'var(--border-light)', borderRadius: 'var(--radius)', textAlign: 'center' }}>
-                                                <div className="text-muted" style={{ fontSize: '12px' }}>Total Tasks Assigned</div>
-                                                <div style={{ fontSize: '24px', fontWeight: '700', color: 'var(--text-primary)', marginTop: '4px' }}>
-                                                    {drilldownData?.task_metrics?.total_tasks || 0}
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                                        <div>
+                                            <h4 style={{ fontSize: '14px', fontWeight: '600', marginBottom: '16px' }}>
+                                                Monthly System Metrics ({selectedMonth ? new Date(selectedMonth + '-02').toLocaleDateString('default', { month: 'long', year: 'numeric' }) : ''})
+                                            </h4>
+                                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px' }}>
+                                                <div style={{ padding: '16px', background: 'var(--border-light)', borderRadius: 'var(--radius)', textAlign: 'center' }}>
+                                                    <div className="text-muted" style={{ fontSize: '12px' }}>Total Tasks Assigned</div>
+                                                    <div style={{ fontSize: '24px', fontWeight: '700', color: 'var(--text-primary)', marginTop: '4px' }}>
+                                                        {drilldownData?.task_metrics?.total_tasks || 0}
+                                                    </div>
+                                                </div>
+                                                <div style={{ padding: '16px', background: 'var(--border-light)', borderRadius: 'var(--radius)', textAlign: 'center' }}>
+                                                    <div className="text-muted" style={{ fontSize: '12px' }}>Completed Tasks</div>
+                                                    <div style={{ fontSize: '24px', fontWeight: '700', color: 'var(--success)', marginTop: '4px' }}>
+                                                        {drilldownData?.task_metrics?.completed_tasks || 0}
+                                                    </div>
+                                                </div>
+                                                <div style={{ padding: '16px', background: 'var(--border-light)', borderRadius: 'var(--radius)', textAlign: 'center' }}>
+                                                    <div className="text-muted" style={{ fontSize: '12px' }}>Task Completion Rate</div>
+                                                    <div style={{ fontSize: '24px', fontWeight: '700', color: 'var(--primary)', marginTop: '4px' }}>
+                                                        {drilldownData?.task_metrics?.completion_rate || 0}%
+                                                    </div>
                                                 </div>
                                             </div>
-                                            <div style={{ padding: '16px', background: 'var(--border-light)', borderRadius: 'var(--radius)', textAlign: 'center' }}>
-                                                <div className="text-muted" style={{ fontSize: '12px' }}>Completed Tasks</div>
-                                                <div style={{ fontSize: '24px', fontWeight: '700', color: 'var(--success)', marginTop: '4px' }}>
-                                                    {drilldownData?.task_metrics?.completed_tasks || 0}
+                                        </div>
+
+                                        <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '20px' }}>
+                                            <h4 style={{ fontSize: '14px', fontWeight: '600', marginBottom: '16px' }}>Lifetime System Metrics</h4>
+                                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px' }}>
+                                                <div style={{ padding: '16px', background: 'var(--border-light)', borderRadius: 'var(--radius)', textAlign: 'center' }}>
+                                                    <div className="text-muted" style={{ fontSize: '12px' }}>Total Tasks Assigned</div>
+                                                    <div style={{ fontSize: '24px', fontWeight: '700', color: 'var(--text-primary)', marginTop: '4px' }}>
+                                                        {drilldownData?.lifetime_metrics?.total_tasks || 0}
+                                                    </div>
                                                 </div>
-                                            </div>
-                                            <div style={{ padding: '16px', background: 'var(--border-light)', borderRadius: 'var(--radius)', textAlign: 'center' }}>
-                                                <div className="text-muted" style={{ fontSize: '12px' }}>Task Completion Rate</div>
-                                                <div style={{ fontSize: '24px', fontWeight: '700', color: 'var(--primary)', marginTop: '4px' }}>
-                                                    {drilldownData?.task_metrics?.completion_rate || 0}%
+                                                <div style={{ padding: '16px', background: 'var(--border-light)', borderRadius: 'var(--radius)', textAlign: 'center' }}>
+                                                    <div className="text-muted" style={{ fontSize: '12px' }}>Completed Tasks</div>
+                                                    <div style={{ fontSize: '24px', fontWeight: '700', color: 'var(--success)', marginTop: '4px' }}>
+                                                        {drilldownData?.lifetime_metrics?.completed_tasks || 0}
+                                                    </div>
+                                                </div>
+                                                <div style={{ padding: '16px', background: 'var(--border-light)', borderRadius: 'var(--radius)', textAlign: 'center' }}>
+                                                    <div className="text-muted" style={{ fontSize: '12px' }}>Task Completion Rate</div>
+                                                    <div style={{ fontSize: '24px', fontWeight: '700', color: 'var(--primary)', marginTop: '4px' }}>
+                                                        {drilldownData?.lifetime_metrics?.completion_rate || 0}%
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
@@ -616,7 +674,7 @@ const Scorecards = () => {
                                     
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
-                                            <span className="text-muted">Task Completion Rate (40%)</span>
+                                            <span className="text-muted">Task Completion (25%)</span>
                                             <span style={{ fontWeight: '600' }}>{memberData.scorecard.task_completion_rate}%</span>
                                         </div>
                                         <div style={{ width: '100%', height: '8px', background: 'var(--border-light)', borderRadius: '4px', overflow: 'hidden' }}>
@@ -626,16 +684,16 @@ const Scorecards = () => {
 
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
-                                            <span className="text-muted">Working Hours Logged (30%)</span>
-                                            <span style={{ fontWeight: '600' }}>{memberData.scorecard.working_hours} / 160h</span>
+                                            <span className="text-muted">Timesheet Compliance (Discipline)</span>
+                                            <span style={{ fontWeight: '600' }}>{memberData.scorecard.timesheet_compliance || 0}%</span>
                                         </div>
                                         <div style={{ width: '100%', height: '8px', background: 'var(--border-light)', borderRadius: '4px', overflow: 'hidden' }}>
-                                            <div style={{ width: `${Math.min(100, (memberData.scorecard.working_hours / 160) * 100)}%`, height: '100%', background: '#3b82f6', borderRadius: '4px' }}></div>
+                                            <div style={{ width: `${memberData.scorecard.timesheet_compliance || 0}%`, height: '100%', background: '#3b82f6', borderRadius: '4px' }}></div>
                                         </div>
                                     </div>
 
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                                        <span className="text-muted" style={{ fontSize: '13px' }}>Quality Rating (20%)</span>
+                                        <span className="text-muted" style={{ fontSize: '13px' }}>Quality Rating (Performance) (35%)</span>
                                         <div style={{ display: 'flex', gap: '4px' }}>
                                             {[1, 2, 3, 4, 5].map((star) => (
                                                 <span key={star} style={{ fontSize: '20px', color: star <= memberData.scorecard.quality_score ? '#f59e0b' : '#d1d5db' }}>★</span>
@@ -645,12 +703,22 @@ const Scorecards = () => {
                                     </div>
 
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                                        <span className="text-muted" style={{ fontSize: '13px' }}>Attendance Rating (10%)</span>
+                                        <span className="text-muted" style={{ fontSize: '13px' }}>Attendance & Discipline (25%)</span>
                                         <div style={{ display: 'flex', gap: '4px' }}>
                                             {[1, 2, 3, 4, 5].map((star) => (
                                                 <span key={star} style={{ fontSize: '20px', color: star <= memberData.scorecard.attendance_score ? '#f59e0b' : '#d1d5db' }}>★</span>
                                             ))}
                                             <span style={{ marginLeft: '8px', fontWeight: '600', fontSize: '14px', alignSelf: 'center' }}>{memberData.scorecard.attendance_score}/5</span>
+                                        </div>
+                                    </div>
+
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                        <span className="text-muted" style={{ fontSize: '13px' }}>Learning Rate (15%)</span>
+                                        <div style={{ display: 'flex', gap: '4px' }}>
+                                            {[1, 2, 3, 4, 5].map((star) => (
+                                                <span key={star} style={{ fontSize: '20px', color: star <= memberData.scorecard.learning_rate_score ? '#f59e0b' : '#d1d5db' }}>★</span>
+                                            ))}
+                                            <span style={{ marginLeft: '8px', fontWeight: '600', fontSize: '14px', alignSelf: 'center' }}>{memberData.scorecard.learning_rate_score || 0}/5</span>
                                         </div>
                                     </div>
 

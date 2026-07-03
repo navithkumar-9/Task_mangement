@@ -428,6 +428,8 @@ const Dashboard = () => {
                                             task.due_date;
 
                                         const isOverdue =
+                                            task.status !== 'COMPLETED' &&
+                                            task.status !== 'HOLD' &&
                                             effectiveDue &&
                                             new Date(effectiveDue) <
                                                 new Date(
