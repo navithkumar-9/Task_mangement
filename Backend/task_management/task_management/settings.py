@@ -205,6 +205,19 @@ EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER", "")
 EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD", "")
 DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", EMAIL_HOST_USER)
 
+# Elasticsearch search configuration
+ELASTICSEARCH_ENABLED = os.getenv("ELASTICSEARCH_ENABLED", "False").lower() in (
+    "true",
+    "1",
+    "yes",
+)
+ELASTICSEARCH_HOST = os.getenv("ELASTICSEARCH_HOST", "http://localhost:9200")
+ELASTICSEARCH_USER = os.getenv("ELASTICSEARCH_USER", "")
+ELASTICSEARCH_PASSWORD = os.getenv("ELASTICSEARCH_PASSWORD", "")
+ELASTICSEARCH_TIMEOUT = float(os.getenv("ELASTICSEARCH_TIMEOUT", "0.2"))
+ELASTICSEARCH_CHECK_TIMEOUT = float(os.getenv("ELASTICSEARCH_CHECK_TIMEOUT", "0.03"))
+ELASTICSEARCH_CHECK_INTERVAL = int(os.getenv("ELASTICSEARCH_CHECK_INTERVAL", "60"))
+
 # Security Settings for Production (enabled automatically when DEBUG is False)
 if not DEBUG:
     SECURE_SSL_REDIRECT = os.getenv("SECURE_SSL_REDIRECT", "True").lower() in ("true", "1", "yes")

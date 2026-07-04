@@ -39,6 +39,13 @@ The API is implemented in `Backend/task_management/core` with explicit `APIView`
 | `EMAIL_HOST_USER`      | SMTP username                    | Empty                                      |
 | `EMAIL_HOST_PASSWORD`  | SMTP password                    | Empty                                      |
 | `DEFAULT_FROM_EMAIL`   | Sender email                     | Uses `EMAIL_HOST_USER`                     |
+| `ELASTICSEARCH_ENABLED` | Enables Elasticsearch-backed global search | `False`                          |
+| `ELASTICSEARCH_HOST`   | Elasticsearch URL                | `http://localhost:9200`                   |
+| `ELASTICSEARCH_USER`   | Elasticsearch username           | Empty                                      |
+| `ELASTICSEARCH_PASSWORD` | Elasticsearch password         | Empty                                      |
+| `ELASTICSEARCH_TIMEOUT` | Elasticsearch request timeout in seconds | `0.2`                            |
+| `ELASTICSEARCH_CHECK_TIMEOUT` | Elasticsearch health-check timeout in seconds | `0.03`                 |
+| `ELASTICSEARCH_CHECK_INTERVAL` | Seconds to cache ES availability checks | `60`                    |
 
 ## Authentication
 
@@ -56,6 +63,18 @@ Tokens are returned from:
 | `POST /api/login/`             | Admin and Team Member portal |
 
 The access token is valid for 1 day and the refresh token is valid for 7 days.
+
+## Search
+
+Global search uses Elasticsearch when `ELASTICSEARCH_ENABLED=True` and the configured
+`ELASTICSEARCH_HOST` is reachable. If Elasticsearch is disabled or unavailable, the
+API falls back to role-scoped database search and caches the response briefly.
+
+After enabling Elasticsearch for an existing database, rebuild the search indexes:
+
+```bash
+python manage.py rebuild_search_index
+```
 
 ## Roles And Permissions
 

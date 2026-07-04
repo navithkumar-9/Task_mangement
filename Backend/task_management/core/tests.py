@@ -1,14 +1,26 @@
 import datetime
+from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
 from django.core.cache import cache
+from django.test import SimpleTestCase
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APITestCase
+from core.elasticsearch_client import check_es_availability
 from core.models import Task, TaskStatus, TaskPriority
 from core.roles import UserRole
 
 User = get_user_model()
+
+
+class ElasticsearchClientTestCase(SimpleTestCase):
+    def test_disabled_elasticsearch_does_not_probe_network(self):
+        with patch("core.elasticsearch_client.ES_ENABLED", False), patch(
+            "core.elasticsearch_client._session.get"
+        ) as mocked_get:
+            self.assertFalse(check_es_availability())
+            mocked_get.assert_not_called()
 
 
 class TaskCRUDPermissionTestCase(APITestCase):

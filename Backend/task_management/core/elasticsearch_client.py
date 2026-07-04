@@ -1,21 +1,22 @@
 import requests
 import logging
 import time
-import os
 from django.conf import settings
 from requests.auth import HTTPBasicAuth
 
 logger = logging.getLogger(__name__)
 
-ES_HOST = getattr(settings, "ELASTICSEARCH_HOST", os.getenv("ELASTICSEARCH_HOST", "http://localhost:9200"))
-ES_USER = getattr(settings, "ELASTICSEARCH_USER", os.getenv("ELASTICSEARCH_USER", None))
-ES_PASSWORD = getattr(settings, "ELASTICSEARCH_PASSWORD", os.getenv("ELASTICSEARCH_PASSWORD", None))
-ES_TIMEOUT = 0.3  # Shorter timeout to keep queries fast
+ES_HOST = getattr(settings, "ELASTICSEARCH_HOST", "http://localhost:9200")
+ES_USER = getattr(settings, "ELASTICSEARCH_USER", "")
+ES_PASSWORD = getattr(settings, "ELASTICSEARCH_PASSWORD", "")
+ES_TIMEOUT = getattr(settings, "ELASTICSEARCH_TIMEOUT", 0.2)
+ES_CHECK_TIMEOUT = getattr(settings, "ELASTICSEARCH_CHECK_TIMEOUT", 0.03)
+ES_ENABLED = getattr(settings, "ELASTICSEARCH_ENABLED", False)
 
 # Cached ES availability state to prevent blocking network attempts when ES is offline
 _es_active = None
 _last_checked = 0
-CHECK_INTERVAL = 15  # seconds
+CHECK_INTERVAL = getattr(settings, "ELASTICSEARCH_CHECK_INTERVAL", 60)
 
 # Global requests.Session to enable connection pooling
 _session = requests.Session()
@@ -28,14 +29,18 @@ def _get_auth():
 
 def check_es_availability():
     global _es_active, _last_checked
+    if not ES_ENABLED:
+        _es_active = False
+        return False
+
     now = time.time()
     if _es_active is None or (now - _last_checked > CHECK_INTERVAL):
         _last_checked = now
         try:
-            # Use a very short 0.1s timeout for the heartbeat check
-            res = _session.get(ES_HOST, timeout=0.1, auth=_get_auth())
+            res = _session.get(ES_HOST, timeout=ES_CHECK_TIMEOUT, auth=_get_auth())
             _es_active = res.status_code == 200
-        except Exception:
+        except requests.RequestException as exc:
+            logger.debug("Elasticsearch availability check failed: %s", exc)
             _es_active = False
     return _es_active
 
