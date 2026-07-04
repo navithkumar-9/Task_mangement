@@ -114,7 +114,7 @@ const TaskCard = React.memo(({ task, openEdit, isOverdue, COLUMNS, moveTask }) =
                     <button
                         key={c.id}
                         className="move-btn"
-                        style={{ color: c.color }}
+                        style={{ '--btn-color': c.color }}
                         onClick={(e) => moveTask(task.id, c.id, e)}
                         title={`Move to ${c.label}`}
                     >

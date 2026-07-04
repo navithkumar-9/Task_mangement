@@ -1001,7 +1001,8 @@ button[type="submit"] .spinner,
 }
 .move-btn {
     background: transparent;
-    border: 1px solid currentColor;
+    color: var(--btn-color);
+    border: 1px solid var(--btn-color);
     border-radius: 4px;
     padding: 2px 6px;
     font-size: 0.65rem;
@@ -1013,8 +1014,8 @@ button[type="submit"] .spinner,
 }
 .move-btn:hover {
     opacity: 1;
-    background: currentColor;
-    color: #fff !important; /* Will need to override inline color for hover */
+    background: var(--btn-color);
+    color: #fff !important;
 }
 
 .kanban-add-btn {
