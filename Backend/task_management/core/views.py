@@ -2241,9 +2241,9 @@ class DashboardStatsView(APIView):
         role = user.role
 
         if role == UserRole.SUPER_ADMIN.value:
-            cache_key = "superadmin:dashboard:stats"
+            cache_key = make_cache_key("superadmin:dashboard:stats", request)
         else:
-            cache_key = f"user:{user.id}:dashboard:stats"
+            cache_key = make_cache_key(f"user:{user.id}:dashboard:stats", request)
 
         cached_data = cache.get(cache_key)
         if cached_data:
@@ -2271,22 +2271,31 @@ class DashboardStatsView(APIView):
                 timesheets_qs = Timesheet.objects.filter(team_member=user)
 
         today = timezone.localdate()
-        agg = tasks_qs.aggregate(
-            total=Count('id'),
-            completed=Count('id', filter=Q(status=TaskStatus.COMPLETED)),
-            overdue=Count('id', filter=~Q(status__in=[TaskStatus.COMPLETED, TaskStatus.HOLD]) & Q(due_date__lt=today)),
-            pending=Count('id', filter=Q(status=TaskStatus.PENDING)),
-            in_progress=Count('id', filter=Q(status=TaskStatus.IN_PROGRESS)),
-            in_review=Count('id', filter=Q(status=TaskStatus.IN_REVIEW)),
-            hold=Count('id', filter=Q(status=TaskStatus.HOLD))
+        active_task_filter = ~Q(status__in=[TaskStatus.COMPLETED, TaskStatus.HOLD])
+        non_hold_task_filter = ~Q(status=TaskStatus.HOLD)
+        overdue_task_filter = active_task_filter & (
+            Q(revised_due_date__lt=today)
+            | Q(revised_due_date__isnull=True, due_date__lt=today)
         )
-        total_count = agg["total"] or 0
+        agg = tasks_qs.aggregate(
+            total_non_hold=Count("id", filter=non_hold_task_filter, distinct=True),
+            active=Count("id", filter=active_task_filter, distinct=True),
+            completed=Count("id", filter=Q(status=TaskStatus.COMPLETED), distinct=True),
+            overdue=Count("id", filter=overdue_task_filter, distinct=True),
+            pending=Count("id", filter=Q(status=TaskStatus.PENDING), distinct=True),
+            in_progress=Count("id", filter=Q(status=TaskStatus.IN_PROGRESS), distinct=True),
+            in_review=Count("id", filter=Q(status=TaskStatus.IN_REVIEW), distinct=True),
+            hold=Count("id", filter=Q(status=TaskStatus.HOLD), distinct=True),
+        )
+        total_non_hold_count = agg["total_non_hold"] or 0
+        active_count = agg["active"] or 0
         completed_count = agg["completed"] or 0
-        active_count = total_count - completed_count
         overdue_count = agg["overdue"] or 0
 
         progress = (
-            round((completed_count / total_count) * 100) if total_count > 0 else 0
+            round((completed_count / total_non_hold_count) * 100)
+            if total_non_hold_count > 0
+            else 0
         )
 
         status_map = {
@@ -2297,11 +2306,11 @@ class DashboardStatsView(APIView):
             "COMPLETED": completed_count,
         }
 
-        active_tasks = tasks_qs.exclude(status=TaskStatus.COMPLETED)
+        active_tasks = tasks_qs.filter(active_task_filter)
         workload_query = active_tasks.values("assignees__username").annotate(
-            count=Count("id")
+            count=Count("id", distinct=True)
         )
-        unassigned_count = active_tasks.filter(assignees__isnull=True).count()
+        unassigned_count = active_tasks.filter(assignees__isnull=True).distinct().count()
 
         workload_map = {}
         for item in workload_query:
@@ -2326,7 +2335,7 @@ class DashboardStatsView(APIView):
         p_weight = {"HIGH": 3, "MEDIUM": 2, "LOW": 1}
 
         def get_urgency(task):
-            due = task.due_date
+            due = task.revised_due_date or task.due_date
             if not due:
                 return 1
             if due < today:
@@ -2340,7 +2349,7 @@ class DashboardStatsView(APIView):
             key=lambda t: (
                 -get_urgency(t),
                 -p_weight.get(t.priority, 0),
-                t.due_date or datetime.date.max,
+                t.revised_due_date or t.due_date or datetime.date.max,
             )
         )
         top_critical = active_list[:5]

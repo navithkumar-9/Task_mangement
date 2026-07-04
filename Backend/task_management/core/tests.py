@@ -1,4 +1,7 @@
+import datetime
+
 from django.contrib.auth import get_user_model
+from django.core.cache import cache
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APITestCase
@@ -129,3 +132,95 @@ class TaskCRUDPermissionTestCase(APITestCase):
         }
         response = self.client.post(url, payload)
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+
+class DashboardStatsTestCase(APITestCase):
+    def setUp(self):
+        cache.clear()
+        self.admin = User.objects.create_user(
+            username="dashboard_admin",
+            email="dashboard_admin@test.com",
+            password="SecurePassword123!",
+            role=UserRole.ADMIN.value,
+        )
+        self.other_admin = User.objects.create_user(
+            username="other_dashboard_admin",
+            email="other_dashboard_admin@test.com",
+            password="SecurePassword123!",
+            role=UserRole.ADMIN.value,
+        )
+        self.member = User.objects.create_user(
+            username="dashboard_member",
+            email="dashboard_member@test.com",
+            password="SecurePassword123!",
+            role=UserRole.TEAM_MEMBER.value,
+            created_by=self.admin,
+        )
+        self.today = timezone.localdate()
+
+    def create_task(self, *, status, priority=TaskPriority.MEDIUM, due_offset=0, revised_offset=None, assigned_by=None):
+        task = Task.objects.create(
+            project_name="Dashboard Project",
+            task_name=f"{status}-{due_offset}-{revised_offset}",
+            description="Dashboard metric test task",
+            assigned_by=assigned_by or self.admin,
+            status=status,
+            priority=priority,
+            due_date=self.today + datetime.timedelta(days=due_offset),
+            revised_due_date=(
+                self.today + datetime.timedelta(days=revised_offset)
+                if revised_offset is not None
+                else None
+            ),
+        )
+        task.assignees.add(self.member)
+        return task
+
+    def test_dashboard_metrics_match_effective_task_data(self):
+        self.create_task(status=TaskStatus.COMPLETED, due_offset=-5)
+        self.create_task(status=TaskStatus.HOLD, due_offset=-5)
+        self.create_task(status=TaskStatus.PENDING, due_offset=5, revised_offset=-1)
+        self.create_task(status=TaskStatus.IN_PROGRESS, due_offset=-5, revised_offset=2)
+        self.create_task(status=TaskStatus.IN_REVIEW, priority=TaskPriority.HIGH, due_offset=-1)
+        self.create_task(status=TaskStatus.PENDING, due_offset=-5, assigned_by=self.other_admin)
+
+        self.client.force_authenticate(user=self.admin)
+        response = self.client.get("/api/dashboard/stats/")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.data["data"]
+        self.assertEqual(data["metrics"]["totalActive"], 3)
+        self.assertEqual(data["metrics"]["overdue"], 2)
+        self.assertEqual(data["metrics"]["completed"], 1)
+        self.assertEqual(data["metrics"]["progress"], 25)
+
+        status_counts = {
+            item["originalStatus"]: item["value"] for item in data["statusData"]
+        }
+        self.assertEqual(status_counts[TaskStatus.PENDING], 1)
+        self.assertEqual(status_counts[TaskStatus.IN_PROGRESS], 1)
+        self.assertEqual(status_counts[TaskStatus.IN_REVIEW], 1)
+        self.assertEqual(status_counts[TaskStatus.HOLD], 1)
+        self.assertEqual(status_counts[TaskStatus.COMPLETED], 1)
+
+        workload = {item["name"]: item["tasks"] for item in data["workloadData"]}
+        self.assertEqual(workload[self.member.username], 3)
+        self.assertTrue(
+            all(
+                task["status"] not in [TaskStatus.COMPLETED, TaskStatus.HOLD]
+                for task in data["topCriticalTasks"]
+            )
+        )
+
+    def test_dashboard_cache_refreshes_after_task_changes(self):
+        self.client.force_authenticate(user=self.admin)
+        first_response = self.client.get("/api/dashboard/stats/")
+        self.assertEqual(first_response.status_code, status.HTTP_200_OK)
+        self.assertEqual(first_response.data["data"]["metrics"]["totalActive"], 0)
+
+        with self.captureOnCommitCallbacks(execute=True):
+            self.create_task(status=TaskStatus.PENDING, due_offset=1)
+        second_response = self.client.get("/api/dashboard/stats/")
+
+        self.assertEqual(second_response.status_code, status.HTTP_200_OK)
+        self.assertEqual(second_response.data["data"]["metrics"]["totalActive"], 1)
