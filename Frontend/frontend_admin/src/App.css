@@ -4662,6 +4662,8 @@ button[type="submit"] .spinner,
   display: flex;
   gap: 8px;
   align-items: center;
+  flex-wrap: nowrap;
+  white-space: nowrap;
 }
 
 .ext-timesheet-262 {

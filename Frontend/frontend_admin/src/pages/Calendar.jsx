@@ -405,7 +405,8 @@ const Calendar = () => {
         const m = String(dateObj.date.getMonth() + 1).padStart(2, '0');
         const d = String(dateObj.date.getDate()).padStart(2, '0');
         const dateKey = `${y}-${m}-${d}`;
-        const dayTasks = tasksByDate[dateKey] || [];
+        const dayData = tasksByDate[dateKey];
+        const dayTasks = dayData ? dayData.tasks : [];
         if (dayTasks.length > 0) {
             setSelectedDate(dateObj.date);
             setSelectedTasks(dayTasks);

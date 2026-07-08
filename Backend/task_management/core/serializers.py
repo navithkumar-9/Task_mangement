@@ -410,7 +410,7 @@ class TimesheetListSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Timesheet
-        exclude = ["description"]
+        fields = "__all__"
 
     def get_task(self, obj):
 
@@ -419,6 +419,7 @@ class TimesheetListSerializer(serializers.ModelSerializer):
             "project_name": obj.task.project_name,
             "task_name": obj.task.task_name,
             "priority": obj.task.priority,
+            "description":obj.task.description,
             "assigned_by": {
                 "id": obj.task.assigned_by.id,
                 "username": obj.task.assigned_by.username,

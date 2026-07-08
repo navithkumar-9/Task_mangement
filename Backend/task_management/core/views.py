@@ -1175,7 +1175,6 @@ class AdminTimesheetListView(APIView):
             paginated_queryset,
             many=True,
         )
-
         response_obj = paginator.get_paginated_response(
             {
                 "isV1": True,
