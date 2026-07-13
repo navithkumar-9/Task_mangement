@@ -670,8 +670,8 @@ const Timesheet = () => {
                                             </div>
                                         </td>
                                         <td className="ext-completed-tasks-91">
-                                            <div className="ext-timesheet-259">
-                                                {ts.description}
+                                            <div className="ext-timesheet-259" title={ts.description || ''}>
+                                                {ts.description || <span style={{ color: 'var(--text-muted)', fontStyle: 'italic', fontSize: '0.8rem' }}>No description</span>}
                                             </div>
                                         </td>
                                         <td className="ext-completed-tasks-91">

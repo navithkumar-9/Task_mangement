@@ -1093,9 +1093,26 @@ class UpdateTimesheetView(APIView):
 
         serializer.save()
 
+        # Re-fetch with joins to return full timesheet data (consistent with create view)
+        updated_timesheet = (
+            Timesheet.objects.select_related(
+                "task",
+                "task__assigned_by",
+                "task__assigned_by__created_by",
+                "team_member",
+            )
+            .defer(
+                "team_member__profile_picture",
+                "task__assigned_by__profile_picture",
+                "task__assigned_by__created_by__profile_picture",
+            )
+            .prefetch_related(Prefetch("task__assignees", queryset=user_summary_queryset()))
+            .get(id=timesheet.id)
+        )
+
         return success_response(
             message="Timesheet updated successfully",
-            data=serializer.data,
+            data=TimesheetListSerializer(updated_timesheet).data,
             status_code=status.HTTP_200_OK,
         )
 

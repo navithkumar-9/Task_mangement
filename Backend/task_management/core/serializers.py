@@ -22,7 +22,10 @@ User = get_user_model()
 
 
 def get_profile_picture_summary(user):
-    if hasattr(user, "get_deferred_fields") and "profile_picture" in user.get_deferred_fields():
+    if (
+        hasattr(user, "get_deferred_fields")
+        and "profile_picture" in user.get_deferred_fields()
+    ):
         return ""
     picture = getattr(user, "profile_picture", "") or ""
     if picture.startswith("data:image/") or len(picture) > 2048:
@@ -222,15 +225,19 @@ class TaskCreateSerializer(serializers.ModelSerializer):
             leader = request.user.created_by
 
         # Retrieve valid IDs using a single bulk query
-        valid_users = list(User.objects.filter(
-            id__in=value, role=UserRole.TEAM_MEMBER.value, created_by=leader
-        ))
+        valid_users = list(
+            User.objects.filter(
+                id__in=value, role=UserRole.TEAM_MEMBER.value, created_by=leader
+            )
+        )
         self._cached_assignees = valid_users
         valid_ids = {u.id for u in valid_users}
-        
+
         invalid_ids = set(value) - valid_ids
         if invalid_ids:
-            raise serializers.ValidationError(f"Invalid team member IDs: {list(invalid_ids)}")
+            raise serializers.ValidationError(
+                f"Invalid team member IDs: {list(invalid_ids)}"
+            )
 
         return value
 
@@ -246,7 +253,10 @@ class TaskCreateSerializer(serializers.ModelSerializer):
         if assignees_list is None:
             assignees_list = list(User.objects.filter(id__in=assignee_ids))
         # Only auto-add creator as assignee for TEAM_MEMBER (not for ADMIN)
-        if request.user.role == UserRole.TEAM_MEMBER.value and request.user not in assignees_list:
+        if (
+            request.user.role == UserRole.TEAM_MEMBER.value
+            and request.user not in assignees_list
+        ):
             assignees_list.append(request.user)
 
         task.assignees.set(assignees_list)
@@ -281,7 +291,8 @@ class TaskListSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Task
-        exclude = ["description"]
+        fields = "__all__"
+        # exclude = ["description"]
 
     def get_assignees(self, obj):
 
@@ -419,7 +430,7 @@ class TimesheetListSerializer(serializers.ModelSerializer):
             "project_name": obj.task.project_name,
             "task_name": obj.task.task_name,
             "priority": obj.task.priority,
-            "description":obj.task.description,
+            "description": obj.task.description,
             "assigned_by": {
                 "id": obj.task.assigned_by.id,
                 "username": obj.task.assigned_by.username,
